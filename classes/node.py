@@ -38,7 +38,6 @@ class GaussianFieldUnit(NeuronType):
 
 
 class Node(Ensemble):
-    # TODO: inherit from ensemble
     '''
     Converts float input into sequence of spikes
     can use several sub nodes to code for a single value
@@ -48,20 +47,20 @@ class Node(Ensemble):
     size: int
          The number of neuron used to code one value
     input : float, function, generator
-        The value to convert to spikes. will change
+        The value to convert to spikes. can change with time
     period : int
         The number of steps between 2 input changes
 
     Attributes
     ----------
-    source: NeuronType
-        The emitting neuron
-    dest : [NeuronType]
-        The list of connected neurons
-    spike_notifier: SpikeNotifier
-        The object to notifiy when this axon has a spike to propagate
-
-
+    size: NeuronType
+        Stores the number of neuron used to code one value
+    input : float, function, generator
+        Stores the value to convert to spikes
+    period : int
+        Stores the number of steps between 2 input changes
+    time: int
+        Time ellapsed since the last input change
     '''
 
     objects = []
@@ -69,14 +68,20 @@ class Node(Ensemble):
     def __init__(self, size, input, period, *args):
         super(Node, self).__init__(size, GaussianFieldUnit)
         Node.objects.append(self)
-
-        # TODO: compute gaussian cruves
+        self.size = size
+        self.input = input
         self.period = period
-        # TODO: present new input every period
         self.args = args
+        self.time = 0
 
-
-    def set_value(self):
-        trigger = compute_gauss_time(input, size, 0, 1, 10)
+    def set_value(self, value):
+        trigger = compute_gauss_time(value, self.size, 0, 1, 10)
         for i, neuron in enumerate(self.get_neuron_list):
             neuron.new_value(trigger[i], True)
+
+    def step(self, dt):
+        self.time += dt
+        if (self.time >= self.period):
+            # TODO: compute new value
+            self.set_value(self.input)
+            self.time = 0

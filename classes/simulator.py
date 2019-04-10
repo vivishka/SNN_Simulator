@@ -38,11 +38,13 @@ class simulator(object):
         # self.neurons = self.objects[Neuron]
         self.ensembles = self.objects[Ensemble]
         self.connections = self.objects[Connection]
-        self.spike_buffer = SpikeNotifier()
+        self.spike_notifier = SpikeNotifier()
 
     def run(self, time):
         for connect in self.connections:
-            connect.set_notifierr(self.spike_buffer)
+            connect.set_notifier(self.spike_notifier)
+        # this or for all axons ?
+        # TODO: common time value
         # TODO: send all simulator infos at once: bugger + dt ?
         self.nb_step = int(time / self.dt)
         for i in range(self.nb_step):
@@ -54,4 +56,4 @@ class simulator(object):
         for ens in self.ensembles:
             ens.step(self.dt)
         # print(self.spike_buffer.spike_list)
-        self.spike_buffer.propagate_all()
+        self.spike_notifier.propagate_all()

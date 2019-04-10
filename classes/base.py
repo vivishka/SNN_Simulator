@@ -8,9 +8,11 @@ class SimulationObject(object):
 
     # objects = {}
 
+    # TODO:  __repr__
     def __init__(self, label=''):
         super(SimulationObject, self).__init__()
         self.label = label
+        self.time = 0
 
     @classmethod
     def get_objects(cls):
@@ -21,3 +23,6 @@ class SimulationObject(object):
     # def addInstance(cls, cls_name, obj):
     #     # if cls.objects
     #     # TODO: maybe
+
+    def step(self, dt):
+        self.time += dt

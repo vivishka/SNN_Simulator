@@ -5,6 +5,27 @@ import sys
 sys.dont_write_bytecode = True
 
 
+class ConnectionPattern(object):
+    """docstring for ConnectionPattern."""
+
+    # TODO: add more functions for different pattern
+    def __init__(self, type='all2all', **kwargs):
+        super(ConnectionPattern, self).__init__()
+        self.type = type
+        self.param = kwargs
+
+    def create(self, index, dest):
+        """ from the index of the  axon, returns the connection pattern
+            returns list of tuple (neuron, weight)
+        """
+        neuron_list = []
+        weight_list = []
+        for neuron in dest.get_neuron_list():
+            neuron_list.append(neuron)
+            weight_list.append(np.random.rand())
+        return neuron_list, weight_list
+
+
 # class Connection(object):
 class Axon(SimulationObject):
     '''
@@ -45,6 +66,7 @@ class Axon(SimulationObject):
                 'destination neuron and weights should be the same dimension')
 
         # associciate the source, destination and weight
+        source.add_output(self)
         for i, neuron in enumerate(dest):
             neuron.add_input(self, weights[i])
 
@@ -92,22 +114,24 @@ class Connection(SimulationObject):
     # - one to one, all to all, all to %
     # - fixed weight, uniformly random, other
 
-    def __init__(self, source, dest, *args):
-        super(Connection, self).__init__("Connection {0}".format(id(self)))
+    def __init__(self, source, dest, pattern=None, *args, **kwargs):
+        super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
         self.source = source
         self.dest = dest
         self.axon_list = []
+        self.pattern = ConnectionPattern() if pattern is None else pattern
         source_list = source.get_neuron_list()
-        dest_list = dest.get_neuron_list()
+        # dest_list = dest.get_neuron_list()
         # TODO: specify dimension ?
         # TODO: convolutional
+        # TODO: weight distribution
+        #
 
         for neuron in source_list:
-            ax = Axon(neuron, dest_list, np.ones(len(dest_list)))
-            # TODO: weight distribution
+            d, w = self.pattern.create(0, self.dest)
+            ax = Axon(neuron, d, w)
             self.axon_list.append(ax)
-            neuron.connect(ax)
 
     def set_notifier(self, spike_notifier):
         """ Used to simulate axons only when they received a spike """

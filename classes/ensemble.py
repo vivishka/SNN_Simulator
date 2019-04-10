@@ -1,10 +1,10 @@
-
-from base import SimationObject
+import numpy as np
+from base import SimulationObject
 import sys
 sys.dont_write_bytecode = True
 
 
-class Ensemble(SimationObject):
+class Ensemble(SimulationObject):
     '''
     An ensemble is an array of neurons. It is mostly used to represent a layer
     it can be a 1D or 2D array
@@ -31,13 +31,19 @@ class Ensemble(SimationObject):
     objects = []
 
     # TODO: default cases
-    def __init__(self, size, neuron_type, *args):
-        super(Ensemble, self).__init__()
+    def __init__(self, size, neuron_type, label='', **kwargs):
+        lbl = label if label != '' else id(self)
+        super(Ensemble, self).__init__("Ens_{}".format(lbl))
         Ensemble.objects.append(self)
 
         self.size = size
         self.neuron_type = neuron_type
-        self.neuron_list = [neuron_type(self, i, *args) for i in range(size)]
+        args = {}
+        # TODO: change arg passing
+        # args['param'] = {'threshold': np.random.rand}
+        args = {}
+        self.neuron_list = [
+            neuron_type(self, i, **args) for i in range(size)]
 
     def step(self, dt):
         for neuron in self.neuron_list:
@@ -46,6 +52,16 @@ class Ensemble(SimationObject):
     def get_neuron_list(self):
         return self.neuron_list
         # TODO: flatten if 2D ?
+
+    def set_probe(self, index, value):
+        for neuron in self.neuron_list:
+            neuron.set_probe(index, value)
+
+    def __getitem__(self, index):
+        return self.neuron_list[index]
+
+    def __setitem__(self, index, value):
+        self.neuron_list[index] = value
 
 
 # TODO: distribution mecanim for neuron creation

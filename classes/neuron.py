@@ -1,8 +1,22 @@
 
-from probe import Probe
 from base import SimulationObject
 import sys
 sys.dont_write_bytecode = True
+
+
+class Weights(object):
+    """docstring for Weights."""
+
+    def __init__(self, shared=False):
+        super(Weights, self).__init__()
+        self.weights = {}
+        self.shared = shared
+
+    def __getitem__(self, key):
+        return self.weights[key]
+
+    def __setitem__(self, key, value):
+        self.weights[key] = value
 
 
 class NeuronType(SimulationObject):
@@ -34,58 +48,78 @@ class NeuronType(SimulationObject):
         list of axons which emitted a received spikes this step
     '''
 
-    def __init__(self, ensemble, index, *args):
-        super(NeuronType, self).__init__()
+    def __init__(self, ensemble, index, *args, **kwargs):
+        # TODO: give a kwargs with an array: neuron can use its own index
+        super(NeuronType, self).__init__(
+            "{0}_Neuron_{1}".format(ensemble.label, index))
         self.ensemble = ensemble
         self.index = index
-        self.inputs = {}
+        print(kwargs)
+        self.param = kwargs['param'] if 'param' in kwargs else None
+        # TODO: rename inputs, possibility to share weights when convo
+        self.inputs = []
         self.outputs = []
+        self.weights = Weights()
         self.received = []
-        self.is_probed = False
-        self.probes = {
-            'voltage': {
-                'probe': None,
-                'value': None
-                },
-            }
+        self.variable_probed = False
+        self.spike_out_probed = False
+        self.spike_out_probed = False
+        self.probes = {}
         # TODO: bias
+
+    def extract_param(self, name, default):
+        param = default
+        if self.param is not None and name in self.param:
+            if callable(self.param[name]):
+                param = self.param[name]()
+            else:
+                param = self.param[name]
+        return param
 
     def add_input(self, source, weight):
         """ Stores in the neuron the reference of the incomming connection
         and its associated weight
         """
-        print(self, 'appending', source)
-        self.inputs[source] = weight
+        # print(self, 'appending', source)
+        self.inputs.append(source)
+        self.weights[source] = weight
 
     def add_output(self, dest):
-        """ Append the object the neuron should output into """
+        """ Append the object the neuron should output into
+        will call the method create_spike of this object
+        """
         self.outputs.append(dest)
+
+    def set_weights(self, weights):
+        """" used for convolutional connections, when kernel is shared """
+        self.weights = weights
 
     def receive_spike(self, source):
         """ Append an axons which emitted a received spikes this step """
         # TODO: here the learner can be added
-        print("spike received by " + self.name)
-        self.received.append(self.inputs[source])
+        print("spike received by " + self.label)
+        self.received.append(source)
 
     def send_spike(self):
         """ send a spike to all the connected axons """
         for output in self.outputs:
             output.create_spike()
+        if self.spike_out_probed:
+            self.probes['spike_out'].send_value(self.time)
 
     def set_probe(self, obj, variable):
-        if variable in self.probes:
-            self.is_probed = True
-            self.probes[variable]['probe'] = obj
+        self.probes[variable] = obj
+        if variable == 'spike_in':
+            self.spike_in_probed = True
+        elif variable == 'spike_out':
+            self.spike_out_probed = True
+        else:
+            self.variable_probed = True
 
     def probe(self):
-        for attr, value in self.probes.items():
-            var = self.probes[attr]
-            if var['probe'] is not None:
-                print('probing', attr, var['value']())
-                var['probe'].send_value(var['value']())
-
-    def __del__(self):
-        print ('Foo' + self.name + 'died')
+        for var, probe in self.probes.items():
+            # print("probing {}: {}".format(var, self.__getattribute__(var)))
+            probe.send_value(self.index, self.__getattribute__(var))
 
 
 class Neuron(NeuronType):
@@ -95,39 +129,26 @@ class Neuron(NeuronType):
 
     objects = []
 
-    def __init__(self, ensemble, index, threshold=1, name='', *args):
-        super(Neuron, self, ensemble, index).__init__()
-        self.name = name
-        self.voltage = 0
-        self.has_spiked = 0
-        self.threshold = threshold
+    def __init__(self, ensemble, index, *args, **kwargs):
+        super(Neuron, self).__init__(ensemble, index, *args, **kwargs)
         Neuron.objects.append(self)
-        print("neuron " + name + " init", threshold)
-        self.probes = {
-            'voltage': {
-                'probe': None,
-                'value': self.probe_voltage
-                },
-            'spike': {
-                'probe': None,
-                'value': self.has_spiked
-            }
-        }
-        self.pb = Probe(self)
+        self.voltage = 0
+        self.threshold = 1
+        self.threshold = self.extract_param('threshold', 1)
+        print("neuron {}, thr: {}".format(self.label, self.threshold))
+        # self.pb = Probe(self)
 
     def probe_voltage(self):
         # TODO: put this in a beatiful decorator
         return self.voltage
 
     def step(self, dt):
-        self.has_spiked = 0
-        self.voltage += (dt + sum(self.inputs))
-        self.inputs = []
+        self.time += dt
+        self.voltage += (dt + sum([self.weights[i] for i in self.received]))
+        self.received = []
         # print("neuron " + self.name + " V: ", int(self.voltage*1000))
         if self.voltage >= self.threshold:
-            self.has_spiked = 1
-            print("neuron " + self.name + " spiked")
+            print("neuron " + self.label + " spiked")
             self.voltage = 0
-            for axon in self.axon_list:
-                axon.send_spike()
+            self.send_spike()
         self.probe()
