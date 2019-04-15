@@ -1,3 +1,4 @@
+from a import a
 
 class C1(object):
     """docstring for C1."""

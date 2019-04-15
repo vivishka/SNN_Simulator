@@ -1,7 +1,7 @@
 
 # from neuron import Neuron
-from connection import Connection
-from ensemble import Ensemble
+from .connection import Connection
+from .ensemble import Ensemble
 # from node import Node
 # from probe import Probe
 # from base import SimulationObject
@@ -25,6 +25,30 @@ class SpikeNotifier(object):
         self.spike_list = []
 
 
+# Print iterations progress
+def printProgressBar(
+    iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(
+        100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end='\r')
+    # Print New Line on Complete
+    if iteration == total:
+        print()
+
+
 class simulator(object):
     """docstring for simulator."""
 
@@ -44,16 +68,17 @@ class simulator(object):
         for connect in self.connections:
             connect.set_notifier(self.spike_notifier)
         # this or for all axons ?
-        # TODO: common time value
         # TODO: send all simulator infos at once: bugger + dt ?
         self.nb_step = int(time / self.dt)
         for i in range(self.nb_step):
             self.step()
+            # printProgressBar(i, self.nb_step)
 
     def step(self):
+        """ for every steps, evaluate ensembles, then propagate spikes """
+        # TODO:  progres bar
         self.time += self.dt
-        print(self.time)
+        print("{:.4f}".format(self.time))
         for ens in self.ensembles:
-            ens.step(self.dt)
-        # print(self.spike_buffer.spike_list)
+            ens.step(self.dt, self.time)
         self.spike_notifier.propagate_all()

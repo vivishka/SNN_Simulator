@@ -1,5 +1,5 @@
 import numpy as np
-from base import SimulationObject
+from .base import SimulationObject
 import sys
 sys.dont_write_bytecode = True
 
@@ -38,27 +38,43 @@ class Ensemble(SimulationObject):
 
         self.size = size
         self.neuron_type = neuron_type
-        args = {}
         # TODO: change arg passing
         # args['param'] = {'threshold': np.random.rand}
-        args = {}
-        self.neuron_list = [
-            neuron_type(self, i, **args) for i in range(size)]
+        # args = {}
+        if isinstance(size, int):
+            self.dim = 1
+            self.neuron_list = [
+                neuron_type(self, i, **kwargs) for i in range(size)]
+        elif isinstance(size, tuple) and len(size) == 2:
+            self.dim = 2
+            self.neuron_array = [
+                [neuron_type(self, (line, col), **kwargs)
+                    for col in range(size[1])] for line in range(size[0])]
+            # flatten the arry into a list
+            self.neuron_list = [obj for i in self.neuron_array for obj in i]
+        else:
+            raise TypeError("Ensemble dimension should be int or (int, int)")
 
-    def step(self, dt):
+    def step(self, dt, time):
         for neuron in self.neuron_list:
-            neuron.step(dt)
+            neuron.step(dt, time)
+
+    def reset(self):
+        for neuron in self.neuron_list:
+            neuron.reset()
 
     def get_neuron_list(self):
         return self.neuron_list
-        # TODO: flatten if 2D ?
 
-    def set_probe(self, index, value):
+    def add_probe(self, index, value):
         for neuron in self.neuron_list:
-            neuron.set_probe(index, value)
+            neuron.add_probe(index, value)
 
     def __getitem__(self, index):
-        return self.neuron_list[index]
+        if self.dim == 1:
+            return self.neuron_list[index]
+        else:
+            return self.neuron_array[index]
 
     def __setitem__(self, index, value):
         self.neuron_list[index] = value
@@ -66,6 +82,5 @@ class Ensemble(SimulationObject):
 
 # TODO: distribution mecanim for neuron creation
 # TODO: inhibition
-# TODO: probing
 # TODO: dimension (1/2)
 # TODO: acces indexing []

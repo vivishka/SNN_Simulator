@@ -12,7 +12,6 @@ class SimulationObject(object):
     def __init__(self, label=''):
         super(SimulationObject, self).__init__()
         self.label = label
-        self.time = 0
 
     @classmethod
     def get_objects(cls):
@@ -25,4 +24,4 @@ class SimulationObject(object):
     #     # TODO: maybe
 
     def step(self, dt):
-        self.time += dt
+        pass

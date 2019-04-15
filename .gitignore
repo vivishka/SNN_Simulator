@@ -1,0 +1,6 @@
+
+# Ignore all bytecode
+.pyc
+
+# Ignore pycache
+__pycache__/

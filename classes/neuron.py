@@ -1,5 +1,5 @@
 
-from base import SimulationObject
+from .base import SimulationObject
 import sys
 sys.dont_write_bytecode = True
 
@@ -30,41 +30,51 @@ class NeuronType(SimulationObject):
         The ensemble this neuron belongs to
     index: int or (int, int)
         The index (in 1D or 2D) of the neuron in the ensemble
-    *args
-        The list of arguments passed to initialize the neurons
+    **kwargs
+        The dictionary of arguments passed to initialize the neurons
 
     Attributes
     ----------
     ensemble: Ensemble
         Stores the ensemble this neuron belongs to
     index: int or (int, int)
+    param
+        The dictionary of arguments passed to initialize the neurons
         Stores the index (in 1D or 2D) of the neuron in the ensemble
-    inputs: {Axon:float}
-        dictionary to store weights attached to connections
+    inputs: [Axon]
+        List of axons connected to this neuron
     outputs: [Axon]
-        list of axons the neuron can output to most neuron only have 1 axon,
+        List of axons the neuron can output to most neuron only have 1 axon,
         but multpiple axons are used here to connect with multiple ensembles
+    weights: Weights
+        Dictionary to store weights attached to connections
+        Can be shared between neurons of the same ensemble
     received: [Axon]
-        list of axons which emitted a received spikes this step
+        List of axons which emitted a received spikes this step
+    *_probed: bool
+        Stores on which type of variable this neuron is being probed
+    probes: {str:Probe}
+        Dictionary associating variable name and probe
+    time: float
+        the current time, updated every step, used for probing
     '''
 
-    def __init__(self, ensemble, index, *args, **kwargs):
+    def __init__(self, ensemble, index, **kwargs):
         # TODO: give a kwargs with an array: neuron can use its own index
         super(NeuronType, self).__init__(
             "{0}_Neuron_{1}".format(ensemble.label, index))
         self.ensemble = ensemble
         self.index = index
-        print(kwargs)
-        self.param = kwargs['param'] if 'param' in kwargs else None
-        # TODO: rename inputs, possibility to share weights when convo
+        self.param = kwargs if kwargs is not None else {}
         self.inputs = []
         self.outputs = []
         self.weights = Weights()
         self.received = []
         self.variable_probed = False
         self.spike_out_probed = False
-        self.spike_out_probed = False
+        self.spike_in_probed = False
         self.probes = {}
+        self.time = 0
         # TODO: bias
 
     def extract_param(self, name, default):
@@ -80,7 +90,6 @@ class NeuronType(SimulationObject):
         """ Stores in the neuron the reference of the incomming connection
         and its associated weight
         """
-        # print(self, 'appending', source)
         self.inputs.append(source)
         self.weights[source] = weight
 
@@ -97,17 +106,19 @@ class NeuronType(SimulationObject):
     def receive_spike(self, source):
         """ Append an axons which emitted a received spikes this step """
         # TODO: here the learner can be added
-        print("spike received by " + self.label)
         self.received.append(source)
+        if self.spike_in_probed:
+            w = self.weights[source]
+            self.probes['spike_in'].log_spike_in(source.index, self.time, w)
 
     def send_spike(self):
         """ send a spike to all the connected axons """
         for output in self.outputs:
             output.create_spike()
         if self.spike_out_probed:
-            self.probes['spike_out'].send_value(self.time)
+            self.probes['spike_out'].log_spike_out(self.index, self.time)
 
-    def set_probe(self, obj, variable):
+    def add_probe(self, obj, variable):
         self.probes[variable] = obj
         if variable == 'spike_in':
             self.spike_in_probed = True
@@ -117,9 +128,38 @@ class NeuronType(SimulationObject):
             self.variable_probed = True
 
     def probe(self):
-        for var, probe in self.probes.items():
-            # print("probing {}: {}".format(var, self.__getattribute__(var)))
-            probe.send_value(self.index, self.__getattribute__(var))
+        if self.variable_probed:
+            for var, probe in self.probes.items():
+                # TODO: check existence
+                if var not in ('spike_in, spike_out'):
+                    probe.log_value(self.index, self.__getattribute__(var))
+
+
+class LIF(NeuronType):
+    """docstring for LIF."""
+
+    def __init__(self, ensemble, index, **kwargs):
+        super(LIF, self).__init__(ensemble, index, **kwargs)
+        Neuron.objects.append(self)
+        self.voltage = 0
+        self.threshold = self.extract_param('threshold', 1)
+        self.tau = self.extract_param('tau', 1)
+
+    def step(self, dt, time):
+        self.time = time
+        input = sum([self.weights[i] for i in self.received])
+        self.voltage += - self.tau * self.voltage * dt + input
+        if self.voltage < 0:
+            self.voltage = 0
+        self.received = []
+        # print("neuron " + self.name + " V: ", int(self.voltage*1000))
+        if self.voltage >= self.threshold:
+            self.voltage = 0
+            self.send_spike()
+        self.probe()
+
+    def reset(self):
+        self.voltage = 0
 
 
 class Neuron(NeuronType):
@@ -135,20 +175,17 @@ class Neuron(NeuronType):
         self.voltage = 0
         self.threshold = 1
         self.threshold = self.extract_param('threshold', 1)
-        print("neuron {}, thr: {}".format(self.label, self.threshold))
-        # self.pb = Probe(self)
+        # print("neuron {}, thr: {}".format(self.label, self.threshold))
 
-    def probe_voltage(self):
-        # TODO: put this in a beatiful decorator
-        return self.voltage
-
-    def step(self, dt):
-        self.time += dt
+    def step(self, dt, time):
+        self.time = time
         self.voltage += (dt + sum([self.weights[i] for i in self.received]))
         self.received = []
         # print("neuron " + self.name + " V: ", int(self.voltage*1000))
         if self.voltage >= self.threshold:
-            print("neuron " + self.label + " spiked")
             self.voltage = 0
             self.send_spike()
         self.probe()
+
+    def reset(self):
+        self.voltage = 0
