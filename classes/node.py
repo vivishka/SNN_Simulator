@@ -45,7 +45,7 @@ class DelayedNeuron(NeuronType):
 
     def step(self, dt, time):
         if self.active and time >= self.delay:
-            print("node neur {} fired".format(self.label))
+            # print("node neur {} fired".format(self.label))
             self.active = False
             self.send_spike()
 
@@ -85,6 +85,7 @@ class Node(Ensemble):
 
     '''
 
+    # TODO: consider an ensemble of nodes
     objects = []
 
     def __init__(self, size, input, period, label='', *args, **kwargs):

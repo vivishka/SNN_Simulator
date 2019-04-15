@@ -4,3 +4,6 @@
 
 # Ignore pycache
 __pycache__/
+
+# Ignore playground
+test.py

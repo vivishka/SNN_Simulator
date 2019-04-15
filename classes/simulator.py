@@ -58,6 +58,7 @@ class simulator(object):
         self.dt = dt
         self.nb_step = 0
         self.time = 0
+        model.build()
         self.objects = model.get_all_objects()
         # self.neurons = self.objects[Neuron]
         self.ensembles = self.objects[Ensemble]
@@ -78,7 +79,7 @@ class simulator(object):
         """ for every steps, evaluate ensembles, then propagate spikes """
         # TODO:  progres bar
         self.time += self.dt
-        print("{:.4f}".format(self.time))
+        # print("{:.4f}".format(self.time))
         for ens in self.ensembles:
             ens.step(self.dt, self.time)
         self.spike_notifier.propagate_all()

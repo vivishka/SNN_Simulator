@@ -2,7 +2,7 @@
 from .base import SimulationObject
 from .ensemble import Ensemble
 import matplotlib.pyplot as plt
-# import numpy as np
+import numpy as np
 import sys
 sys.dont_write_bytecode = True
 
@@ -17,13 +17,24 @@ class Probe(SimulationObject):
         Probe.objects.append(self)
         self.target = target
         self.size = 1
+        self.dim = 1
         self.variable = variable
         self.is_spike = variable in ('spike_in, spike_out')
+        target.add_probe(self, variable)
         if isinstance(target, Ensemble):
             self.size = target.size
-            # TODO: handle 2D
-        target.add_probe(self, variable)
-        self.values = [[] for i in range(self.size)]
+            if isinstance(self.size, tuple):
+                self.dim = 2
+            # self.size = self.size[0] * self.size[1]
+        self.nb = self.size if self.dim == 1 else self.size[0] * self.size[1]
+        self.values = np.ndarray(self.size, dtype=list)
+        for i, element in enumerate(self.values):
+            if self.dim == 1:
+                self.values[i] = []
+            else:
+                for j in range(len(element)):
+                    self.values[i][j] = []
+        # self.values = [[] for i in range(self.size)]
 
     def log_value(self, index, value):
         # TODO: call several methods for spikes or values

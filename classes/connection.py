@@ -45,7 +45,7 @@ class ConnectionPattern(object):
 
     def create(self, index, dest):
         # self.function(index, dest)
-        self.all2all(index, dest)
+        return self.all2all(index, dest)
 
     def all2all(self, index, dest):
         """ from the index of the  axon, returns the connection pattern
