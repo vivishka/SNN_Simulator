@@ -18,10 +18,5 @@ class SimulationObject(object):
         return cls.objects
         # TODO: perhaps return a copy and empty this list of multiple networks
 
-    # @classmethod
-    # def addInstance(cls, cls_name, obj):
-    #     # if cls.objects
-    #     # TODO: maybe
-
     def step(self, dt):
         pass

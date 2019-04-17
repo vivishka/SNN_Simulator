@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from classes.network import Network
 from classes.neuron import LIF
-from classes.ensemble import Ensemble
+from classes.ensemble import Ensemble, Bloc
 from classes.simulator import simulator
 from classes.connection import Connection
 from classes.probe import Probe
-from classes.node import Node
+from classes.node import Node, Reset
 
 import sys
 sys.dont_write_bytecode = True
@@ -14,28 +14,34 @@ sys.dont_write_bytecode = True
 
 model = Network()
 
-n1 = Node(10, lambda: np.random.rand(1), 2.0)
-n2 = Node(10, lambda: np.random.rand(1), 2.0)
+# n1 = Node(10, lambda: np.random.rand(1), 0.20)
+# n2 = Node(10, lambda: np.random.rand(1), 0.20)
+# r = Reset(0.15, 0.2)
 
-e1 = Ensemble((20), LIF, 'L1')
-e2 = Ensemble((20), LIF, 'L2')
+b1 = Bloc(4, (4, 4), LIF, 'B1')
+b2 = Bloc(4, (4, 4), LIF, 'B2')
 
-Connection(n1, e1)
-Connection(n2, e1)
-Connection(e1, e2)
+# e1 = Ensemble((10, 10), LIF, 'L1')
+# e2 = Ensemble((10, 10), LIF, 'L2')
 
 
-p1 = Probe(e1, 'voltage')
-p2 = Probe(e1, 'spike_out')
+Connection(b1, b2)
+# Connection(n1, e1)
+# Connection(n2, e1)
+# Connection(e1, e2)
+
+# p1 = Probe(e1, 'voltage')
+# p2 = Probe(e1, 'spike_out')
+# p3 = Probe(e2, 'spike_out')
 
 
 sim = simulator(model, 0.001)
-sim.run(4.0)
+sim.run(1.0)
 
-p1.plot()
-p2.plot()
-
-plt.show()
+# p1.plot()
+# p2.plot()
+# p3.plot()
+# plt.show()
 
 # TODO: distribution arg for ensembles
 

@@ -1,7 +1,7 @@
 
 from .connection import Connection
 from .ensemble import Ensemble
-from .node import Node
+from .node import Node, Reset
 from .probe import Probe
 
 import sys
@@ -22,11 +22,13 @@ class Network(object):
             Node: [],
             Connection: [],
             Probe: [],
+            Reset: []
         }
         self.__ensembles = self.objects[Ensemble]
         self.__nodes = self.objects[Node]
         self.__connections = self.objects[Connection]
         self.__probes = self.objects[Probe]
+        self.__reset = self.objects[Reset]
 
     def build(self):
         for attr, value in self.objects.items():

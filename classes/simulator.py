@@ -2,8 +2,8 @@
 # from neuron import Neuron
 from .connection import Connection
 from .ensemble import Ensemble
+from .node import Reset
 # from node import Node
-# from probe import Probe
 # from base import SimulationObject
 import sys
 sys.dont_write_bytecode = True
@@ -64,10 +64,16 @@ class simulator(object):
         self.ensembles = self.objects[Ensemble]
         self.connections = self.objects[Connection]
         self.spike_notifier = SpikeNotifier()
+        # TODO: reseter
+        self.input_reset = self.objects[Reset]
+        # print(self.ensembles[0][(0, 0)].weights.weights)
+        print(self.ensembles[4][(0, 0)].weights.weights)
 
     def run(self, time):
         for connect in self.connections:
             connect.set_notifier(self.spike_notifier)
+        for reset in self.input_reset:
+            reset.set_reset_funt(self.reset)
         # this or for all axons ?
         # TODO: send all simulator infos at once: bugger + dt ?
         self.nb_step = int(time / self.dt)
@@ -80,6 +86,12 @@ class simulator(object):
         # TODO:  progres bar
         self.time += self.dt
         # print("{:.4f}".format(self.time))
+        for reset in self.input_reset:
+            reset.step(self.dt, self.time)
         for ens in self.ensembles:
             ens.step(self.dt, self.time)
         self.spike_notifier.propagate_all()
+
+    def reset(self):
+        for ens in self.ensembles:
+            ens.reset()

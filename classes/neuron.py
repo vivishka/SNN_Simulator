@@ -1,22 +1,42 @@
 
 from .base import SimulationObject
+import numpy as np
 import sys
 sys.dont_write_bytecode = True
 
 
 class Weights(object):
-    """docstring for Weights."""
+    '''array of Weights
+    the 1st dimension is the index of the layer
+    the 2nd or 2nd and 3rd are for the index of the neuron
+    '''
 
     def __init__(self, shared=False):
         super(Weights, self).__init__()
-        self.weights = {}
+        self.weights = []
+        # self.weights = np.ndarray(size, dtype=float)
+        self.ensemble_index = {}
+        self.ensemble_number = 0
         self.shared = shared
 
-    def __getitem__(self, key):
-        return self.weights[key]
+    def index_ensemble(self, ens):
+        if ens not in self.ensemble_index:
+            self.ensemble_index[ens] = self.ensemble_number
+            self.ensemble_number += 1
+            self.weights.append(None)
+        return self.ensemble_index[ens]
 
-    def __setitem__(self, key, value):
-        self.weights[key] = value
+    def set_weights(self, ens, weight_array):
+        """ sets the weights of the axons from the specified ensemble """
+        ens_number = self.index_ensemble(ens)
+        self.weights[ens_number] = weight_array
+        return ens_number
+
+    def __getitem__(self, index):
+        return self.weights[index[0]][index[1:]]
+
+    def __setitem__(self, index, value):
+        self.weights[index[0]][index[1:]] = value
 
 
 class NeuronType(SimulationObject):
@@ -143,7 +163,7 @@ class LIF(NeuronType):
         Neuron.objects.append(self)
         self.voltage = 0
         self.threshold = self.extract_param('threshold', 1)
-        self.tau = self.extract_param('tau', 1)
+        self.tau = self.extract_param('tau', 5)
 
     def step(self, dt, time):
         self.time = time
