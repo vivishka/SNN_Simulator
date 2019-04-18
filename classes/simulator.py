@@ -49,11 +49,11 @@ def printProgressBar(
         print()
 
 
-class simulator(object):
+class Simulator(object):
     """docstring for simulator."""
 
     def __init__(self, model, dt):
-        super(simulator, self).__init__()
+        super(Simulator, self).__init__()
         self.model = model
         self.dt = dt
         self.nb_step = 0

@@ -5,7 +5,7 @@ sys.dont_write_bytecode = True
 
 
 class Ensemble(SimulationObject):
-    '''
+    """
     An ensemble is an array of neurons. It is mostly used to represent a layer
     it can be a 1D or 2D array
 
@@ -26,7 +26,7 @@ class Ensemble(SimulationObject):
         Class of the neurons
     neuron_list: [NeuronType]
         The list of initialized neurons
-    '''
+    """
 
     objects = []
 
@@ -50,7 +50,7 @@ class Ensemble(SimulationObject):
             for line, element in enumerate(self.neuron_array):
                 for col in range(len(element)):
                     neuron = neuron_type(self, (line, col), **kwargs)
-                    self.neuron_array[line, col] = neuron
+                    self.neuron_array[(line, col)] = neuron
                     self.neuron_list.append(neuron)
         else:
             raise TypeError("Ensemble dimension should be int or (int, int)")
@@ -81,10 +81,11 @@ class Ensemble(SimulationObject):
 
 
 class Bloc(object):
-    ''' a bloc is a group of ensembles of the same dimension
+    """
+    a bloc is a group of ensembles of the same dimension
     they are not connected together but share common previous and next layers
     they are only used to construct easily but are not simulated as such
-    '''
+    """
     index = 0
 
     def __init__(self, depth, *args, **kwargs):

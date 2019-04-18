@@ -8,7 +8,7 @@ sys.dont_write_bytecode = True
 
 
 class ConnectionPattern(object):
-    '''
+    """
     Distribution of axons between ensembles
 
     Parameters
@@ -31,7 +31,7 @@ class ConnectionPattern(object):
     index: int
         the index of the source neuron in its ensemble
 
-    '''
+    """
 
     # TODO: add more functions for different pattern
     def __init__(self, type='all2all', **kwargs):
@@ -49,7 +49,8 @@ class ConnectionPattern(object):
         # self.function(index, dest)
         return self.all2all(index, dest)
 
-    def all2all(self, index, dest):
+    @staticmethod
+    def all2all(index, dest):
         """ from the index of the  axon, returns the connection pattern
             returns list of tuple (neuron, weight)
         """
@@ -60,7 +61,8 @@ class ConnectionPattern(object):
             weight_list.append(np.random.uniform(-0.05, 0.5))
         return neuron_list, weight_list
 
-    def convolution(self, index, dest, kernel=3):
+    @staticmethod
+    def convolution(index, dest, kernel=3):
         # TODO: test dimensions
         # TODO: padding in parameter
         neuron_list = []
@@ -76,10 +78,10 @@ class ConnectionPattern(object):
         # test the edges
         for line in range(- k_height, k_height + 1):
             y = index[0] + line
-            if y > 0 and y < e_height:
+            if 0 < y < e_height:
                 for col in range(- k_width, k_width + 1):
                     x = index[1] + col
-                    if x > 0 and x < e_width:
+                    if 0 < x < e_width:
                         valid_list.append((x, y))
         # nb = len(valid_list)
         for x, y in valid_list:
@@ -91,30 +93,30 @@ class ConnectionPattern(object):
 
 # class Connection(object):
 class Axon(SimulationObject):
-    '''
+    """
     Represents the connection between a neuron and a list of neurons
 
     Parameters
     ---------
-    source: NeuronType
+    source_n: NeuronType
          The emitting neuron
-    dest : [NeuronType]
+    dest_n_list : [NeuronType]
         The list of connected neurons
-    weights : [float]
-        The list of weights associated to each destination neuron
+    index_list : [int] or [(int, int)]
+        The list of index of the source neuron in its ensemble
 
     Attributes
     ----------
-    source: NeuronType
+    source_n: NeuronType
         The emitting neuron
-    dest : [NeuronType]
+    dest_n_list : [NeuronType]
         The list of connected neurons
     spike_notifier: SpikeNotifier
         The object to notifiy when this axon has a spike to propagate
-    index: [int] or [(int, int)]
-        the list of index of the source neuron in its ensemble
+    index_list: [int] or [(int, int)]
+        The list of index of the source neuron in its ensemble
 
-    '''
+    """
 
     def __init__(self, source_n, dest_n_list, index_list):
         super(Axon, self).__init__("Axon {0}".format(id(self)))
@@ -146,7 +148,7 @@ class Axon(SimulationObject):
 
 
 class Connection(SimulationObject):
-    '''
+    """
     A connection is a list of axons connected between 2 ensembles
 
     Parameters
@@ -170,7 +172,7 @@ class Connection(SimulationObject):
         The list of axons
     pattern: ConnectionPattern
         the way neurons should be connected together, default is all to all
-    '''
+    """
 
     objects = []
     # TODO: give pattern / distribution of weights
@@ -178,17 +180,17 @@ class Connection(SimulationObject):
     # - fixed weight, uniformly random, other
     # TODO: padding and stride
 
-    def __init__(self, source_o, dest_o, pattern=None, *args, **kwargs):
+    def __init__(self, source_o, dest_o, *args, **kwargs):
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
         self.source_o = source_o
         self.dest_o = dest_o
         self.axon_list = []
-        self.kernel = (3, 3)
-        self.pattern = ConnectionPattern() if pattern is None else pattern
+        self.kernel = kwargs['kernel'] if 'kernel' in kwargs else (3, 3)
+        # self.pattern = ConnectionPattern() if pattern is None else pattern
 
-        if isinstance(source_o, Bloc):
-            if isinstance(dest_o, Bloc):
+        if issubclass(source_o, Bloc):
+            if issubclass(dest_o, Bloc):
                 dest_e_list = dest_o.ensemble_list
             else:
                 dest_e_list = [dest_o]
@@ -270,6 +272,10 @@ class Connection(SimulationObject):
                     pass
         self.axon_list.append(Axon(source_n, dest_n_list, index_list))
 
+    def set_notifier(self, spike_notifier):
+        """ Used to simulate axons only when they received a spike """
+        for axon in self.axon_list:
+            axon.set_notifier(spike_notifier)
 
 # # TODO: test dimensions
 # # TODO: padding in parameter
@@ -296,7 +302,4 @@ class Connection(SimulationObject):
 #     neuron_list.append(dest[x][y])
 #     weight_list.append(np.random.uniform(-0.05, 0.5))
 
-    def set_notifier(self, spike_notifier):
-        """ Used to simulate axons only when they received a spike """
-        for axon in self.axon_list:
-            axon.set_notifier(spike_notifier)
+

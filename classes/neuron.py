@@ -6,10 +6,11 @@ sys.dont_write_bytecode = True
 
 
 class Weights(object):
-    '''array of Weights
+    """
+    array of Weights
     the 1st dimension is the index of the layer
     the 2nd or 2nd and 3rd are for the index of the neuron
-    '''
+    """
 
     def __init__(self, shared=False):
         super(Weights, self).__init__()
@@ -40,7 +41,7 @@ class Weights(object):
 
 
 class NeuronType(SimulationObject):
-    '''
+    """
     The NeuronType object is an abstract version of a neuron
     Used to construct subclass
 
@@ -77,7 +78,7 @@ class NeuronType(SimulationObject):
         Dictionary associating variable name and probe
     time: float
         the current time, updated every step, used for probing
-    '''
+    """
 
     def __init__(self, ensemble, index, **kwargs):
         # TODO: give a kwargs with an array: neuron can use its own index
@@ -151,7 +152,7 @@ class NeuronType(SimulationObject):
         if self.variable_probed:
             for var, probe in self.probes.items():
                 # TODO: check existence
-                if var not in ('spike_in, spike_out'):
+                if var not in 'spike_in, spike_out':
                     probe.log_value(self.index, self.__getattribute__(var))
 
 
@@ -167,8 +168,8 @@ class LIF(NeuronType):
 
     def step(self, dt, time):
         self.time = time
-        input = sum([self.weights[i] for i in self.received])
-        self.voltage += - self.tau * self.voltage * dt + input
+        input_sum = sum([self.weights[i] for i in self.received])
+        self.voltage += - self.tau * self.voltage * dt + input_sum
         if self.voltage < 0:
             self.voltage = 0
         self.received = []
@@ -183,14 +184,14 @@ class LIF(NeuronType):
 
 
 class Neuron(NeuronType):
-    ''''
+    """'
     test model for a neuron
-    '''
+    """
 
     objects = []
 
-    def __init__(self, ensemble, index, *args, **kwargs):
-        super(Neuron, self).__init__(ensemble, index, *args, **kwargs)
+    def __init__(self, ensemble, index, **kwargs):
+        super(Neuron, self).__init__(ensemble, index, **kwargs)
         Neuron.objects.append(self)
         self.voltage = 0
         self.threshold = 1
