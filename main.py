@@ -8,7 +8,7 @@ from classes.simulator import Simulator
 from classes.connection import Connection
 from classes.probe import Probe
 from classes.decoder import Decoder
-from classes.node import Encoder, PeriodicInput
+from classes.node import Encoder, Node
 
 import sys
 sys.dont_write_bytecode = True
@@ -23,7 +23,8 @@ with open(filename, newline='') as csvfile:
     image = np.array(row[1:]).astype(np.uint8)
     image = image.reshape(img_size)
 
-
+plt.figure()
+plt.imshow(image, cmap='gray')
 
 model = Network()
 
@@ -31,10 +32,16 @@ model = Network()
 # n2 = Node(10, lambda: np.random.rand(1), 0.20)
 # r = Reset(0.15, 0.2)
 
-e1 = Encoder(img_size, 3, 0, 255, 0.1)
-i1 = PeriodicInput(e1, image, 5, 0)
+e1 = Encoder(img_size, 8, 0, 255, 0.1)
+n1 = Node(e1, image, 5, 0)
+b1 = Bloc(2, img_size, LIF)
 d1 = Decoder(img_size)
-c1 = Connection(e1, d1)
+d2 = Decoder(img_size)
+d3 = Decoder(img_size)
+Connection(e1, d1, kernel=(1, 1))
+Connection(e1, d2, kernel=(3, 3))
+Connection(e1, b1, kernel=(3, 3))
+Connection(b1, d3, kernel=(1, 1))
 
 
 # b1 = Bloc(4, (4, 4), LIF, 'B1')
@@ -48,10 +55,19 @@ c1 = Connection(e1, d1)
 
 
 sim = Simulator(model, 0.001)
-sim.run(1.0)
+sim.run(0.5)
 
-plt.imshow(d1.get_first_spike())
+plt.figure()
+plt.imshow(d1.decoded_image(), cmap='gray')
+plt.figure()
+# plt.imshow(d2.get_first_spike(), cmap='gray')
+# plt.figure()
+# plt.imshow(d3.get_first_spike(), cmap='gray')
+
 plt.show()
+
+
+
 
 # p1.plot()
 # p2.plot()

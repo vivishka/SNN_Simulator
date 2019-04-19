@@ -18,5 +18,18 @@ class SimulationObject(object):
         return cls.objects
         # TODO: perhaps return a copy and empty this list of multiple networks
 
-    def step(self, dt, time):
+    def step(self):
         pass
+
+
+class Helper(object):
+    time = 0
+    dt = 0
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def step():
+        Helper.time += Helper.dt
+

@@ -1,8 +1,9 @@
 
+import numpy as np
 from .base import SimulationObject
+from .simulator import Simulator
 from .ensemble import Ensemble
 import matplotlib.pyplot as plt
-import numpy as np
 import sys
 sys.dont_write_bytecode = True
 
@@ -44,11 +45,11 @@ class Probe(SimulationObject):
         # print("probed neuron {0} at {1}".format(index, value))
         self.values[index].append(value)
 
-    def log_spike_out(self, index, time):
-        self.values[index].append(time)
+    def log_spike_out(self, index):
+        self.values[index].append(Simulator.time)
 
-    def log_spike_in(self, index, time, weight):
-        self.values[index].append((time, weight))
+    def log_spike_in(self, index, weight):
+        self.values[index].append((Simulator.time, weight))
 
     def plot(self):
         fig = plt.figure()

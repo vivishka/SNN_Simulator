@@ -1,6 +1,6 @@
 
 import numpy as np
-from .base import SimulationObject
+from .base import SimulationObject, Helper
 from .ensemble import Bloc
 from .neuron import Weights
 import sys
@@ -125,9 +125,10 @@ class Axon(SimulationObject):
         # list of tuple (neuron, index)
         self.dest_n_index_list = list(zip(dest_n_list, index_list))
         self.spike_notifier = None
+        self.ensemble_index = dest_n_list[0].weights.ensemble_index_dict[source_n.ensemble]
         # TODO: possibility to add delay / FIR filter
 
-        # associciate the source, destination and weight
+        # associate the source, destination and weight
         source_n.add_output(self)
         # no need anymore
         # for i, neuron in enumerate(dest_n_list):
@@ -139,12 +140,12 @@ class Axon(SimulationObject):
 
     def create_spike(self):
         """ Register a spike emitted by the source neuron"""
-        self.spike_notifier.register_spike(self)
+        self.spike_notifier(self)
 
     def propagate_spike(self):
         """ Called by the notifier, propagates spike to connected neurons """
-        for dest_n, index in self.dest_n_index_list:
-            dest_n.receive_spike(index)
+        for dest_n, synapse_index in self.dest_n_index_list:
+            dest_n.receive_spike((self.ensemble_index,) + synapse_index)
 
 
 class Connection(SimulationObject):
@@ -189,8 +190,8 @@ class Connection(SimulationObject):
         self.kernel = kwargs['kernel'] if 'kernel' in kwargs else (3, 3)
         # self.pattern = ConnectionPattern() if pattern is None else pattern
 
-        if issubclass(source_o, Bloc):
-            if issubclass(dest_o, Bloc):
+        if isinstance(source_o, Bloc):
+            if isinstance(dest_o, Bloc):
                 dest_e_list = dest_o.ensemble_list
             else:
                 dest_e_list = [dest_o]
@@ -204,9 +205,9 @@ class Connection(SimulationObject):
         """ for now: it is always for convolution
         source is block, dest is ensemble
         """
-        print(
-            "connecting bloc {} with ensemble {}"
-            .format(source_b.index, dest_e.index))
+        # print(
+        #     "connecting bloc {} with ensemble {}"
+        #     .format(source_b.index, dest_e.index))
         # creation of the shared weight matrix for each ensemble of the source
         block_weights = Weights(shared=True)
         for source_e in source_b.ensemble_list:
@@ -219,8 +220,6 @@ class Connection(SimulationObject):
         for neuron in dest_e.neuron_list:
             i += 1
             neuron.set_weights(block_weights)
-        print(block_weights.weights)
-        print("shared with {} neurons".format(i))
 
         # connect each ensenble of the block
         for source_e in source_b.ensemble_list:
@@ -228,9 +227,9 @@ class Connection(SimulationObject):
             self.connect_ensemble(source_e, dest_e, True)
 
     def connect_ensemble(self, source_e, dest_e, conv=False):
-        print(
-            " -connecting ensemble {} with ensemble {}"
-            .format(source_e.index, dest_e.index))
+        # print(
+        #     " -connecting ensemble {} with ensemble {}"
+        #     .format(source_e.index, dest_e.index))
         if not conv:
             dest_n_list = []
             index_list = []
@@ -243,7 +242,7 @@ class Connection(SimulationObject):
                 self.axon_list.append(Axon(source_n, dest_n_list, index_list))
         else:
             size = source_e.size
-            # for each neuron of the source ensenble
+            # for each neuron of the source ensemble
             for line in range(size[0]):
                 for col in range(size[1]):
                     source_n = source_e[(line, col)]

@@ -1,7 +1,7 @@
 
-from .base import SimulationObject
+from .base import SimulationObject, Helper
 from .neuron import NeuronType
-from .ensemble import Ensemble
+from .ensemble import Ensemble, Bloc
 import numpy as np
 import sys
 sys.dont_write_bytecode = True
@@ -43,8 +43,8 @@ class DelayedNeuron(NeuronType):
         self.delay = -1
         self.active = False
 
-    def step(self, dt, time):
-        if self.active and time >= self.delay:
+    def step(self):
+        if self.active and Helper.time >= self.delay:
             # print("node neur {} fired".format(self.label))
             self.active = False
             self.send_spike()
@@ -75,6 +75,8 @@ class GaussianFiringNeuron(NeuronType):
         disactivates after firing once, activates when new value is set
     """
 
+    nb_spikes = 0
+
     def __init__(self, ensemble, index):
         super(GaussianFiringNeuron, self).__init__(ensemble, index)
         self.value = None
@@ -88,20 +90,21 @@ class GaussianFiringNeuron(NeuronType):
         self.delay_max = delay_max
         self.threshold = threshold
 
-    def step(self, dt, time):
-        if self.active and time >= self.firing_time:
-            # print("node neur {} fired".format(self.label))
+    def step(self):
+        if self.active and Helper.time >= self.firing_time:
+            # print("node neur {} fired".format(self.index))
             self.active = False
             self.send_spike()
+            GaussianFiringNeuron.nb_spikes += 1
 
-    def set_value(self, value, time):
+    def set_value(self, value):
         delay = (1-np.exp(-0.5*((value-self.mu)/self.sigma)**2))*self.delay_max
         if delay < (self.delay_max * self. threshold):
-            self.firing_time = time + delay
+            self.firing_time = Helper.time + delay
             self.active = True
 
 
-class Encoder(object):
+class Encoder(Bloc):
     """
     Creates a list of array to encode an image into spikes
 
@@ -135,22 +138,21 @@ class Encoder(object):
 
     """
 
-    def __init__(self, size, nb, in_min, in_max, delay_max, threshold=.9, gamma=1.5):
-        # super(Encoder, self).__init__()
+    def __init__(self, size, depth, in_min, in_max, delay_max, threshold=.9, gamma=1.5):
+        super(Encoder, self).__init__(depth)
         self.size = size
-        self.nb = nb
         self.ensemble_list = []
         self.dim = 1 if isinstance(size, int) else len(size)
 
-        sigma = (in_max - in_min) / (nb - 2.0) / gamma
-        for ens_index in range(nb):
+        sigma = (in_max - in_min) / (depth - 2.0) / gamma
+        for ens_index in range(depth):
             ens = Ensemble(
                 size=size,
                 neuron_type=GaussianFiringNeuron,
                 index=ens_index)
             self.ensemble_list.append(ens)
 
-            mu = in_min + (ens_index - 1.5) * ((in_max - in_min) / (nb - 2.0))
+            mu = in_min + (ens_index + 1 - 1.5) * ((in_max - in_min) / (depth - 2.0))
             for neuron in ens.neuron_list:
                 neuron.set_params(
                     mu=mu,
@@ -158,27 +160,21 @@ class Encoder(object):
                     delay_max=delay_max,
                     threshold=threshold)
 
-    def set_one_value(self, value, time, index):
+    def set_one_value(self, value, index):
         for ens in self.ensemble_list:
-            ens[index].set_value(value, time)
+            ens[index].set_value(value)
 
-    def set_values(self, values, time):
+    def set_values(self, values):
         if self.dim == 1:
             for i, val in enumerate(values):
-                self.set_one_value(val, time, i)
+                self.set_one_value(val, i)
         else:
             for i, row in enumerate(values):
                 for j, val in enumerate(row):
-                    self.set_one_value(val, time, (i, j))
-
-    def __getitem__(self, index):
-        return self.ensemble_list[index]
-
-    def __setitem__(self, index, value):
-        self.ensemble_list[index] = value
+                    self.set_one_value(val, (i, j))
 
 
-class PeriodicInput(SimulationObject):
+class Node(SimulationObject):
     """
         input source of the system, feeds the value into the encoder
 
@@ -212,8 +208,8 @@ class PeriodicInput(SimulationObject):
     objects = []
 
     def __init__(self, encoder, value, period=-1, delay=0, *args, **kwargs):
-        super(PeriodicInput, self).__init__()
-        PeriodicInput.objects.append(self)
+        super(Node, self).__init__()
+        Node.objects.append(self)
         self.encoder = encoder
         self.value = value
         self.period = period
@@ -222,14 +218,14 @@ class PeriodicInput(SimulationObject):
         self.args = args
         self.kwargs = kwargs
 
-    def step(self, dt, time):
-        if self.active and time >= self.next_input:
+    def step(self):
+        if self.active and Helper.time >= self.next_input:
             if callable(self.value):
                 value = self.value(*self.args, **self.kwargs)
             else:
                 value = self.value
 
-            self.encoder.set_values(value, time)
+            self.encoder.set_values(value)
 
             if self.period > 0:
                 self.next_input += self.period
@@ -237,7 +233,7 @@ class PeriodicInput(SimulationObject):
                 self.active = False
 
 
-class Node(Ensemble):
+class Node2(Ensemble):
     """
     Converts float input into sequence of spikes
     can use several sub nodes to code for a single value
@@ -273,13 +269,12 @@ class Node(Ensemble):
 
     def __init__(self, size, input, period, label='', *args, **kwargs):
         lbl = label if label != '' else id(self)
-        super(Node, self).__init__(size, DelayedNeuron, lbl)
-        Node.objects.append(self)
+        super(Node2, self).__init__(size, DelayedNeuron, lbl)
+        Node2.objects.append(self)
         self.size = size
         self.input = input
         self.period = period
         self.next_input = period
-        self. time = 0
         self.args = args
         self.kwargs = kwargs
         self.set_value()
@@ -293,13 +288,12 @@ class Node(Ensemble):
         trigger = gauss_sequence(value, self.size, 0, 1, 0.1)
         for i, neuron in enumerate(self.get_neuron_list()):
             if trigger[i] >= 0:
-                neuron.set_value(trigger[i] + self.time)
+                neuron.set_value(trigger[i] + Helper.time)
 
-    def step(self, dt, time):
-        self.time = time
+    def step(self):
         for neuron in self.neuron_list:
-            neuron.step(dt, time)
-        if time >= self.next_input:
+            neuron.step()
+        if Helper.time >= self.next_input:
             self.set_value()
             self.next_input += self.period
 
@@ -323,8 +317,8 @@ class Reset(SimulationObject):
     def set_reset_funt(self, function):
         self.reset_funct = function
 
-    def step(self, dt, time):
-        if time > self.next_reset:
+    def step(self):
+        if Helper.time > self.next_reset:
             self.next_reset += self.period
-            # print("resting {}".format(time))
+            # print("resting {}".format(Simulator.time))
             self.reset_funct()

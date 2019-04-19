@@ -55,9 +55,9 @@ class Ensemble(SimulationObject):
         else:
             raise TypeError("Ensemble dimension should be int or (int, int)")
 
-    def step(self, dt, time):
+    def step(self):
         for neuron in self.neuron_list:
-            neuron.step(dt, time)
+            neuron.step()
 
     def reset(self):
         for neuron in self.neuron_list:
@@ -95,10 +95,10 @@ class Bloc(object):
         self.depth = depth
         self.ensemble_list = []
         for i in range(depth):
-            if args is None and kwargs is None:
-                self.ensemble_list.append(None)
-            else:
+            if args or kwargs:
                 self.ensemble_list.append(Ensemble(index=i, *args, **kwargs))
+            else:
+                self.ensemble_list.append(None)
 
     def __getitem__(self, index):
         return self.ensemble_list[index]

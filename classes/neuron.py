@@ -1,5 +1,5 @@
 
-from .base import SimulationObject
+from .base import SimulationObject, Helper
 import numpy as np
 import sys
 sys.dont_write_bytecode = True
@@ -16,20 +16,20 @@ class Weights(object):
         super(Weights, self).__init__()
         self.weights = []
         # self.weights = np.ndarray(size, dtype=float)
-        self.ensemble_index = {}
+        self.ensemble_index_dict = {}
         self.ensemble_number = 0
         self.shared = shared
 
-    def index_ensemble(self, ens):
-        if ens not in self.ensemble_index:
-            self.ensemble_index[ens] = self.ensemble_number
+    def check_ensemble_index(self, ens):
+        if ens not in self.ensemble_index_dict:
+            self.ensemble_index_dict[ens] = self.ensemble_number
             self.ensemble_number += 1
             self.weights.append(None)
-        return self.ensemble_index[ens]
+        return self.ensemble_index_dict[ens]
 
     def set_weights(self, ens, weight_array):
         """ sets the weights of the axons from the specified ensemble """
-        ens_number = self.index_ensemble(ens)
+        ens_number = self.check_ensemble_index(ens)
         self.weights[ens_number] = weight_array
         return ens_number
 
@@ -76,8 +76,6 @@ class NeuronType(SimulationObject):
         Stores on which type of variable this neuron is being probed
     probes: {str:Probe}
         Dictionary associating variable name and probe
-    time: float
-        the current time, updated every step, used for probing
     """
 
     def __init__(self, ensemble, index, **kwargs):
@@ -95,7 +93,6 @@ class NeuronType(SimulationObject):
         self.spike_out_probed = False
         self.spike_in_probed = False
         self.probes = {}
-        self.time = 0
         # TODO: bias
 
     def extract_param(self, name, default):
@@ -107,37 +104,37 @@ class NeuronType(SimulationObject):
                 param = self.param[name]
         return param
 
-    def add_input(self, source, weight):
+    def add_input(self, source_a, weight):
         """ Stores in the neuron the reference of the incomming connection
         and its associated weight
+        deprecated
         """
-        self.inputs.append(source)
-        self.weights[source] = weight
+        self.inputs.append(source_a)
 
-    def add_output(self, dest):
+    def add_output(self, dest_a):
         """ Append the object the neuron should output into
         will call the method create_spike of this object
         """
-        self.outputs.append(dest)
+        self.outputs.append(dest_a)
 
     def set_weights(self, weights):
         """" used for convolutional connections, when kernel is shared """
         self.weights = weights
 
-    def receive_spike(self, source):
+    def receive_spike(self, index):
         """ Append an axons which emitted a received spikes this step """
         # TODO: here the learner can be added
-        self.received.append(source)
+        self.received.append(index)
         if self.spike_in_probed:
-            w = self.weights[source]
-            self.probes['spike_in'].log_spike_in(source.index, self.time, w)
+            w = self.weights[index]
+            self.probes['spike_in'].log_spike_in(index, w)
 
     def send_spike(self):
         """ send a spike to all the connected axons """
         for output in self.outputs:
             output.create_spike()
         if self.spike_out_probed:
-            self.probes['spike_out'].log_spike_out(self.index, self.time)
+            self.probes['spike_out'].log_spike_out(self.index)
 
     def add_probe(self, obj, variable):
         self.probes[variable] = obj
@@ -166,10 +163,9 @@ class LIF(NeuronType):
         self.threshold = self.extract_param('threshold', 1)
         self.tau = self.extract_param('tau', 5)
 
-    def step(self, dt, time):
-        self.time = time
-        input_sum = sum([self.weights[i] for i in self.received])
-        self.voltage += - self.tau * self.voltage * dt + input_sum
+    def step(self):
+        input_sum = sum([self.weights[index] for index in self.received])
+        self.voltage += - self.tau * self.voltage * Helper.dt + input_sum
         if self.voltage < 0:
             self.voltage = 0
         self.received = []
@@ -198,9 +194,8 @@ class Neuron(NeuronType):
         self.threshold = self.extract_param('threshold', 1)
         # print("neuron {}, thr: {}".format(self.label, self.threshold))
 
-    def step(self, dt, time):
-        self.time = time
-        self.voltage += (dt + sum([self.weights[i] for i in self.received]))
+    def step(self):
+        self.voltage += (Helper.dt + sum([self.weights[i] for i in self.received]))
         self.received = []
         # print("neuron " + self.name + " V: ", int(self.voltage*1000))
         if self.voltage >= self.threshold:

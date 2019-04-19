@@ -1,7 +1,7 @@
 
 from .connection import Connection
 from .ensemble import Ensemble
-from .node import Node, Reset
+from .node import Node, Reset, Encoder
 from .probe import Probe
 
 import sys
@@ -23,6 +23,7 @@ class Network(object):
             Connection: [],
             Probe: [],
             Reset: []
+
         }
         self.__ensembles = self.objects[Ensemble]
         self.__nodes = self.objects[Node]
