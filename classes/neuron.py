@@ -1,6 +1,5 @@
 
 from .base import SimulationObject, Helper
-import numpy as np
 import sys
 sys.dont_write_bytecode = True
 
@@ -15,7 +14,6 @@ class Weights(object):
     def __init__(self, shared=False):
         super(Weights, self).__init__()
         self.weights = []
-        # self.weights = np.ndarray(size, dtype=float)
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
         self.shared = shared
@@ -66,7 +64,7 @@ class NeuronType(SimulationObject):
         List of axons connected to this neuron
     outputs: [Axon]
         List of axons the neuron can output to most neuron only have 1 axon,
-        but multpiple axons are used here to connect with multiple ensembles
+        but multiple axons are used here to connect with multiple ensembles
     weights: Weights
         Dictionary to store weights attached to connections
         Can be shared between neurons of the same ensemble
@@ -104,10 +102,9 @@ class NeuronType(SimulationObject):
                 param = self.param[name]
         return param
 
-    def add_input(self, source_a, weight):
-        """ Stores in the neuron the reference of the incomming connection
-        and its associated weight
-        deprecated
+    def add_input(self, source_a):
+        """ Stores in the neuron the reference of the incoming connection.
+        is used to count the number of connections to this neuron
         """
         self.inputs.append(source_a)
 

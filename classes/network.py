@@ -1,7 +1,7 @@
 
 from .connection import Connection
 from .ensemble import Ensemble
-from .node import Node, Reset, Encoder
+from .node import Node, Reset
 from .probe import Probe
 
 import sys

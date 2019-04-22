@@ -1,9 +1,7 @@
 
-# from neuron import Neuron
 from .connection import Connection
 from .ensemble import Ensemble
 from .node import Reset, Node
-# from node import Node
 from .base import Helper
 import sys
 sys.dont_write_bytecode = True
@@ -33,17 +31,17 @@ class Simulator(object):
 
         # shares the reset function with the reset objects
         for reset in self.input_reset:
-            reset.set_reset_funt(self.reset)
+            reset.set_reset_funct(self.reset)
 
-        # this or for all axons ?
+        # runs for the specified number of steps
         self.nb_step = int(time / Helper.dt)
         for i in range(self.nb_step):
             self.step()
-            # printProgressBar(i, self.nb_step)
 
     def step(self):
-        """ for every steps, evaluate ensembles, then propagate spikes """
-        # TODO:  progres bar
+        """ for every steps, evaluate inputs, then ensembles,
+        then propagate spikes """
+        # TODO:  progress bar
         Helper.step()
         # print("{:.4f}".format(self.time))
         for reset in self.input_reset:

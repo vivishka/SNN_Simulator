@@ -32,4 +32,3 @@ class Helper(object):
     @staticmethod
     def step():
         Helper.time += Helper.dt
-

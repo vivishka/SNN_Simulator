@@ -35,13 +35,15 @@ model = Network()
 e1 = Encoder(img_size, 8, 0, 255, 0.1)
 n1 = Node(e1, image, 5, 0)
 b1 = Bloc(2, img_size, LIF)
+b2 = Bloc(2, img_size, LIF)
 d1 = Decoder(img_size)
 d2 = Decoder(img_size)
 d3 = Decoder(img_size)
+Connection(e1, b1, kernel=(1, 1))
+Connection(e1, b2, kernel=(3, 3))
 Connection(e1, d1, kernel=(1, 1))
-Connection(e1, d2, kernel=(3, 3))
-Connection(e1, b1, kernel=(3, 3))
-Connection(b1, d3, kernel=(1, 1))
+Connection(b1, d2, kernel=(1, 1))
+Connection(b2, d3, kernel=(1, 1))
 
 
 # b1 = Bloc(4, (4, 4), LIF, 'B1')
@@ -55,19 +57,16 @@ Connection(b1, d3, kernel=(1, 1))
 
 
 sim = Simulator(model, 0.001)
-sim.run(0.5)
+sim.run(0.2)
 
 plt.figure()
 plt.imshow(d1.decoded_image(), cmap='gray')
 plt.figure()
-# plt.imshow(d2.get_first_spike(), cmap='gray')
-# plt.figure()
-# plt.imshow(d3.get_first_spike(), cmap='gray')
+plt.imshow(d2.get_first_spike(), cmap='gray')
+plt.figure()
+plt.imshow(d3.get_first_spike(), cmap='gray')
 
 plt.show()
-
-
-
 
 # p1.plot()
 # p2.plot()
