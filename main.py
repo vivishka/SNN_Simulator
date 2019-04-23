@@ -23,8 +23,8 @@ with open(filename, newline='') as csvfile:
     image = np.array(row[1:]).astype(np.uint8)
     image = image.reshape(img_size)
 
-plt.figure()
-plt.imshow(image, cmap='gray')
+# plt.figure()
+# plt.imshow(image, cmap='gray')
 
 model = Network()
 
@@ -38,12 +38,12 @@ b1 = Bloc(2, img_size, LIF)
 b2 = Bloc(2, img_size, LIF)
 d1 = Decoder(img_size)
 d2 = Decoder(img_size)
-d3 = Decoder(img_size)
-Connection(e1, b1, kernel=(1, 1))
-Connection(e1, b2, kernel=(3, 3))
-Connection(e1, d1, kernel=(1, 1))
-Connection(b1, d2, kernel=(1, 1))
-Connection(b2, d3, kernel=(1, 1))
+d3 = Decoder((28//2, 28//2))
+Connection(e1, b1, (1, 1))
+Connection(e1, b2, (1, 1))
+Connection(e1, d1, (1, 1))
+Connection(b1, d2, (1, 1))
+Connection(b1, d3, kernel=(2, 2), stride=2)
 
 
 # b1 = Bloc(4, (4, 4), LIF, 'B1')

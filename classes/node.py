@@ -137,23 +137,20 @@ class Encoder(Bloc):
         The number of neuron used to encode a single value. Resolution
     ensemble_list: [Ensemble]
         There are nb ensembles. all neuron from the same ensemble have the same curve
-    dim: int
-        the dimension of the input
 
     """
 
     def __init__(self, size, depth, in_min, in_max, delay_max, threshold=.9, gamma=1.5):
         super(Encoder, self).__init__(depth)
-        self.size = size
+        self.size = (1, size) if isinstance(size, int) else size
         self.ensemble_list = []
-        self.dim = 1 if isinstance(size, int) else len(size)
 
         sigma = (in_max - in_min) / (depth - 2.0) / gamma
         for ens_index in range(depth):
             ens = Ensemble(
                 size=size,
-                neuron_type=GaussianFiringNeuron,
-                index=ens_index)
+                neuron_type=GaussianFiringNeuron)
+            # index=ens_index)
             self.ensemble_list.append(ens)
 
             mu = in_min + (ens_index + 1 - 1.5) * ((in_max - in_min) / (depth - 2.0))
@@ -169,13 +166,9 @@ class Encoder(Bloc):
             ens[index].set_value(value)
 
     def set_all_values(self, values):
-        if self.dim == 1:
-            for i, val in enumerate(values):
-                self.set_one_value(val, i)
-        else:
-            for i, row in enumerate(values):
-                for j, val in enumerate(row):
-                    self.set_one_value(val, (i, j))
+        for i, row in enumerate(values):
+            for j, val in enumerate(row):
+                self.set_one_value(val, (i, j))
 
 
 class Node(SimulationObject):
@@ -241,6 +234,7 @@ class Reset(SimulationObject):
     """docstring for Reset."""
 
     objects = []
+    # TODO: put it in the simulation
 
     def __init__(self, delay, period):
         super(Reset, self).__init__()

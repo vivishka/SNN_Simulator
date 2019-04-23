@@ -29,31 +29,28 @@ class Ensemble(SimulationObject):
     """
 
     objects = []
-
+    index = 0
+    # TODO: use 1D as 2D: 10 -> 1x10
     # TODO: default cases
-    def __init__(self, size, neuron_type, label='', index=0, **kwargs):
+
+    def __init__(self, size, neuron_type, label='', **kwargs):
         lbl = label if label != '' else id(self)
         super(Ensemble, self).__init__("Ens_{}".format(lbl))
         Ensemble.objects.append(self)
-        self.index = index
-        self.size = size
-        self.neuron_type = neuron_type
+        self.index = Ensemble.index
+        Ensemble.index += 1
+        self.size = (1, size) if isinstance(size, int) else size
         self.neuron_list = []
         self.neuron_array = np.ndarray(self.size, dtype=object)
         # TODO: change arg passing
-        if isinstance(size, int):
-            self.dim = 1
-            self.neuron_list = [
-                neuron_type(self, i, **kwargs) for i in range(size)]
-        elif isinstance(size, tuple) and len(size) == 2:
-            self.dim = 2
-            for line, element in enumerate(self.neuron_array):
+        if len(size) == 2:
+            for row, element in enumerate(self.neuron_array):
                 for col in range(len(element)):
-                    neuron = neuron_type(self, (line, col), **kwargs)
-                    self.neuron_array[(line, col)] = neuron
+                    neuron = neuron_type(self, (row, col), **kwargs)
+                    self.neuron_array[(row, col)] = neuron
                     self.neuron_list.append(neuron)
         else:
-            raise TypeError("Ensemble dimension should be int or (int, int)")
+            raise TypeError("Ensemble size should be int or (int, int)")
 
     def step(self):
         for neuron in self.neuron_list:
@@ -71,7 +68,7 @@ class Ensemble(SimulationObject):
             neuron.add_probe(index, value)
 
     def __getitem__(self, index):
-        if self.dim == 1:
+        if self.size[1] == 1:
             return self.neuron_list[index]
         else:
             return self.neuron_array[index]
@@ -96,7 +93,7 @@ class Bloc(object):
         self.ensemble_list = []
         for i in range(depth):
             if args or kwargs:
-                self.ensemble_list.append(Ensemble(index=i, *args, **kwargs))
+                self.ensemble_list.append(Ensemble(*args, **kwargs))
             else:
                 self.ensemble_list.append(None)
 
@@ -106,7 +103,5 @@ class Bloc(object):
     def __setitem__(self, index, value):
         self.ensemble_list[index] = value
 
-# TODO: distribution mecanim for neuron creation
+# TODO: distribution mechanism for neuron creation
 # TODO: inhibition
-# TODO: dimension (1/2)
-# TODO: acces indexing []

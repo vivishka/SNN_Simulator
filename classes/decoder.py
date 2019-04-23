@@ -48,8 +48,6 @@ class Decoder(Ensemble):
 
     def __init__(self, size):
         super(Decoder, self).__init__(size, NeuronLog)
-        self.size = size
-        self.dim = 1 if isinstance(size, int) else len(size)
 
     def get_first_spike(self):
         """
@@ -65,15 +63,15 @@ class Decoder(Ensemble):
         min_val = min(first_spike_list)
         max_val = max(first_spike_list)
 
-        for line in range(self.size[0]):
+        for row in range(self.size[0]):
             for col in range(self.size[1]):
-                if self.neuron_array[line, col].spike_times:
-                    value = self.neuron_array[line, col].spike_times[0][1]
+                if self.neuron_array[row, col].spike_times:
+                    value = self.neuron_array[row, col].spike_times[0][1]
                     value = ((value - min_val) / (max_val - min_val))
-                    image[line, col] = np.uint8((1 - value) * 255)
+                    image[row, col] = np.uint8((1 - value) * 255)
 
                 else:
-                    image[line, col] = 0
+                    image[row, col] = 0
         return image
 
     def decoded_image(self):
@@ -91,13 +89,12 @@ class Decoder(Ensemble):
         min_val = min([min(l) for l in spike_list])
         max_val = max([max(l) for l in spike_list])
 
-        # todo: if dim = 1
-        for line in range(self.size[0]):
+        for row in range(self.size[0]):
             for col in range(self.size[1]):
                 decoded_sum = 0
-                for index, time in self.neuron_array[line, col].spike_times:
+                for index, time in self.neuron_array[row, col].spike_times:
                     decoded_sum += (1 - (time - min_val) / (max_val - min_val)) * (index + 1)
-                image[line, col] = decoded_sum
+                image[row, col] = decoded_sum
 
         max_val = image.max()
         min_val = image.min()

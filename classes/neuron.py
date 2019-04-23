@@ -25,9 +25,9 @@ class Weights(object):
             self.weights.append(None)
         return self.ensemble_index_dict[ens]
 
-    def set_weights(self, ens, weight_array):
+    def set_weights(self, source_e, weight_array):
         """ sets the weights of the axons from the specified ensemble """
-        ens_number = self.check_ensemble_index(ens)
+        ens_number = self.check_ensemble_index(source_e)
         self.weights[ens_number] = weight_array
         return ens_number
 
