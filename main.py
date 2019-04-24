@@ -8,7 +8,7 @@ from classes.simulator import Simulator
 from classes.connection import Connection
 from classes.probe import Probe
 from classes.decoder import Decoder
-from classes.node import Encoder, Node
+from classes.encoder import Encoder, Node
 
 import sys
 sys.dont_write_bytecode = True
@@ -23,8 +23,8 @@ with open(filename, newline='') as csvfile:
     image = np.array(row[1:]).astype(np.uint8)
     image = image.reshape(img_size)
 
-# plt.figure()
-# plt.imshow(image, cmap='gray')
+plt.figure()
+plt.imshow(image, cmap='gray')
 
 model = Network()
 

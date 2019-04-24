@@ -35,7 +35,6 @@ class Axon(SimulationObject):
         The object to notify when this axon has a spike to propagate
 
     """
-
     def __init__(self, source_e, source_n, dest_e):
         # def __init__(self, source_n, dest_n_list, index_list):
         super(Axon, self).__init__("Axon {0}".format(id(self)))
@@ -101,7 +100,7 @@ class Connection(SimulationObject):
     objects = []
     # - fixed weight, uniformly random, other
 
-    def __init__(self, source_o, dest_o, kernel=(3, 3), *args, **kwargs):
+    def __init__(self, source_o, dest_o, kernel=(1, 1), *args, **kwargs):
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
         self.source_o = source_o
@@ -109,7 +108,7 @@ class Connection(SimulationObject):
         self.axon_list = []
         self.kernel = (kernel, kernel) if isinstance(kernel, int) else kernel
         self.stride = kwargs['stride'] if 'stride' in kwargs else 1
-        self.stride = kwargs['padding'] if 'padding' in kwargs else 0  # TODO: perhaps ?
+        self.padding = kwargs['padding'] if 'padding' in kwargs else 0  # TODO: perhaps ?
         self.shared = True if 'shared' in args else False
         self.all2all = True if 'all2all' in args else False
 
@@ -156,11 +155,11 @@ class Connection(SimulationObject):
         # weights setting
         kernel_size = self.kernel if not self.all2all else dest_e.size
         if self.shared:
-            weights = np.random.rand(*kernel_size) * 1.5 - 0.2
+            weights = np.random.rand(*kernel_size) * 1.5 - 0.5
             dest_e.neuron_list[0].weights.set_weights(source_e, weights)
         else:
             for dest_n in dest_e.neuron_list:
-                weights = np.random.rand(*kernel_size) * 1.5 - 0.2
+                weights = np.random.rand(*kernel_size) * 1.5 - 0.5
                 dest_n.weighs.set_weights(source_e, weights)
 
         # creation of axons for each neuron of the source ensemble

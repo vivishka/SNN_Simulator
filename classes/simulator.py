@@ -1,7 +1,7 @@
 
 from .connection import Connection
 from .ensemble import Ensemble
-from .node import Reset, Node
+from .encoder import Reset, Node
 from .base import Helper
 import sys
 sys.dont_write_bytecode = True

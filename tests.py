@@ -8,7 +8,7 @@ from classes.ensemble import Ensemble
 from classes.simulator import Simulator
 from classes.connection import Connection
 from classes.probe import Probe
-from classes.node import Node
+from classes.encoder import Node
 
 
 def test_node(arg):

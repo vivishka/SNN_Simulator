@@ -45,7 +45,6 @@ class DelayedNeuron(NeuronType):
 
     def step(self):
         if self.active and Helper.time >= self.delay:
-            # print("node neuron {} fired".format(self.label))
             self.active = False
             self.send_spike()
 

@@ -18,12 +18,12 @@ class Weights(object):
         self.ensemble_number = 0
         self.shared = shared
 
-    def check_ensemble_index(self, ens):
-        if ens not in self.ensemble_index_dict:
-            self.ensemble_index_dict[ens] = self.ensemble_number
+    def check_ensemble_index(self, source_e):
+        if source_e not in self.ensemble_index_dict:
+            self.ensemble_index_dict[source_e] = self.ensemble_number
             self.ensemble_number += 1
             self.weights.append(None)
-        return self.ensemble_index_dict[ens]
+        return self.ensemble_index_dict[source_e]
 
     def set_weights(self, source_e, weight_array):
         """ sets the weights of the axons from the specified ensemble """
@@ -91,6 +91,8 @@ class NeuronType(SimulationObject):
         self.spike_out_probed = False
         self.spike_in_probed = False
         self.probes = {}
+        self.nb_in = 0
+        self.nb_out = 0
         # TODO: bias
 
     def extract_param(self, name, default):
@@ -99,7 +101,7 @@ class NeuronType(SimulationObject):
             if callable(self.param[name]):
                 param = self.param[name]()
             else:
-                param = self.param[name]
+                param = default
         return param
 
     def add_input(self, source_a):
@@ -125,6 +127,7 @@ class NeuronType(SimulationObject):
         if self.spike_in_probed:
             w = self.weights[index]
             self.probes['spike_in'].log_spike_in(index, w)
+        self.nb_in += 1
 
     def send_spike(self):
         """ send a spike to all the connected axons """
@@ -132,9 +135,10 @@ class NeuronType(SimulationObject):
             output.create_spike()
         if self.spike_out_probed:
             self.probes['spike_out'].log_spike_out(self.index)
+        self.nb_out += 1
 
-    def add_probe(self, obj, variable):
-        self.probes[variable] = obj
+    def add_probe(self, probe, variable):
+        self.probes[variable] = probe
         if variable == 'spike_in':
             self.spike_in_probed = True
         elif variable == 'spike_out':
@@ -166,7 +170,6 @@ class LIF(NeuronType):
         if self.voltage < 0:
             self.voltage = 0
         self.received = []
-        # print("neuron " + self.name + " V: ", int(self.voltage*1000))
         if self.voltage >= self.threshold:
             self.voltage = 0
             self.send_spike()
