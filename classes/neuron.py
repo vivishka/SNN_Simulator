@@ -70,6 +70,9 @@ class NeuronType(SimulationObject):
         Can be shared between neurons of the same ensemble
     received: [Axon]
         List of axons which emitted a received spikes this step
+    inhibited = False
+        self.inhibiting = False
+        self.learner
     *_probed: bool
         Stores on which type of variable this neuron is being probed
     probes: {str:Probe}
@@ -77,7 +80,6 @@ class NeuronType(SimulationObject):
     """
 
     def __init__(self, ensemble, index, **kwargs):
-        # TODO: give a kwargs with an array: neuron can use its own index
         super(NeuronType, self).__init__(
             "{0}_Neuron_{1}".format(ensemble.label, index))
         self.ensemble = ensemble
@@ -87,13 +89,15 @@ class NeuronType(SimulationObject):
         self.outputs = []
         self.weights = Weights()
         self.received = []
+        self.inhibited = False
+        self.inhibiting = False
+        self.learner = None
         self.variable_probed = False
         self.spike_out_probed = False
         self.spike_in_probed = False
         self.probes = {}
         self.nb_in = 0
         self.nb_out = 0
-        # TODO: bias
 
     def extract_param(self, name, default):
         param = default
@@ -122,20 +126,25 @@ class NeuronType(SimulationObject):
 
     def receive_spike(self, index):
         """ Append an axons which emitted a received spikes this step """
-        # TODO: here the learner can be added
         self.received.append(index)
+        if self.learner is not None:
+            self.learner.in_spike(index)
         if self.spike_in_probed:
-            w = self.weights[index]
-            self.probes['spike_in'].log_spike_in(index, w)
+            weight = self.weights[index]
+            self.probes['spike_in'].log_spike_in(index, weight)
         self.nb_in += 1
 
     def send_spike(self):
         """ send a spike to all the connected axons """
+        if self.learner is not None:
+            self.learner.out_spike()
         for output in self.outputs:
             output.create_spike()
         if self.spike_out_probed:
             self.probes['spike_out'].log_spike_out(self.index)
         self.nb_out += 1
+        if self.inhibiting:
+            self.ensemble.propagate_inhibition(index_n=self.index)
 
     def add_probe(self, probe, variable):
         self.probes[variable] = probe
@@ -153,9 +162,36 @@ class NeuronType(SimulationObject):
                 if var not in 'spike_in, spike_out':
                     probe.log_value(self.index, self.__getattribute__(var))
 
+    def step(self):
+        pass
+
+    def reset(self):
+        self.inhibited = False
+
 
 class LIF(NeuronType):
-    """docstring for LIF."""
+    """
+    LIF implementation of a neuron
+
+    Parameters
+    ----------
+    ensemble: Ensemble
+        Same as NeuronType
+    index: (int, int)
+        Same as NeuronType
+    **kwargs
+        Same as NeuronType
+        voltage, threshold and tau parameters are passed using this argument
+
+    Attributes
+    ----------
+    voltage: float
+        Stores the ensemble this neuron belongs to
+    threshold: float
+        neuron parameter, when voltage exceeds it, a spike is emitted
+    tau
+        neuron parameter, decay rate of the neuron
+    """
 
     def __init__(self, ensemble, index, **kwargs):
         super(LIF, self).__init__(ensemble, index, **kwargs)
@@ -165,6 +201,9 @@ class LIF(NeuronType):
         self.tau = self.extract_param('tau', 5)
 
     def step(self):
+        if self.inhibited:
+            return
+
         input_sum = sum([self.weights[index] for index in self.received])
         self.voltage += - self.tau * self.voltage * Helper.dt + input_sum
         if self.voltage < 0:
@@ -176,12 +215,26 @@ class LIF(NeuronType):
         self.probe()
 
     def reset(self):
+        self.inhibited = False
         self.voltage = 0
+
+
+class PoolingNeuron(NeuronType):
+    """"""
+
+    def __init__(self, ensemble, index, **kwargs):
+        super(PoolingNeuron, self).__init__(ensemble, index, **kwargs)
+
+    def step(self):
+        if self.received and not self.inhibited:
+            self.received = []
+            self.send_spike()
 
 
 class Neuron(NeuronType):
     """'
     test model for a neuron
+    used for debug
     """
 
     objects = []

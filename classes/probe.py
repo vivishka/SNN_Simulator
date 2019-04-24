@@ -1,7 +1,6 @@
 
 import numpy as np
-from .base import SimulationObject
-from .simulator import Simulator
+from .base import SimulationObject, Helper
 from .ensemble import Ensemble
 import matplotlib.pyplot as plt
 import sys
@@ -20,7 +19,7 @@ class Probe(SimulationObject):
         self.size = 1
         self.dim = 1
         self.variable_name = variable
-        self.is_spike = variable in ('spike_in, spike_out')
+        self.is_spike = variable in 'spike_in, spike_out'
         target.add_probe(self, variable)
 
         # dimension check
@@ -42,14 +41,13 @@ class Probe(SimulationObject):
     def log_value(self, index, value):
         # TODO: call several methods for spikes or values
         # possibility to have multiple variable for a probe
-        # print("probed neuron {0} at {1}".format(index, value))
         self.values[index].append(value)
 
     def log_spike_out(self, index):
-        self.values[index].append(Simulator.time)
+        self.values[index].append(Helper.time)
 
     def log_spike_in(self, index, weight):
-        self.values[index].append((Simulator.time, weight))
+        self.values[index].append((Helper.time, weight))
 
     def plot(self):
         fig = plt.figure()
@@ -58,10 +56,7 @@ class Probe(SimulationObject):
         colors = ['k', 'r', 'b', 'g', 'm']
         if self.variable_name == 'spike_in':
             plt.grid(axis='y')
-            # plt.scatter(*zip(*self.values))
             for index, graph in enumerate(self.values):
-                # plt.subplot(self.size, 1, index)
-                # TODO: solve this
                 color = colors[index % 5]
                 for time in graph:
                     plt.plot(time, index, 'o', color=color)

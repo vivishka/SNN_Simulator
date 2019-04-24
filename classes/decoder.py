@@ -53,7 +53,7 @@ class Decoder(Ensemble):
         """
         Decoding algorithm based on WTA: only uses the time of first spike
 
-        :return: an array of the same size as this ensemble containing the time
+        :return: an array the same size as this ensemble containing the time
         of the first spike received by each neuron
         # TODO: change from 255 to 1.0
         """
@@ -70,7 +70,10 @@ class Decoder(Ensemble):
             for col in range(self.size[1]):
                 if self.neuron_array[row, col].spike_times:
                     value = self.neuron_array[row, col].spike_times[0][1]
-                    value = ((value - min_val) / (max_val - min_val))
+                    if min_val == max_val:
+                        value = 0
+                    else:
+                        value = ((value - min_val) / (max_val - min_val))
                     image[row, col] = np.uint8((1 - value) * 255)
 
                 else:
@@ -84,6 +87,7 @@ class Decoder(Ensemble):
 
         :return: an array the same size as this ensemble representing the decoded value
         # TODO: change from 255 to 1.0
+        # TODO: edge cases (empty list, min == max, ...)
         """
         image = np.zeros(self.size, )
 

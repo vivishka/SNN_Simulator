@@ -16,7 +16,6 @@ class SimulationObject(object):
     @classmethod
     def get_objects(cls):
         return cls.objects
-        # TODO: perhaps return a copy and empty this list of multiple networks
 
     def step(self):
         pass

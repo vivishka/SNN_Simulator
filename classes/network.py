@@ -7,8 +7,6 @@ from .probe import Probe
 import sys
 sys.dont_write_bytecode = True
 
-# TODO: with, synapse log
-
 
 class Network(object):
     """docstring for model."""

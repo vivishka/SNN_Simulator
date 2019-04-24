@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 from classes.network import Network
-from classes.neuron import LIF
+from classes.neuron import LIF, PoolingNeuron
 from classes.ensemble import Bloc
 from classes.simulator import Simulator
 from classes.connection import Connection
@@ -34,16 +34,19 @@ model = Network()
 
 e1 = Encoder(img_size, 8, 0, 255, 0.1)
 n1 = Node(e1, image, 5, 0)
-b1 = Bloc(2, img_size, LIF)
-b2 = Bloc(2, img_size, LIF)
+b1 = Bloc(20, img_size, LIF)
+b1.set_inhibition(5)
+# b2 = Bloc(2, img_size, LIF)
+# b3 = Bloc(1, img_size, PoolingNeuron)
 d1 = Decoder(img_size)
 d2 = Decoder(img_size)
-d3 = Decoder((28//2, 28//2))
+# d3 = Decoder((28//2, 28//2))
+# d3 = Decoder(img_size)
 Connection(e1, b1, (1, 1))
-Connection(e1, b2, (1, 1))
+# Connection(e1, b2, (1, 1))
 Connection(e1, d1, (1, 1))
 Connection(b1, d2, (1, 1))
-Connection(b1, d3, kernel=(2, 2), stride=2)
+# Connection(b1, d3, kernel=(2, 2), stride=2)
 
 
 # b1 = Bloc(4, (4, 4), LIF, 'B1')
@@ -63,15 +66,13 @@ plt.figure()
 plt.imshow(d1.decoded_image(), cmap='gray')
 plt.figure()
 plt.imshow(d2.get_first_spike(), cmap='gray')
-plt.figure()
-plt.imshow(d3.get_first_spike(), cmap='gray')
+# plt.figure()
+# plt.imshow(d3.get_first_spike(), cmap='gray')
 
 plt.show()
 
 # p1.plot()
 # p2.plot()
-
-# TODO: distribution arg for ensembles
 
 
 # print(e2[1][5].label)
