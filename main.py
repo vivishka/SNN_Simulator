@@ -2,11 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 from classes.network import Network
-from classes.neuron import LIF, PoolingNeuron
+from classes.neuron import LIF
+from classes.neuron import PoolingNeuron
 from classes.ensemble import Bloc
 from classes.simulator import Simulator
 from classes.connection import Connection
-from classes.probe import Probe
+# from classes.probe import Probe
 from classes.decoder import Decoder
 from classes.encoder import Encoder, Node
 
@@ -15,13 +16,11 @@ sys.dont_write_bytecode = True
 
 filename = 'datasets/fashionmnist/fashion-mnist_test.csv'
 img_size = (28, 28)
-image = None
-with open(filename, newline='') as csvfile:
-    readCSV = csv.reader(csvfile, delimiter=',')
+with open(filename, newline='') as file:
+    readCSV = csv.reader(file, delimiter=',')
     readCSV.__next__()
     row = readCSV.__next__()
-    image = np.array(row[1:]).astype(np.uint8)
-    image = image.reshape(img_size)
+    image = np.array(row[1:]).astype(np.uint8).reshape(img_size)
 
 plt.figure()
 plt.imshow(image, cmap='gray')
@@ -32,20 +31,27 @@ model = Network()
 # n2 = Node(10, lambda: np.random.rand(1), 0.20)
 # r = Reset(0.15, 0.2)
 
-e1 = Encoder(img_size, 8, 0, 255, 0.1)
+e1 = Encoder(img_size, 10, 0, 255, 0.1)
 n1 = Node(e1, image, 5, 0)
-b1 = Bloc(20, img_size, LIF)
-b1.set_inhibition(5)
-# b2 = Bloc(2, img_size, LIF)
+b1 = Bloc(10, img_size, LIF)
+b2 = Bloc(10, img_size, LIF)
+b3 = Bloc(10, img_size, LIF)
+b4 = Bloc(10, img_size, LIF)
 # b3 = Bloc(1, img_size, PoolingNeuron)
+# b1.set_inhibition(5)
+
 d1 = Decoder(img_size)
 d2 = Decoder(img_size)
-# d3 = Decoder((28//2, 28//2))
+d3 = Decoder((28//1, 28//1))
 # d3 = Decoder(img_size)
+
 Connection(e1, b1, (1, 1))
-# Connection(e1, b2, (1, 1))
+Connection(b1, b2, (3, 3))
+Connection(b2, b3, (3, 3))
+Connection(b3, b4, (3, 3))
 Connection(e1, d1, (1, 1))
 Connection(b1, d2, (1, 1))
+Connection(b4, d3, (1, 1))
 # Connection(b1, d3, kernel=(2, 2), stride=2)
 
 
@@ -66,8 +72,8 @@ plt.figure()
 plt.imshow(d1.decoded_image(), cmap='gray')
 plt.figure()
 plt.imshow(d2.get_first_spike(), cmap='gray')
-# plt.figure()
-# plt.imshow(d3.get_first_spike(), cmap='gray')
+plt.figure()
+plt.imshow(d3.get_first_spike(), cmap='gray')
 
 plt.show()
 

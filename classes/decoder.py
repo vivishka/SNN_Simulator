@@ -9,6 +9,20 @@ class NeuronLog(NeuronType):
     This neuron is only used to store all the received spikes and times for later uses.
     This type of neuron is used in decoders
 
+    Parameters
+    ----------
+    ensemble: Ensemble
+        Same as NeuronType
+    index: (int, int)
+        Same as NeuronType
+    **kwargs
+        Same as NeuronType
+
+    Attributes
+    ----------
+    spike_times: [(int, int)]
+        list of tuple (ensemble index, time) of every received spike
+
     """
     def __init__(self, ensemble, index, **kwargs):
         super(NeuronLog, self).__init__(ensemble, index, **kwargs)
@@ -39,10 +53,7 @@ class Decoder(Ensemble):
 
     Attributes
     ----------
-    size: int or (int, int)
-         Size of the ensemble
-    dim: int
-        depending on the given size, the dimension of the ensemble (1D / 2D)
+
 
     """
 

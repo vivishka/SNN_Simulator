@@ -22,8 +22,10 @@ class SimulationObject(object):
 
 
 class Helper(object):
+    step_nb = 0
     time = 0
     dt = 0
+    nb = 0
 
     def __init__(self):
         pass
@@ -31,3 +33,4 @@ class Helper(object):
     @staticmethod
     def step():
         Helper.time += Helper.dt
+        Helper.step_nb += 1

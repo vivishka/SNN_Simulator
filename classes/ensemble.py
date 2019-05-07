@@ -12,20 +12,20 @@ class Ensemble(SimulationObject):
     Parameters
     ---------
     size: int or (int, int)
-         Size of the ensemble
+        Size of the ensemble
     neuron_type : NeuronType
         Class of the neurons
-    *args
-        The list of arguments passed to initialize the neurons
+    *args, **kwargs:
+        Arguments passed to initialize the neurons
 
     Attributes
     ----------
-    size: int or (int, int)
-        size of the ensemble
+    size: (int, int)
+        Size of the ensemble, if the given parameter was an int, the size is (1, n)
     neuron_type: NeuronType
         Class of the neurons
     neuron_list: [NeuronType]
-        The list of initialized neurons
+        List of initialized neurons
     """
 
     objects = []
@@ -40,6 +40,7 @@ class Ensemble(SimulationObject):
         Ensemble.index += 1
         self.size = (1, size) if isinstance(size, int) else size
         self.neuron_list = []
+        self.active_neuron_list = []
         self.neuron_array = np.ndarray(self.size, dtype=object)
         if len(size) == 2:
             for row, element in enumerate(self.neuron_array):
@@ -47,12 +48,18 @@ class Ensemble(SimulationObject):
                     neuron = neuron_type(self, (row, col), **kwargs)
                     self.neuron_array[(row, col)] = neuron
                     self.neuron_list.append(neuron)
+                    self.active_neuron_list.append(neuron)
         else:
             raise TypeError("Ensemble size should be int or (int, int)")
 
-    def step(self):
+    def step2(self):
         for neuron in self.neuron_list:
             neuron.step()
+
+    def step(self):
+        for neuron in self.active_neuron_list:
+            neuron.step()
+        self.active_neuron_list = []
 
     def reset(self):
         for neuron in self.neuron_list:
@@ -73,6 +80,7 @@ class Ensemble(SimulationObject):
         else:
             for row in range(index_n[0] - radius[0], index_n[0] + radius[0] + 1):
                 for col in range(index_n[1] - radius[1], index_n[1] + radius[1] + 1):
+
                     # lazy range test but eh #2
                     try:
                         self.neuron_array[row, col].inhibited = True

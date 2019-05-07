@@ -1,11 +1,18 @@
 <component name="ProjectDictionaryState">
   <dictionary name="vivien">
     <words>
+      <w>cmap</w>
       <w>conv</w>
       <w>convolutional</w>
+      <w>datasets</w>
       <w>dest</w>
       <w>dont</w>
+      <w>fashionmnist</w>
       <w>funct</w>
+      <w>imshow</w>
+      <w>mnist</w>
+      <w>opti</w>
+      <w>pycache</w>
     </words>
   </dictionary>
 </component>

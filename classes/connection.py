@@ -35,10 +35,13 @@ class Axon(SimulationObject):
         The object to notify when this axon has a spike to propagate
 
     """
+    nb_axon = 0
+    nb_synapse = 0
+
     def __init__(self, source_e, source_n, dest_e):
         # def __init__(self, source_n, dest_n_list, index_list):
         super(Axon, self).__init__("Axon {0}".format(id(self)))
-
+        Axon.nb_axon += 1
         self.source_e = source_e
         self.source_n = source_n
         self.dest_e = dest_e
@@ -55,6 +58,7 @@ class Axon(SimulationObject):
         source_e_index = dest_n.weights.check_ensemble_index(self.source_e)
         self.dest_n_index_list.append((dest_n, (source_e_index,) + index_n))
         dest_n.add_input(self)
+        Axon.nb_synapse += 1
 
     def set_notifier(self, spike_notifier):
         """ Used to simulate axons only when they received a spike """
@@ -118,7 +122,7 @@ class Connection(SimulationObject):
             connect_function = self.connect_ensemble_ensemble
 
         # the destination object is turned into a list of ensembles
-        dest_e_list = dest_o.ensemble_list if isinstance(dest_o, Bloc) else  [dest_o]
+        dest_e_list = dest_o.ensemble_list if isinstance(dest_o, Bloc) else [dest_o]
 
         # connect the source object to the list of ensemble
         for dest_e in dest_e_list:
@@ -211,6 +215,8 @@ class Connection(SimulationObject):
                     source_col = dest_n_index[1] * self.stride + col
 
                     # lazy range test but eh #1
+                    # the stride may cause issues when the destination ensemble size does not match
+                    #  perhaps add warning
                     try:
                         # add the synapse to the source axon (-1: last added axon)
                         source_axon = source_e.neuron_array[source_row, source_col].outputs[-1]

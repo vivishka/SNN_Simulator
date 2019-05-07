@@ -78,10 +78,12 @@ class NeuronType(SimulationObject):
     probes: {str:Probe}
         Dictionary associating variable name and probe
     """
+    nb_neuron = 0
 
     def __init__(self, ensemble, index, **kwargs):
         super(NeuronType, self).__init__(
             "{0}_Neuron_{1}".format(ensemble.label, index))
+        NeuronType.nb_neuron += 1
         self.ensemble = ensemble
         self.index = index
         self.param = kwargs if kwargs is not None else {}
@@ -89,6 +91,8 @@ class NeuronType(SimulationObject):
         self.outputs = []
         self.weights = Weights()
         self.received = []
+        self.last_active = 0
+        self.halted = False
         self.inhibited = False
         self.inhibiting = False
         self.learner = None
@@ -126,6 +130,9 @@ class NeuronType(SimulationObject):
 
     def receive_spike(self, index):
         """ Append an axons which emitted a received spikes this step """
+        if self.halted:
+            self.ensemble.active_neuron_list.append(self)
+            self.halted = False
         self.received.append(index)
         if self.learner is not None:
             self.learner.in_spike(index)
@@ -200,16 +207,42 @@ class LIF(NeuronType):
         self.threshold = self.extract_param('threshold', 1)
         self.tau = self.extract_param('tau', 5)
 
-    def step(self):
+    def step2(self):
+        # Helper.nb +=1
         if self.inhibited:
             return
 
         input_sum = sum([self.weights[index] for index in self.received])
         self.voltage += - self.tau * self.voltage * Helper.dt + input_sum
+        # ToDo: do not sim if no spike received
+        # count number of steps, Vn = (1- tau * dt)^n * V0
+        # in type receive: halted = false
+        # in ensemble: list of un halted neurons to simulate
+        # only simulate the steps where a spike is received and if no probes
+
         if self.voltage < 0:
             self.voltage = 0
         self.received = []
         if self.voltage >= self.threshold:
+            self.voltage = 0
+            self.send_spike()
+        self.probe()
+
+    def step(self):
+        # Helper.nb += 1
+        elapsed_steps = Helper.step_nb - self.last_active
+        self.last_active = Helper.step_nb
+        self.halted = True
+        if self.inhibited:
+            return
+
+        input_sum = sum([self.weights[index] for index in self.received])
+        self.voltage = self.voltage * (1 - self.tau * Helper.dt) ** elapsed_steps + input_sum
+        if self.voltage < 0:
+            self.voltage = 0
+        self.received = []
+        if self.voltage >= self.threshold:
+            # print("neuron {0} spiked".format(self.label))
             self.voltage = 0
             self.send_spike()
         self.probe()
@@ -220,7 +253,9 @@ class LIF(NeuronType):
 
 
 class PoolingNeuron(NeuronType):
-    """"""
+    """
+    once it receive a spike, from any of its dendrite, propagate it
+    """
 
     def __init__(self, ensemble, index, **kwargs):
         super(PoolingNeuron, self).__init__(ensemble, index, **kwargs)

@@ -98,12 +98,25 @@ class GaussianFiringNeuron(NeuronType):
             self.active = False
             self.send_spike()
             GaussianFiringNeuron.nb_spikes += 1
+        else:
+            pass
+            # self.ensemble.active_neuron_list.append(self)
 
     def set_value(self, value):
         delay = (1-np.exp(-0.5*((value-self.mu)/self.sigma)**2))*self.delay_max
         if delay < (self.delay_max * self. threshold):
             self.firing_time = Helper.time + delay
             self.active = True
+
+
+class EncoderEnsemble(Ensemble):
+
+    def __init__(self, size, neuron_type, label='', **kwargs):
+        super(EncoderEnsemble, self).__init__(size, neuron_type, label, **kwargs)
+
+    def step(self):
+        for neuron in self.neuron_list:
+            neuron.step()
 
 
 class Encoder(Bloc):
@@ -146,7 +159,7 @@ class Encoder(Bloc):
 
         sigma = (in_max - in_min) / (depth - 2.0) / gamma
         for ens_index in range(depth):
-            ens = Ensemble(
+            ens = EncoderEnsemble(
                 size=size,
                 neuron_type=GaussianFiringNeuron)
             # index=ens_index)
