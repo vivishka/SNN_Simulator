@@ -57,7 +57,7 @@ class Simulator(object):
         then propagate spikes """
         # TODO:  progress bar
         Helper.step()
-        print("{:.4f}".format(Helper.time))
+        # print("{:.4f}".format(Helper.time))
         for reset in self.input_reset:
             reset.step()
         for node in self.nodes:
@@ -92,7 +92,7 @@ class Simulator(object):
         # print(len(self.spike_list))
 
     def propagate_all(self):
-        print(len(self.spike_list))
+        # print(len(self.spike_list))
         for axon in self.spike_list:
             axon.propagate_spike()
         self.spike_list = []

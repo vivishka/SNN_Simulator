@@ -29,20 +29,19 @@ class Ensemble(SimulationObject):
     """
 
     objects = []
-    index = 0
+    # index = 0
 
-    def __init__(self, size, neuron_type, label='', **kwargs):
+    def __init__(self, size, neuron_type, label='', bloc=None, index=0, **kwargs):
         lbl = label if label != '' else id(self)
         super(Ensemble, self).__init__("Ens_{}".format(lbl))
         Ensemble.objects.append(self)
-        self.index = Ensemble.index
-        self.bloc = None
-        Ensemble.index += 1
+        self.bloc = bloc
+        self.index = index
         self.size = (1, size) if isinstance(size, int) else size
         self.neuron_list = []
         self.active_neuron_list = []
         self.neuron_array = np.ndarray(self.size, dtype=object)
-        if len(size) == 2:
+        if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
                 for col in range(len(element)):
                     neuron = neuron_type(self, (row, col), **kwargs)
@@ -51,10 +50,6 @@ class Ensemble(SimulationObject):
                     self.active_neuron_list.append(neuron)
         else:
             raise TypeError("Ensemble size should be int or (int, int)")
-
-    def step2(self):
-        for neuron in self.neuron_list:
-            neuron.step()
 
     def step(self):
         for neuron in self.active_neuron_list:
@@ -92,7 +87,7 @@ class Ensemble(SimulationObject):
         self.inhibit()
 
     def __getitem__(self, index):
-        if self.size[1] == 1:
+        if isinstance(index, int):
             return self.neuron_list[index]
         else:
             return self.neuron_array[index]
@@ -134,8 +129,9 @@ class Bloc(object):
         self.inhibition_radius = (1, 1)
         for i in range(depth):
             if args or kwargs:
-                ens = Ensemble(*args, **kwargs)
-                ens.bloc = self
+                ens = Ensemble(*args, **kwargs, bloc=self, index=i)
+                # ens.bloc = self
+                # ens.bloc_index = i
                 self.ensemble_list.append(ens)
             else:
                 self.ensemble_list.append(None)

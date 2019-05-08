@@ -103,30 +103,89 @@ class Connection(SimulationObject):
 
     objects = []
 
-    def __init__(self, source_o, dest_o, kernel=(1, 1), *args, **kwargs):
+    def __init__(self, source_o, dest_o, kernel=None, *args, **kwargs):
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
         self.source_o = source_o
         self.dest_o = dest_o
         self.axon_list = []
-        self.kernel = (kernel, kernel) if isinstance(kernel, int) else kernel
         self.stride = kwargs['stride'] if 'stride' in kwargs else 1
         self.padding = kwargs['padding'] if 'padding' in kwargs else 0  # TODO: perhaps ?
         self.shared = True if 'shared' in args else False
         self.all2all = True if 'all2all' in args else False
+        self.weights = kwargs['weights'] if 'weights' in kwargs else None
 
         # depending on the source object type, a specific function is called
         if isinstance(source_o, Bloc):
             connect_function = self.connect_bloc_ensemble
+            source_e_dim = source_o.depth
+            source_n_dim = source_o.ensemble_list[0].neuron_array.shape
         else:
             connect_function = self.connect_ensemble_ensemble
+            source_e_dim = 1
+            source_n_dim = source_o.neuron_array.shape
 
         # the destination object is turned into a list of ensembles
-        dest_e_list = dest_o.ensemble_list if isinstance(dest_o, Bloc) else [dest_o]
+        if isinstance(dest_o, Bloc):
+            dest_e_list = dest_o.ensemble_list
+            dest_e_dim = dest_o.depth
+        else:
+            dest_e_list = [dest_o]
+            dest_e_dim = 1
+
+        dest_n_dim = dest_e_list[0].neuron_array.shape
+
+        # Default behaviour when connecting to a dense network: all to all
+        # TODO: re organize default behaviour
+        if kernel is None:
+            if dest_n_dim[0] == 1:
+                self.all2all = True
+            else:
+                self.kernel = (1, 1)
+        else:
+            self.kernel = (kernel, kernel) if isinstance(kernel, int) else kernel
+            self.shared = True
+
+        self.generate_weights(source_e_dim, dest_e_dim, source_n_dim, dest_n_dim)
 
         # connect the source object to the list of ensemble
         for dest_e in dest_e_list:
             connect_function(source_b=source_o, dest_e=dest_e)
+
+    def generate_weights(self, source_e_dim, dest_e_dim, source_n_dim, dest_n_dim):
+        kernel_dim = source_n_dim if self.all2all else self.kernel
+        if self.shared:
+            size = (np.prod(source_e_dim), dest_e_dim, *kernel_dim)
+        else:
+            size = (np.prod(source_e_dim), dest_e_dim, np.prod(dest_n_dim), *kernel_dim)
+        self.weights = np.random.rand(*size) * 1.5 - 0.5
+
+    def extract_weights(self):
+
+        weights = np.ndarray(self.weights.shape)
+
+        if isinstance(self.source_o, Bloc):
+            source_e_list = self.source_o.ensemble_list
+        else:
+            source_e_list = [self.source_o]
+
+        if isinstance(self.dest_o, Bloc):
+            dest_e_list = self.dest_o.ensemble_list
+        else:
+            dest_e_list = [self.dest_o]
+
+        for source_e, source_i in enumerate(source_e_list):
+            for dest_i, dest_e in enumerate(dest_e_list):
+                ensemble_i = dest_e.neuron_list[0].weights.check_ensemble_index(source_e)
+                weights[source_i, dest_i] = dest_e.neuron_list[0].weights.weights[ensemble_i]
+
+# source_dim = self.source_o.depth if isinstance(self.source_o, Bloc) else 1
+#         if isinstance(self.dest_o, Bloc):
+#             dest_dim = self.dest_o.depth
+#             dest_n_nb = len(self.dest_o.ensemble_list[0].neuron_list)
+#         else:
+#             dest_dim = 1
+#             dest_n_nb = len(self.dest_o.neuron_list)
 
     def connect_bloc_ensemble(self, source_b, dest_e):
         """
@@ -140,12 +199,12 @@ class Connection(SimulationObject):
         dest_e : Ensemble
             destination Ensemble
         """
-        self.shared = True
 
-        # shares the same weight matrix to all destination neuron
-        block_weights = Weights(shared=True)
-        for dest_n in dest_e.neuron_list:
-            dest_n.set_weights(block_weights)
+        if self.shared:
+            # shares the same weight object to all destination neuron
+            block_weights = Weights(shared=True)
+            for dest_n in dest_e.neuron_list:
+                dest_n.set_weights(block_weights)
 
         # connect each ensemble of the block
         for source_e in source_b.ensemble_list:
@@ -167,14 +226,17 @@ class Connection(SimulationObject):
 
         # TODO: better init of the weight depending on dimension
         # weights setting
-        kernel_size = self.kernel if not self.all2all else dest_e.size
+        # TODO: load and save from variable / file
+        # dictionary: (source obj ID, dest obj ID) : np array
         if self.shared:
-            weights = np.random.rand(*kernel_size) * 1.5 - 0.5
+            weights = self.weights[source_e.index, dest_e.index]
+            # changing the weight matrix of one neuron will change the matrix
+            # for all the neurons of the ensemble as they share the same object
             dest_e.neuron_list[0].weights.set_weights(source_e, weights)
         else:
-            for dest_n in dest_e.neuron_list:
-                weights = np.random.rand(*kernel_size) * 1.5 - 0.5
-                dest_n.weighs.set_weights(source_e, weights)
+            for i, dest_n in enumerate(dest_e.neuron_list):
+                weights = self.weights[source_e.index, dest_e.index, i]
+                dest_n.weights.set_weights(source_e, weights)
 
         # creation of axons for each neuron of the source ensemble
         for row in range(source_e.size[0]):

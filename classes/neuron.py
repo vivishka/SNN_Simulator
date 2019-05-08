@@ -205,7 +205,7 @@ class LIF(NeuronType):
         Neuron.objects.append(self)
         self.voltage = 0
         self.threshold = self.extract_param('threshold', 1)
-        self.tau = self.extract_param('tau', 5)
+        self.tau_inv = 1.0 / self.extract_param('tau', 0.2)
 
     def step2(self):
         # Helper.nb +=1
@@ -213,12 +213,7 @@ class LIF(NeuronType):
             return
 
         input_sum = sum([self.weights[index] for index in self.received])
-        self.voltage += - self.tau * self.voltage * Helper.dt + input_sum
-        # ToDo: do not sim if no spike received
-        # count number of steps, Vn = (1- tau * dt)^n * V0
-        # in type receive: halted = false
-        # in ensemble: list of un halted neurons to simulate
-        # only simulate the steps where a spike is received and if no probes
+        self.voltage += - self.tau_inv * self.voltage * Helper.dt + input_sum
 
         if self.voltage < 0:
             self.voltage = 0
@@ -237,7 +232,7 @@ class LIF(NeuronType):
             return
 
         input_sum = sum([self.weights[index] for index in self.received])
-        self.voltage = self.voltage * (1 - self.tau * Helper.dt) ** elapsed_steps + input_sum
+        self.voltage = self.voltage * (1 - self.tau_inv * Helper.dt) ** elapsed_steps + input_sum
         if self.voltage < 0:
             self.voltage = 0
         self.received = []

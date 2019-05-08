@@ -104,6 +104,7 @@ class GaussianFiringNeuron(NeuronType):
 
     def set_value(self, value):
         delay = (1-np.exp(-0.5*((value-self.mu)/self.sigma)**2))*self.delay_max
+        # print("neuron {} will spike at {}".format(self.index, delay))
         if delay < (self.delay_max * self. threshold):
             self.firing_time = Helper.time + delay
             self.active = True
@@ -161,8 +162,10 @@ class Encoder(Bloc):
         for ens_index in range(depth):
             ens = EncoderEnsemble(
                 size=size,
-                neuron_type=GaussianFiringNeuron)
-            # index=ens_index)
+                neuron_type=GaussianFiringNeuron,
+                bloc=self,
+                index=ens_index)
+            ens.bloc_index = ens_index
             self.ensemble_list.append(ens)
 
             mu = in_min + (ens_index + 1 - 1.5) * ((in_max - in_min) / (depth - 2.0))
@@ -178,9 +181,17 @@ class Encoder(Bloc):
             ens[index].set_value(value)
 
     def set_all_values(self, values):
-        for i, row in enumerate(values):
-            for j, val in enumerate(row):
-                self.set_one_value(val, (i, j))
+        if isinstance(values, (int, float)):
+            self.set_one_value(values, (0, 0))
+        elif isinstance(values, list):
+            for col in range(self.size[1]):
+                self.set_one_value(values, (0, col))
+        elif isinstance(values, np.ndarray):
+            for row in range(self.size[0]):
+                for col in range(self.size[1]):
+                    self.set_one_value(values[row, col], (row, col))
+        else:
+            raise Exception("unsuported input format")
 
 
 class Node(SimulationObject):
