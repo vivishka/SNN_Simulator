@@ -52,6 +52,7 @@ if img:
     Connection(b1, d2, (1, 1))
     Connection(b4, d3, (1, 1))
 
+
 else:
     e1 = Encoder(1, 5, 0.0, 1.0, 0.1)
     n1 = Node(e1, np.random.rand)
