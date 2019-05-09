@@ -2,8 +2,17 @@
 # Ignore all bytecode
 .pyc
 
+# Ignore pycharm files
+/.idea/*
+
 # Ignore pycache
 __pycache__/
 
 # Ignore playground
 test.py
+
+# Ignore Scratchpad
+main.py
+
+# Ignore datasets
+/datasets
