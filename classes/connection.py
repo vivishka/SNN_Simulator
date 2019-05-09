@@ -106,8 +106,6 @@ class Connection(SimulationObject):
     def __init__(self, source_o, dest_o, kernel=None, *args, **kwargs):
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
-        self.source_o = source_o
-        self.dest_o = dest_o
         self.axon_list = []
         self.stride = kwargs['stride'] if 'stride' in kwargs else 1
         self.padding = kwargs['padding'] if 'padding' in kwargs else 0  # TODO: perhaps ?
@@ -118,22 +116,24 @@ class Connection(SimulationObject):
         # depending on the source object type, a specific function is called
         if isinstance(source_o, Bloc):
             connect_function = self.connect_bloc_ensemble
+            self.source_e_list = source_o.ensemble_list
             source_e_dim = source_o.depth
             source_n_dim = source_o.ensemble_list[0].neuron_array.shape
         else:
             connect_function = self.connect_ensemble_ensemble
+            self.source_e_list = [source_o]
             source_e_dim = 1
             source_n_dim = source_o.neuron_array.shape
 
         # the destination object is turned into a list of ensembles
         if isinstance(dest_o, Bloc):
-            dest_e_list = dest_o.ensemble_list
+            self.dest_e_list = dest_o.ensemble_list
             dest_e_dim = dest_o.depth
         else:
-            dest_e_list = [dest_o]
+            self.dest_e_list = [dest_o]
             dest_e_dim = 1
 
-        dest_n_dim = dest_e_list[0].neuron_array.shape
+        dest_n_dim = self.dest_e_list[0].neuron_array.shape
 
         # Default behaviour when connecting to a dense network: all to all
         # TODO: re organize default behaviour
@@ -149,7 +149,7 @@ class Connection(SimulationObject):
         self.generate_weights(source_e_dim, dest_e_dim, source_n_dim, dest_n_dim)
 
         # connect the source object to the list of ensemble
-        for dest_e in dest_e_list:
+        for dest_e in self.dest_e_list:
             connect_function(source_b=source_o, dest_e=dest_e)
 
     def generate_weights(self, source_e_dim, dest_e_dim, source_n_dim, dest_n_dim):
@@ -162,30 +162,22 @@ class Connection(SimulationObject):
 
     def extract_weights(self):
 
-        weights = np.ndarray(self.weights.shape)
+        weights = np.zeros(self.weights.shape)
 
-        if isinstance(self.source_o, Bloc):
-            source_e_list = self.source_o.ensemble_list
-        else:
-            source_e_list = [self.source_o]
-
-        if isinstance(self.dest_o, Bloc):
-            dest_e_list = self.dest_o.ensemble_list
-        else:
-            dest_e_list = [self.dest_o]
-
-        for source_e, source_i in enumerate(source_e_list):
-            for dest_i, dest_e in enumerate(dest_e_list):
+        for source_e_i, source_e in enumerate(self.source_e_list):
+            for dest_e_i, dest_e in enumerate(self.dest_e_list):
+                # get the ensemble index of the source_e in the dest_e
                 ensemble_i = dest_e.neuron_list[0].weights.check_ensemble_index(source_e)
-                weights[source_i, dest_i] = dest_e.neuron_list[0].weights.weights[ensemble_i]
+                if self.shared:
+                    # if shared: same weights for all neurons
+                    weights[source_e_i, dest_e_i] = dest_e.neuron_list[0].weights.weights[ensemble_i]
+                else:
+                    # different weights for each neuron
+                    for dest_n_i, dest_n in enumerate(dest_e.neuron_list):
+                        w = dest_n.weights.weights[ensemble_i]
+                        weights[source_e_i, dest_e_i, dest_n_i] = w
 
-# source_dim = self.source_o.depth if isinstance(self.source_o, Bloc) else 1
-#         if isinstance(self.dest_o, Bloc):
-#             dest_dim = self.dest_o.depth
-#             dest_n_nb = len(self.dest_o.ensemble_list[0].neuron_list)
-#         else:
-#             dest_dim = 1
-#             dest_n_nb = len(self.dest_o.neuron_list)
+        return weights
 
     def connect_bloc_ensemble(self, source_b, dest_e):
         """
