@@ -3,7 +3,8 @@
 .pyc
 
 # Ignore pycharm files
-/.idea/*
+.*
+!/.idea
 
 # Ignore pycache
 __pycache__/
