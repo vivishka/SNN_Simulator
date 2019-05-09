@@ -94,7 +94,7 @@ class GaussianFiringNeuron(NeuronType):
 
     def step(self):
         if self.active and Helper.time >= self.firing_time:
-            # print("node neuron {} fired".format(self.index))
+            print("node neuron {} fired".format(self.index))
             self.active = False
             self.send_spike()
             GaussianFiringNeuron.nb_spikes += 1
@@ -159,6 +159,7 @@ class Encoder(Bloc):
         self.ensemble_list = []
 
         sigma = (in_max - in_min) / (depth - 2.0) / gamma
+        # recreates the list of ensembles
         for ens_index in range(depth):
             ens = EncoderEnsemble(
                 size=size,
@@ -227,30 +228,21 @@ class Node(SimulationObject):
         """
     objects = []
 
-    def __init__(self, encoder, value, period=-1, delay=0, *args, **kwargs):
+    def __init__(self, encoder, value, *args, **kwargs):
         super(Node, self).__init__()
         Node.objects.append(self)
         self.encoder = encoder
         self.value = value
-        self.period = period
-        self.next_input = delay
-        self.active = True
         self.args = args
         self.kwargs = kwargs
 
     def step(self):
-        if self.active and Helper.time >= self.next_input:
-            if callable(self.value):
-                value = self.value(*self.args, **self.kwargs)
-            else:
-                value = self.value
+        if callable(self.value):
+            value = self.value(*self.args, **self.kwargs)
+        else:
+            value = self.value
 
-            self.encoder.set_all_values(value)
-
-            if self.period > 0:
-                self.next_input += self.period
-            else:
-                self.active = False
+        self.encoder.set_all_values(value)
 
 
 class Reset(SimulationObject):

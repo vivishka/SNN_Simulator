@@ -173,7 +173,10 @@ class NeuronType(SimulationObject):
         pass
 
     def reset(self):
+        self.received = []
+        self.last_active = 0
         self.inhibited = False
+        self.halted = False
 
 
 class LIF(NeuronType):
@@ -243,7 +246,7 @@ class LIF(NeuronType):
         self.probe()
 
     def reset(self):
-        self.inhibited = False
+        super().reset()
         self.voltage = 0
 
 
