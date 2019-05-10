@@ -126,13 +126,9 @@ class Connection(SimulationObject):
             source_n_dim = source_o.neuron_array.shape
 
         # the destination object is turned into a list of ensembles
-        if isinstance(dest_o, Bloc):
-            self.dest_e_list = dest_o.ensemble_list
-            dest_e_dim = dest_o.depth
-        else:
-            self.dest_e_list = [dest_o]
-            dest_e_dim = 1
+        self.dest_e_list = dest_o.ensemble_list
 
+        dest_e_dim = len(dest_o.ensemble_list)
         dest_n_dim = self.dest_e_list[0].neuron_array.shape
 
         # Default behaviour when connecting to a dense network: all to all
