@@ -196,7 +196,7 @@ class Connection(SimulationObject):
             # shares the same weight object to all destination neuron
             block_weights = Weights(shared=True)
             for dest_n in dest_e.neuron_list:
-                dest_n.set_weights(block_weights)
+                dest_n.weights = block_weights
 
         # connect each ensemble of the block
         for source_e in source_b.ensemble_list:

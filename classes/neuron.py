@@ -95,7 +95,6 @@ class NeuronType(SimulationObject):
         self.halted = False
         self.inhibited = False
         self.inhibiting = False
-        self.learner = None
         self.variable_probed = False
         self.spike_out_probed = False
         self.spike_in_probed = False
@@ -134,8 +133,8 @@ class NeuronType(SimulationObject):
             self.ensemble.active_neuron_list.append(self)
             self.halted = False
         self.received.append(index)
-        if self.learner is not None:
-            self.learner.in_spike(index)
+        if self.ensemble.learner is not None:
+            self.ensemble.learner.out_spike(self.ensemble.index, self.index, index)
         if self.spike_in_probed:
             weight = self.weights[index]
             self.probes['spike_in'].log_spike_in(index, weight)
@@ -143,8 +142,8 @@ class NeuronType(SimulationObject):
 
     def send_spike(self):
         """ send a spike to all the connected axons """
-        if self.learner is not None:
-            self.learner.out_spike()
+        if self.ensemble.learner is not None:
+            self.ensemble.learner.out_spike(self.ensemble.index, self.index)
         for output in self.outputs:
             output.create_spike()
         if self.spike_out_probed:

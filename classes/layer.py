@@ -9,6 +9,12 @@ class Layer(SimulationObject):
     def __init__(self,lbl=""):
         super(Layer, self).__init__(lbl)
         self.ensemble_list = []
+        self.learner = None
+
+    def set_weights(self, dw):
+        for ens in self.ensemble_list:
+            for neuron in ens.neuron_list:
+                neuron.set_weights(neuron.weights.weights + dw)
 
 
 class Ensemble(Layer):
@@ -93,6 +99,7 @@ class Ensemble(Layer):
     def propagate_inhibition(self, index_n):
         self.bloc.propagate_inhibition(index_n)
         self.inhibit()
+
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.neuron_list[index]
