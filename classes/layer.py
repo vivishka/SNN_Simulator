@@ -4,7 +4,14 @@ import sys
 sys.dont_write_bytecode = True
 
 
-class Ensemble(SimulationObject):
+class Layer(SimulationObject):
+
+    def __init__(self,lbl=""):
+        super(Layer, self).__init__(lbl)
+        self.ensemble_list = []
+
+
+class Ensemble(Layer):
     """
     An ensemble is an array of neurons. It is mostly used to represent a layer
     it can be a 1D or 2D array
@@ -41,6 +48,7 @@ class Ensemble(SimulationObject):
         self.neuron_list = []
         self.active_neuron_list = []
         self.neuron_array = np.ndarray(self.size, dtype=object)
+        self.ensemble_list.append(self)
         if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
                 for col in range(len(element)):
@@ -85,7 +93,6 @@ class Ensemble(SimulationObject):
     def propagate_inhibition(self, index_n):
         self.bloc.propagate_inhibition(index_n)
         self.inhibit()
-
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.neuron_list[index]
@@ -96,7 +103,7 @@ class Ensemble(SimulationObject):
         self.neuron_list[index] = value
 
 
-class Bloc(object):
+class Bloc(Layer):
     """
     a bloc is a group of ensembles of the same dimension
     Ensembles are not connected together but share common previous and next layers
@@ -125,7 +132,6 @@ class Bloc(object):
         self.index = Bloc.index
         Bloc.index += 1
         self.depth = depth
-        self.ensemble_list = []
         self.inhibition_radius = (1, 1)
         for i in range(depth):
             if args or kwargs:

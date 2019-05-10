@@ -8,10 +8,10 @@ from .base import Helper
 class Learner(object):
     """"""
 
-    def __init__(self, neuron):
-        self.neuron = neuron
-        neuron.learner = self
-        self.shared = neuron.weights.shared
+    def __init__(self, layer):
+        self.layer = layer
+        layer.learner = self
+        self.shared = layer.weights.shared
         self.in_spikes = []
         self.out_spikes = []
 

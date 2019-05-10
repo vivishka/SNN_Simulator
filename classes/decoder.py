@@ -1,6 +1,6 @@
 import numpy as np
 from .base import Helper
-from .ensemble import Ensemble
+from .layer import Ensemble
 from .neuron import NeuronType
 
 

@@ -1,7 +1,7 @@
 
 import numpy as np
 from .base import SimulationObject, Helper
-from .ensemble import Ensemble
+from .layer import Ensemble
 import matplotlib.pyplot as plt
 import sys
 sys.dont_write_bytecode = True

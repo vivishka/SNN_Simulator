@@ -1,6 +1,6 @@
 
 from .connection import Connection
-from .ensemble import Ensemble
+from .layer import Ensemble
 from .encoder import Node, Reset
 from .probe import Probe
 

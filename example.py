@@ -4,7 +4,7 @@ import csv
 from classes.network import Network
 from classes.neuron import LIF
 from classes.neuron import PoolingNeuron
-from classes.ensemble import Bloc
+from classes.layer import Bloc
 from classes.simulator import Simulator
 from classes.connection import Connection
 # from classes.probe import Probe
@@ -28,7 +28,7 @@ model = Network()
 # n1 = Node(10, lambda: np.random.rand(1), 0.20)
 # n2 = Node(10, lambda: np.random.rand(1), 0.20)
 # r = Reset(0.15, 0.2)
-img = False
+img = True
 if img:
     e1 = Encoder(img_size, 16, 0, 255, 0.1)
     n1 = Node(e1, image, 5, 0)

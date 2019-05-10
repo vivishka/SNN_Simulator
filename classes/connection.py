@@ -1,7 +1,7 @@
 
 import numpy as np
 from .base import SimulationObject
-from .ensemble import Bloc
+from .layer import Bloc
 from .neuron import Weights
 import sys
 sys.dont_write_bytecode = True

@@ -1,7 +1,7 @@
 
 from .connection import Connection, Axon
 from .neuron import NeuronType
-from .ensemble import Ensemble
+from .layer import Ensemble
 from .encoder import Reset, Node
 from .base import Helper
 import multiprocessing as mp

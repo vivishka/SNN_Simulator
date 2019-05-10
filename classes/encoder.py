@@ -1,7 +1,7 @@
 
 from .base import SimulationObject, Helper
 from .neuron import NeuronType
-from .ensemble import Ensemble, Bloc
+from .layer import Ensemble, Bloc
 import numpy as np
 import sys
 sys.dont_write_bytecode = True
