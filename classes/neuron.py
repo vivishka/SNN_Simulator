@@ -110,7 +110,7 @@ class NeuronType(SimulationObject):
             if callable(self.param[name]):
                 param = self.param[name]()
             else:
-                param = default
+                param = self.param[name]
         return param
 
     def add_input(self, source_a):
