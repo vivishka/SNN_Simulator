@@ -98,6 +98,7 @@ class NeuronType(SimulationObject):
         self.variable_probed = False
         self.spike_out_probed = False
         self.spike_in_probed = False
+        self.probed_values = {}
         self.probes = {}
         self.nb_in = 0
         self.nb_out = 0
@@ -108,7 +109,7 @@ class NeuronType(SimulationObject):
             if callable(self.param[name]):
                 param = self.param[name]()
             else:
-                param = default
+                param = self.param[name]
         return param
 
     def add_input(self, source_a):
@@ -137,7 +138,7 @@ class NeuronType(SimulationObject):
             self.ensemble.learner.out_spike(self.ensemble.index, self.index, index)
         if self.spike_in_probed:
             weight = self.weights[index]
-            self.probes['spike_in'].log_spike_in(index, weight)
+            self.probed_values['spike_in'].append(Helper.time, index, weight)
         self.nb_in += 1
 
     def send_spike(self):
@@ -147,13 +148,15 @@ class NeuronType(SimulationObject):
         for output in self.outputs:
             output.create_spike()
         if self.spike_out_probed:
-            self.probes['spike_out'].log_spike_out(self.index)
+            self.probed_values['spike_out'].append(Helper.time, self.index)
         self.nb_out += 1
         if self.inhibiting:
             self.ensemble.propagate_inhibition(index_n=self.index)
 
     def add_probe(self, probe, variable):
         self.probes[variable] = probe
+        self.probed_values[variable] = []
+        self.ensemble.probed_neuron_set.add(self)
         if variable == 'spike_in':
             self.spike_in_probed = True
         elif variable == 'spike_out':
@@ -162,11 +165,11 @@ class NeuronType(SimulationObject):
             self.variable_probed = True
 
     def probe(self):
-        if self.variable_probed:
-            for var, probe in self.probes.items():
-                # TODO: check existence
-                if var not in 'spike_in, spike_out':
-                    probe.log_value(self.index, self.__getattribute__(var))
+        for var, probe in self.probes.items():
+            # TODO: check existence
+            if var not in 'spike_in, spike_out':
+                self.probed_values[var].append((Helper.time, self.__getattribute__(var)))
+                # probe.log_value(self.index, self.__getattribute__(var))
 
     def step(self):
         pass
@@ -226,23 +229,30 @@ class LIF(NeuronType):
         self.probe()
 
     def step(self):
-        # Helper.nb += 1
-        elapsed_steps = Helper.step_nb - self.last_active
-        self.last_active = Helper.step_nb
-        self.halted = True
         if self.inhibited:
             return
 
+        # if variable probed: simulate every step
+        self.halted = not self.variable_probed
+
+        # sum inputs
         input_sum = sum([self.weights[index] for index in self.received])
-        self.voltage = self.voltage * (1 - self.tau_inv * Helper.dt) ** elapsed_steps + input_sum
-        if self.voltage < 0:
-            self.voltage = 0
         self.received = []
+
+        # interpolation of the state
+        elapsed_steps = Helper.step_nb - self.last_active
+        self.last_active = Helper.step_nb
+        self.voltage = self.voltage * (1 - self.tau_inv * Helper.dt) ** elapsed_steps + input_sum
+
+        # probing
+        if self.variable_probed:
+            self.probe()
+
+        # spiking
         if self.voltage >= self.threshold:
             # print("neuron {0} spiked".format(self.label))
             self.voltage = 0
             self.send_spike()
-        self.probe()
 
     def reset(self):
         super().reset()

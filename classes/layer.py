@@ -53,6 +53,7 @@ class Ensemble(Layer):
         self.size = (1, size) if isinstance(size, int) else size
         self.neuron_list = []
         self.active_neuron_list = []
+        self.probed_neuron_set = set()
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.ensemble_list.append(self)
         if len(self.size) == 2:
@@ -66,7 +67,7 @@ class Ensemble(Layer):
             raise TypeError("Ensemble size should be int or (int, int)")
 
     def step(self):
-        for neuron in self.active_neuron_list:
+        for neuron in set(self.active_neuron_list) | self.probed_neuron_set:
             neuron.step()
         self.active_neuron_list = []
 
