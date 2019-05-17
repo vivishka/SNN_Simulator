@@ -2,7 +2,7 @@
 import numpy as np
 from .base import SimulationObject
 from .layer import Bloc
-from .neuron import Weights
+from .weights import Weights
 import sys
 sys.dont_write_bytecode = True
 
@@ -97,13 +97,11 @@ class Connection(SimulationObject):
         Stores the receiving ensemble
     axon_list: [Axon]
         The list of axons
-    pattern: ConnectionPattern
-        the way neurons should be connected together, default is all to all
     """
 
     objects = []
 
-    def __init__(self, source_o, dest_o, kernel=None, *args, **kwargs):
+    def __init__(self, source_l, dest_l, kernel=None, *args, **kwargs):
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
         self.axon_list = []
@@ -114,22 +112,22 @@ class Connection(SimulationObject):
         self.weights = kwargs['weights'] if 'weights' in kwargs else None
 
         # depending on the source object type, a specific function is called
-        if isinstance(source_o, Bloc):
-            connect_function = self.connect_bloc_ensemble
-            self.source_e_list = source_o.ensemble_list
-            source_e_dim = source_o.depth
-            source_n_dim = source_o.ensemble_list[0].neuron_array.shape
-        else:
-            connect_function = self.connect_ensemble_ensemble
-            self.source_e_list = [source_o]
-            source_e_dim = 1
-            source_n_dim = source_o.neuron_array.shape
+        # if isinstance(source_o, Bloc):
+        #     connect_function = self.connect_bloc_ensemble
+        #     self.source_e_list = source_o.ensemble_list
+        #     source_e_dim = source_o.depth
+        #     source_n_dim = source_o.ensemble_list[0].neuron_array.shape
+        # else:
+        #     connect_function = self.connect_ensemble_ensemble
+        #     self.source_e_list = [source_o]
+        #     source_e_dim = 1
+        #     source_n_dim = source_o.neuron_array.shape
 
         # the destination object is turned into a list of ensembles
-        self.dest_e_list = dest_o.ensemble_list
+        self.dest_l_list = dest_l.ensemble_list
 
-        dest_e_dim = len(dest_o.ensemble_list)
-        dest_n_dim = self.dest_e_list[0].neuron_array.shape
+        dest_e_dim = len(dest_l.ensemble_list)
+        dest_n_dim = self.dest_l_list[0].neuron_array.shape
 
         # Default behaviour when connecting to a dense network: all to all
         # TODO: re organize default behaviour
@@ -142,11 +140,12 @@ class Connection(SimulationObject):
             self.kernel = (kernel, kernel) if isinstance(kernel, int) else kernel
             self.shared = True
 
-        self.generate_weights(source_e_dim, dest_e_dim, source_n_dim, dest_n_dim)
+        self.generate_weights(source_l_dim, dest_e_dim, source_l_dim, dest_n_dim)
 
         # connect the source object to the list of ensemble
         for dest_e in self.dest_e_list:
-            connect_function(source_b=source_o, dest_e=dest_e)
+            #connect_function(source_b=source_l, dest_e=dest_e)
+            self.connect_layers(source_l, dest_l)
 
     def generate_weights(self, source_e_dim, dest_e_dim, source_n_dim, dest_n_dim):
         kernel_dim = source_n_dim if self.all2all else self.kernel
@@ -156,7 +155,7 @@ class Connection(SimulationObject):
             size = (np.prod(source_e_dim), dest_e_dim, np.prod(dest_n_dim), *kernel_dim)
         self.weights = np.random.rand(*size) * 1.5 - 0.5
 
-    def extract_weights(self):
+    '''  obsolete : def extract_weights(self):
 
         weights = np.zeros(self.weights.shape)
 
@@ -174,7 +173,7 @@ class Connection(SimulationObject):
                         weights[source_e_i, dest_e_i, dest_n_i] = w
 
         return weights
-
+'''
     def connect_bloc_ensemble(self, source_b, dest_e):
         """
         Create a connection between neurons of the source and destination
@@ -198,7 +197,7 @@ class Connection(SimulationObject):
         for source_e in source_b.ensemble_list:
             self.connect_ensemble_ensemble(source_e, dest_e)
 
-    def connect_ensemble_ensemble(self, source_e, dest_e):
+    def connect_layers(self, source_e, dest_e):
         """
         Create a connection between neurons of the source and destination
         Initializes the weights of the destination neurons
@@ -226,11 +225,11 @@ class Connection(SimulationObject):
                 weights = self.weights[source_e.index, dest_e.index, i]
                 dest_n.weights.set_weights(source_e, weights)
 
-        # creation of axons for each neuron of the source ensemble
-        for row in range(source_e.size[0]):
-            for col in range(source_e.size[1]):
-                axon = Axon(source_e=source_e, source_n=source_e[(row, col)], dest_e=dest_e)
-                self.axon_list.append(axon)
+        # # creation of axons for each neuron of the source ensemble
+        # for row in range(source_e.size[0]):
+        #     for col in range(source_e.size[1]):
+        #         axon = Axon(source_e=source_e, source_n=source_e[(row, col)], dest_e=dest_e)
+        #         self.axon_list.append(axon)
 
         # connection of each neuron of the destination to the source axons
         for row in range(dest_e.size[0]):

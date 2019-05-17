@@ -1,5 +1,6 @@
 import numpy as np
 from .base import SimulationObject
+from .weights import Weights
 import sys
 sys.dont_write_bytecode = True
 
@@ -10,6 +11,10 @@ class Layer(SimulationObject):
         super(Layer, self).__init__(lbl)
         self.ensemble_list = []
         self.learner = None
+        self.out_connections = []
+        self.in_connections = []
+
+
 
     def set_weights(self, dw):
         for ens in self.ensemble_list:
@@ -56,6 +61,7 @@ class Ensemble(Layer):
         self.probed_neuron_set = set()
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.ensemble_list.append(self)
+
         if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
                 for col in range(len(element)):
@@ -100,6 +106,10 @@ class Ensemble(Layer):
     def propagate_inhibition(self, index_n):
         self.bloc.propagate_inhibition(index_n)
         self.inhibit()
+
+    def create_spike(self,index):
+        related_weights = self.weights.get_target_weights(index)
+        #schedule((self,related_weights))
 
     def __getitem__(self, index):
         if isinstance(index, int):

@@ -1,41 +1,8 @@
 
 from .base import SimulationObject, Helper
+from .weights import Weights
 import sys
 sys.dont_write_bytecode = True
-
-
-class Weights(object):
-    """
-    array of Weights
-    the 1st dimension is the index of the layer
-    the 2nd or 2nd and 3rd are for the index of the neuron
-    """
-
-    def __init__(self, shared=False):
-        super(Weights, self).__init__()
-        self.weights = []
-        self.ensemble_index_dict = {}
-        self.ensemble_number = 0
-        self.shared = shared
-
-    def check_ensemble_index(self, source_e):
-        if source_e not in self.ensemble_index_dict:
-            self.ensemble_index_dict[source_e] = self.ensemble_number
-            self.ensemble_number += 1
-            self.weights.append(None)
-        return self.ensemble_index_dict[source_e]
-
-    def set_weights(self, source_e, weight_array):
-        """ sets the weights of the axons from the specified ensemble """
-        ens_number = self.check_ensemble_index(source_e)
-        self.weights[ens_number] = weight_array
-        return ens_number
-
-    def __getitem__(self, index):
-        return self.weights[index[0]][index[1:]]
-
-    def __setitem__(self, index, value):
-        self.weights[index[0]][index[1:]] = value
 
 
 class NeuronType(SimulationObject):
@@ -88,8 +55,6 @@ class NeuronType(SimulationObject):
         self.index = index
         self.param = kwargs if kwargs is not None else {}
         self.inputs = []
-        self.outputs = []
-        self.weights = Weights()
         self.received = []
         self.last_active = 0
         self.halted = False
@@ -124,16 +89,16 @@ class NeuronType(SimulationObject):
         """
         self.outputs.append(dest_a)
 
-    def set_weights(self, weights):
-        """" used for convolutional connections, when kernel is shared """
-        self.weights = weights
-
+    ''' obsolete
+        def set_weights(self, weights):
+            """" used for convolutional connections, when kernel is shared """
+            self.weights = weights
+    '''
     def receive_spike(self, index):
         """ Append an axons which emitted a received spikes this step """
         if self.halted:
             self.ensemble.active_neuron_list.append(self)
             self.halted = False
-        self.received.append(index)
         if self.ensemble.learner is not None:
             self.ensemble.learner.out_spike(self.ensemble.index, self.index, index)
         if self.spike_in_probed:
@@ -145,8 +110,9 @@ class NeuronType(SimulationObject):
         """ send a spike to all the connected axons """
         if self.ensemble.learner is not None:
             self.ensemble.learner.out_spike(self.ensemble.index, self.index)
-        for output in self.outputs:
-            output.create_spike()
+
+        self.ensemble.create_spike(self.index)
+
         if self.spike_out_probed:
             self.probed_values['spike_out'].append(Helper.time, self.index)
         self.nb_out += 1
