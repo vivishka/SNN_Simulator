@@ -89,22 +89,19 @@ class NeuronType(SimulationObject):
         """
         self.outputs.append(dest_a)
 
-    ''' obsolete
-        def set_weights(self, weights):
-            """" used for convolutional connections, when kernel is shared """
-            self.weights = weights
-    '''
-    def receive_spike(self, index):
+    def receive_spike(self, weight):
         """ Append an axons which emitted a received spikes this step """
-        if self.halted:
-            self.ensemble.active_neuron_list.append(self)
-            self.halted = False
-        if self.ensemble.learner is not None:
-            self.ensemble.learner.out_spike(self.ensemble.index, self.index, index)
-        if self.spike_in_probed:
-            weight = self.weights[index]
-            self.probed_values['spike_in'].append(Helper.time, index, weight)
-        self.nb_in += 1
+        # if self.halted:
+        #     self.ensemble.active_neuron_list.append(self)
+        #     self.halted = False
+        # if self.ensemble.learner is not None:
+        #     self.ensemble.learner.out_spike(self.ensemble.index, self.index, weight)
+        # if self.spike_in_probed:
+        #     weight = self.weights[weight]
+        #     self.probed_values['spike_in'].append(Helper.time, weight, weight)
+        # self.nb_in += 1
+
+        self.voltage += weight
 
     def send_spike(self):
         """ send a spike to all the connected axons """
@@ -118,6 +115,7 @@ class NeuronType(SimulationObject):
         self.nb_out += 1
         if self.inhibiting:
             self.ensemble.propagate_inhibition(index_n=self.index)
+        print("pew")
 
     def add_probe(self, probe, variable):
         self.probes[variable] = probe
@@ -183,8 +181,7 @@ class LIF(NeuronType):
         if self.inhibited:
             return
 
-        input_sum = sum([self.weights[index] for index in self.received])
-        self.voltage += - self.tau_inv * self.voltage * Helper.dt + input_sum
+        self.voltage += - self.tau_inv * self.voltage * Helper.dt
 
         if self.voltage < 0:
             self.voltage = 0
@@ -208,7 +205,7 @@ class LIF(NeuronType):
         # interpolation of the state
         elapsed_steps = Helper.step_nb - self.last_active
         self.last_active = Helper.step_nb
-        self.voltage = self.voltage * (1 - self.tau_inv * Helper.dt) ** elapsed_steps + input_sum
+        self.voltage = self.voltage * (1 - self.tau_inv * Helper.dt) ** elapsed_steps
 
         # probing
         if self.variable_probed:

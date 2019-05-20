@@ -34,7 +34,7 @@ class Connection(SimulationObject):
 
     objects = []
 
-    def __init__(self, source_l, dest_l, kernel=None, *args, **kwargs):
+    def __init__(self, source_l, dest_l, kernel=[1,1], *args, **kwargs):
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
         self.stride = kwargs['stride'] if 'stride' in kwargs else 1
@@ -44,6 +44,9 @@ class Connection(SimulationObject):
         self.weights = kwargs['weights'] if 'weights' in kwargs else None
         self.sparse = True if 'sparse' in args else False
         self.active = False
+        self.in_neurons_spiking = []
+        self.in_ensemble = None
+        self.out_ensemble = None
 
         # the destination object is turned into a list of ensembles
         self.dest_l_list = dest_l.ensemble_list
@@ -53,24 +56,27 @@ class Connection(SimulationObject):
 
         # Default behaviour when connecting to a dense network: all to all
         # TODO: re organize default behaviour
-        if kernel is None:
-            if dest_n_dim[0] == 1:
-                self.all2all = True
-            else:
-                self.kernel = (1, 1)
-        else:
-            self.kernel = (kernel, kernel) if isinstance(kernel, int) else kernel
-            self.shared = True
+        # if kernel is None:
+        #     if dest_n_dim[0] == 1:
+        #         self.all2all = True
+        #     else:
+        #         self.kernel = (1, 1)
+        # else:
+        #     self.kernel = (kernel, kernel) if isinstance(kernel, int) else kernel
+        #     self.shared = True
         # check if connection is from ensemble to ensemble, generate sub-connections if needed recursively
         if len(source_l.ensemble_list) + len(dest_l.ensemble_list) > 2:
             for l_in in source_l.ensemble_list:
                 for l_out in dest_l.ensemble_list:
-                    Connection(l_in, l_out)
+                    Connection(l_in, l_out, kernel, *args, **kwargs)
 
         else:
-            source_l.out_connection.append(self)
-            dest_l.in_connection.append(self)
-            self.weights = Weights()
+            # TODO incomplete
+            source_l.out_connections.append(self)
+            dest_l.in_connections.append(self)
+            self.out_ensemble = dest_l
+            self.in_ensemble = source_l
+            self.weights = Weights((len(self.out_ensemble.neuron_list),len(self.in_ensemble.neuron_list)), sparse=True, kernel_size=kernel)
             self.active = True
 
     def connect_layers(self, source_e, dest_e):
@@ -150,7 +156,14 @@ class Connection(SimulationObject):
                         # zero padding
                         pass
 
-    def set_notifier(self, spike_notifier):
-        """ Used to simulate axons only when they received a spike """
-        for axon in self.axon_list:
-            axon.set_notifier(spike_notifier)
+
+
+    def register_neuron(self, index):
+        self.in_neurons_spiking.append(index[0]*len(self.out_ensemble.ensemble_list)+index[1])
+
+    def step(self):
+        for index in self.in_neurons_spiking:
+            targets = self.weights.get_target_weights(index)
+            # for target in targets:
+            self.out_ensemble.input_spike_buffer += targets
+            # TODO here

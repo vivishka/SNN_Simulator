@@ -1,5 +1,5 @@
 
-from .connection import Connection, Axon
+from .connection import Connection
 from .neuron import NeuronType
 from .layer import Ensemble
 from .encoder import Reset, Node
@@ -33,8 +33,8 @@ class Simulator(object):
     def run(self, duration):
         start = time.time()
         # shares the spike register with all the axons
-        for connect in self.connections:
-            connect.set_notifier(self.register_spike)
+        # for connect in self.connections:
+        #     connect.set_notifier(self.register_spike)
 
         # starts the inputs
         for node in self.nodes:
@@ -52,8 +52,8 @@ class Simulator(object):
 
         end = time.time()
         print(
-            "network of {0} neurons, {1} axons, {2} synapse"
-                .format(NeuronType.nb_neuron, Axon.nb_axon, Axon.nb_synapse))
+            "network of {0} neurons"
+                .format(NeuronType.nb_neuron))
         print(
             "total time of {0}, step: {1}, synapse: {2}"
                 .format(end - start, self.step_time, self.prop_time))
@@ -64,7 +64,6 @@ class Simulator(object):
         # TODO:  progress bar
         Helper.step()
         # print("{:.4f}".format(Helper.time))
-
 
         start = time.time()
         for ens in self.ensembles:
@@ -98,6 +97,6 @@ class Simulator(object):
 
     def propagate_all(self):
         # print(len(self.spike_list))
-        for axon in self.spike_list:
-            axon.propagate_spike()
-        self.spike_list = []
+        for con in self.connections:
+            con.step()
+
