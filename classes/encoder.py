@@ -110,7 +110,7 @@ class GaussianFiringNeuron(NeuronType):
             self.active = True
 
 
-class EncoderEnsemble(Ensemble):
+class   EncoderEnsemble(Ensemble):
 
     def __init__(self, size, neuron_type, label='', **kwargs):
         super(EncoderEnsemble, self).__init__(size, neuron_type, label, **kwargs)

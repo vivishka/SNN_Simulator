@@ -13,7 +13,7 @@ class Sparse(object):
 
         self.mat = []
 
-        nb_non_zero = 0
+        nb_non_zero = 0  # nonzero() 	Return the indices of the elements that are non-zero. ndarray doc
         for i in range(self.shape[0]):
             row = []
             for j in range(self.shape[1]):

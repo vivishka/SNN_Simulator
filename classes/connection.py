@@ -7,73 +7,6 @@ import sys
 sys.dont_write_bytecode = True
 
 
-class Axon(SimulationObject):
-    """
-    Represents the connection between a neuron and a list of neurons
-
-    Parameters
-    ---------
-    source_e: Ensemble
-        The ensemble of the emitting neuron
-    source_n: NeuronType
-        The emitting neuron
-    dest_e: Ensemble
-         The ensemble of the receiving neuron
-
-    Attributes
-    ----------
-    source_e: Ensemble
-        The ensemble of the emitting neuron
-    source_n: NeuronType
-        The emitting neuron
-    dest_e: Ensemble
-         The ensemble of the receiving neuron
-    dest_n_index_list : [(NeuronType, (int, int, int)]
-        The list of connected neurons and their associated index
-        the first one is the ensemble index, the last two are neuron index
-    spike_notifier: SpikeNotifier
-        The object to notify when this axon has a spike to propagate
-
-    """
-    nb_axon = 0
-    nb_synapse = 0
-
-    def __init__(self, source_e, source_n, dest_e):
-        # def __init__(self, source_n, dest_n_list, index_list):
-        super(Axon, self).__init__("Axon {0}".format(id(self)))
-        Axon.nb_axon += 1
-        self.source_e = source_e
-        self.source_n = source_n
-        self.dest_e = dest_e
-        self.dest_n_index_list = []
-        self.spike_notifier = None
-        # TODO: possibility to add delay / FIR filter
-
-        # associates the source and this axon
-        source_n.add_output(self)
-
-    def add_synapse(self, dest_n, index_n):
-        """ Associates this axon and the destination"""
-        # The weight array index of the source in the destination neuron
-        source_e_index = dest_n.weights.check_ensemble_index(self.source_e)
-        self.dest_n_index_list.append((dest_n, (source_e_index,) + index_n))
-        dest_n.add_input(self)
-        Axon.nb_synapse += 1
-
-    def set_notifier(self, spike_notifier):
-        """ Used to simulate axons only when they received a spike """
-        self.spike_notifier = spike_notifier
-
-    def create_spike(self):
-        """ Register a spike emitted by the source neuron"""
-        self.spike_notifier(self)
-
-    def propagate_spike(self):
-        """ Called by the notifier, propagates spike to connected neurons """
-        for dest_n, index in self.dest_n_index_list:
-            dest_n.receive_spike(index)
-
-
 class Connection(SimulationObject):
     """
     A connection is a list of axons connected between 2 ensembles
@@ -104,24 +37,13 @@ class Connection(SimulationObject):
     def __init__(self, source_l, dest_l, kernel=None, *args, **kwargs):
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
-        self.axon_list = []
         self.stride = kwargs['stride'] if 'stride' in kwargs else 1
         self.padding = kwargs['padding'] if 'padding' in kwargs else 0  # TODO: perhaps ?
         self.shared = True if 'shared' in args else False
         self.all2all = True if 'all2all' in args else False
         self.weights = kwargs['weights'] if 'weights' in kwargs else None
-
-        # depending on the source object type, a specific function is called
-        # if isinstance(source_o, Bloc):
-        #     connect_function = self.connect_bloc_ensemble
-        #     self.source_e_list = source_o.ensemble_list
-        #     source_e_dim = source_o.depth
-        #     source_n_dim = source_o.ensemble_list[0].neuron_array.shape
-        # else:
-        #     connect_function = self.connect_ensemble_ensemble
-        #     self.source_e_list = [source_o]
-        #     source_e_dim = 1
-        #     source_n_dim = source_o.neuron_array.shape
+        self.sparse = True if 'sparse' in args else False
+        self.active = False
 
         # the destination object is turned into a list of ensembles
         self.dest_l_list = dest_l.ensemble_list
@@ -139,63 +61,17 @@ class Connection(SimulationObject):
         else:
             self.kernel = (kernel, kernel) if isinstance(kernel, int) else kernel
             self.shared = True
+        # check if connection is from ensemble to ensemble, generate sub-connections if needed recursively
+        if len(source_l.ensemble_list) + len(dest_l.ensemble_list) > 2:
+            for l_in in source_l.ensemble_list:
+                for l_out in dest_l.ensemble_list:
+                    Connection(l_in, l_out)
 
-        self.generate_weights(source_l_dim, dest_e_dim, source_l_dim, dest_n_dim)
-
-        # connect the source object to the list of ensemble
-        for dest_e in self.dest_e_list:
-            #connect_function(source_b=source_l, dest_e=dest_e)
-            self.connect_layers(source_l, dest_l)
-
-    def generate_weights(self, source_e_dim, dest_e_dim, source_n_dim, dest_n_dim):
-        kernel_dim = source_n_dim if self.all2all else self.kernel
-        if self.shared:
-            size = (np.prod(source_e_dim), dest_e_dim, *kernel_dim)
         else:
-            size = (np.prod(source_e_dim), dest_e_dim, np.prod(dest_n_dim), *kernel_dim)
-        self.weights = np.random.rand(*size) * 1.5 - 0.5
-
-    '''  obsolete : def extract_weights(self):
-
-        weights = np.zeros(self.weights.shape)
-
-        for source_e_i, source_e in enumerate(self.source_e_list):
-            for dest_e_i, dest_e in enumerate(self.dest_e_list):
-                # get the ensemble index of the source_e in the dest_e
-                ensemble_i = dest_e.neuron_list[0].weights.check_ensemble_index(source_e)
-                if self.shared:
-                    # if shared: same weights for all neurons
-                    weights[source_e_i, dest_e_i] = dest_e.neuron_list[0].weights.weights[ensemble_i]
-                else:
-                    # different weights for each neuron
-                    for dest_n_i, dest_n in enumerate(dest_e.neuron_list):
-                        w = dest_n.weights.weights[ensemble_i]
-                        weights[source_e_i, dest_e_i, dest_n_i] = w
-
-        return weights
-'''
-    def connect_bloc_ensemble(self, source_b, dest_e):
-        """
-        Create a connection between neurons of the source and destination
-        Always used for convolution, if one2one needed: use connection on each sub ensembles
-
-        Parameters
-        ----------
-        source_b : Bloc
-            Source Bloc
-        dest_e : Ensemble
-            destination Ensemble
-        """
-
-        if self.shared:
-            # shares the same weight object to all destination neuron
-            block_weights = Weights(shared=True)
-            for dest_n in dest_e.neuron_list:
-                dest_n.weights = block_weights
-
-        # connect each ensemble of the block
-        for source_e in source_b.ensemble_list:
-            self.connect_ensemble_ensemble(source_e, dest_e)
+            source_l.out_connection.append(self)
+            dest_l.in_connection.append(self)
+            self.weights = Weights()
+            self.active = True
 
     def connect_layers(self, source_e, dest_e):
         """

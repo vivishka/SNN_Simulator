@@ -107,9 +107,8 @@ class Ensemble(Layer):
         self.bloc.propagate_inhibition(index_n)
         self.inhibit()
 
-    def create_spike(self,index):
-        related_weights = self.weights.get_target_weights(index)
-        #schedule((self,related_weights))
+    def create_spike(self, index):
+        pass
 
     def __getitem__(self, index):
         if isinstance(index, int):

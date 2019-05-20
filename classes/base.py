@@ -1,4 +1,4 @@
-
+import numpy as np
 import sys
 sys.dont_write_bytecode = True
 
@@ -34,3 +34,7 @@ class Helper(object):
     def step():
         Helper.time += Helper.dt
         Helper.step_nb += 1
+
+    @staticmethod
+    def init_weight():
+        return np.random.rand()

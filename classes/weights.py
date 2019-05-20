@@ -1,3 +1,8 @@
+from .sparse import Sparse
+from .base import Helper
+import numpy as np
+
+
 class Weights(object):
     """
     array of Weights
@@ -5,12 +10,36 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, shared=False):
+    def __init__(self, dim, sparse = False, shared=False, kernel_size=[1,1]):
         super(Weights, self).__init__()
-        self.matrix = []
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
-        self.shared = shared
+        self.shared = shared  # ?
+        self.kernel_size = kernel_size
+        self.dim = dim  # (x,y)
+        self.sparse = sparse
+
+        tmp_matrix = np.ndarray(dim)
+        tmp_matrix.fill(0)
+        for row in range(dim[0]):
+
+            for kernel_row in range(kernel_size[0]):
+
+                row_offset = int((kernel_row - kernel_size[0] // 2) * np.sqrt(dim[1]))
+
+                for kernel_col in range(kernel_size[1]):
+
+                    col_offset = (kernel_col - kernel_size[1] // 2)
+
+                    index = row + row_offset + col_offset
+
+                    if 0 <= index < dim[1]:
+                        tmp_matrix[row, index] = Helper.init_weight()
+
+        if sparse:
+            self.matrix = Sparse(tmp_matrix)
+        else:
+            self.matrix = tmp_matrix
 
     def check_ensemble_index(self, source_e):
         if source_e not in self.ensemble_index_dict:
