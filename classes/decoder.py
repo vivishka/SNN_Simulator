@@ -99,6 +99,7 @@ class Decoder(Ensemble):
         :return: an array the same size as this ensemble representing the decoded value
         # TODO: change from 255 to 1.0
         # TODO: edge cases (empty list, min == max, ...)
+        # TODO: broken by connection overhaul
         """
         image = np.zeros(self.size, )
 

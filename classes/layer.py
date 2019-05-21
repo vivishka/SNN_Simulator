@@ -117,6 +117,11 @@ class Ensemble(Layer):
         for con in self.out_connections:
             con.register_neuron(index)
 
+    def receive_spike(self, targets):
+        self.input_spike_buffer += targets
+        for target in targets:
+            self.active_neuron_list.append(self.neuron_list[target[1]])
+
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.neuron_list[index]

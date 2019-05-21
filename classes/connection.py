@@ -156,8 +156,6 @@ class Connection(SimulationObject):
                         # zero padding
                         pass
 
-
-
     def register_neuron(self, index):
         self.in_neurons_spiking.append(index[0]*len(self.out_ensemble.ensemble_list)+index[1])
 
@@ -165,5 +163,6 @@ class Connection(SimulationObject):
         for index in self.in_neurons_spiking:
             targets = self.weights.get_target_weights(index)
             # for target in targets:
-            self.out_ensemble.input_spike_buffer += targets
-            # TODO here
+            self.out_ensemble.receive_spike(targets)
+
+

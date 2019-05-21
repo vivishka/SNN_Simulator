@@ -115,7 +115,7 @@ class NeuronType(SimulationObject):
         self.nb_out += 1
         if self.inhibiting:
             self.ensemble.propagate_inhibition(index_n=self.index)
-        print("pew")
+        # print("pew")
 
     def add_probe(self, probe, variable):
         self.probes[variable] = probe
