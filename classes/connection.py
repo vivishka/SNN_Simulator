@@ -1,6 +1,6 @@
-
+import logging as log
 import numpy as np
-from .base import SimulationObject
+from .base import SimulationObject, Helper
 from .layer import Bloc
 from .weights import Weights
 import sys
@@ -33,10 +33,13 @@ class Connection(SimulationObject):
     """
 
     objects = []
+    con_count = 0
 
     def __init__(self, source_l, dest_l, kernel=[1,1], *args, **kwargs):
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
+        self.id = Connection.con_count + 1
+        Connection.con_count += 1
         self.stride = kwargs['stride'] if 'stride' in kwargs else 1
         self.padding = kwargs['padding'] if 'padding' in kwargs else 0  # TODO: perhaps ?
         self.shared = True if 'shared' in args else False
@@ -47,12 +50,10 @@ class Connection(SimulationObject):
         self.in_neurons_spiking = []
         self.in_ensemble = None
         self.out_ensemble = None
-
+        Helper.log('Connection', log.INFO, 'new connection {0} created between layers {1} and {2}'
+                   .format(self.id, source_l.id, dest_l.id))
         # the destination object is turned into a list of ensembles
         self.dest_l_list = dest_l.ensemble_list
-
-        dest_e_dim = len(dest_l.ensemble_list)
-        dest_n_dim = self.dest_l_list[0].neuron_array.shape
 
         # Default behaviour when connecting to a dense network: all to all
         # TODO: re organize default behaviour
@@ -65,18 +66,19 @@ class Connection(SimulationObject):
         #     self.kernel = (kernel, kernel) if isinstance(kernel, int) else kernel
         #     self.shared = True
         # check if connection is from ensemble to ensemble, generate sub-connections if needed recursively
-        if len(source_l.ensemble_list) + len(dest_l.ensemble_list) > 2:
+        if len(source_l.ensemble_list) + len(dest_l.ensemble_list) > 2:  # TODO less lazy test to allow 1-ensemble blocs
+            Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
             for l_in in source_l.ensemble_list:
                 for l_out in dest_l.ensemble_list:
                     Connection(l_in, l_out, kernel, *args, **kwargs)
 
         else:
-            # TODO incomplete
             source_l.out_connections.append(self)
             dest_l.in_connections.append(self)
             self.out_ensemble = dest_l
             self.in_ensemble = source_l
-            self.weights = Weights((len(self.out_ensemble.neuron_list),len(self.in_ensemble.neuron_list)), sparse=True, kernel_size=kernel)
+            self.weights = Weights((len(self.out_ensemble.neuron_list), len(self.in_ensemble.neuron_list)), sparse=True,
+                                   kernel_size=kernel)
             self.active = True
 
     def connect_layers(self, source_e, dest_e):
@@ -97,6 +99,8 @@ class Connection(SimulationObject):
         # weights setting
         # TODO: load and save from variable / file
         # dictionary: (source obj ID, dest obj ID) : np array
+
+        # TODO: wth happens here ?
         if self.shared:
             weights = self.weights[source_e.index, dest_e.index]
             # changing the weight matrix of one neuron will change the matrix
@@ -132,7 +136,7 @@ class Connection(SimulationObject):
         dest_n_index: (int, int)
             destination neuron index
         """
-
+        # TODO: check if everything necessary here
         if self.all2all:
             for row in range(source_e.size[0]):
                 for col in range(source_e.size[1]):
@@ -158,11 +162,14 @@ class Connection(SimulationObject):
 
     def register_neuron(self, index):
         self.in_neurons_spiking.append(index[0]*len(self.out_ensemble.ensemble_list)+index[1])
+        # Helper.log(log.INFO, 'CONNECTION: new neuron ' + str(index) + ' registered for receiving spike')
 
     def step(self):
         for index in self.in_neurons_spiking:
+
             targets = self.weights.get_target_weights(index)
             # for target in targets:
             self.out_ensemble.receive_spike(targets)
-
-
+            Helper.log('Connection', log.DEBUG, 'spike propagated from layer {0} to {1}'
+                       .format(self.in_ensemble.id, self.out_ensemble.id))
+        self.in_neurons_spiking = []

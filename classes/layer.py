@@ -1,5 +1,6 @@
 import numpy as np
-from .base import SimulationObject
+import logging as log
+from .base import SimulationObject, Helper
 from .weights import Weights
 import sys
 sys.dont_write_bytecode = True
@@ -7,14 +8,17 @@ sys.dont_write_bytecode = True
 
 class Layer(SimulationObject):
 
-    def __init__(self,lbl=""):
+    layer_count = 0
+
+    def __init__(self, lbl=""):
         super(Layer, self).__init__(lbl)
         self.ensemble_list = []
         self.learner = None
         self.out_connections = []
         self.in_connections = []
-
-
+        self.id = Layer.layer_count + 1
+        Layer.layer_count += 1
+        Helper.log('Layer', log.INFO, 'new layer created, {0}'.format(self.id))
 
     def set_weights(self, dw):
         for ens in self.ensemble_list:
@@ -62,7 +66,7 @@ class Ensemble(Layer):
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.ensemble_list.append(self)
         self.input_spike_buffer = []
-
+        Helper.log('Layer', log.DEBUG, 'layer type : ensemble of size {0}'.format(self.size))
         if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
                 for col in range(len(element)):
@@ -170,17 +174,20 @@ class Bloc(Layer):
                 self.ensemble_list.append(ens)
             else:
                 self.ensemble_list.append(None)
+        Helper.log('Layer', log.INFO, 'layer type : bloc of size {0}'.format(depth))
 
     def set_inhibition(self, radius=None):
         if radius is not None:
             self.inhibition_radius = radius
         self.inhibition_radius = (radius, radius) if isinstance(radius, int) else radius
         for ens in self.ensemble_list:
+            Helper.log('Layer', log.INFO, 'ensemble {0} inhibited'.format(ens.id))
             ens.set_inhibition()
 
     def propagate_inhibition(self, index_n):
         for ens in self.ensemble_list:
             ens.inhibit(index_n, self.inhibition_radius)
+            Helper.log('Layer', log.INFO, 'ensemble {0} inhibited by propagation'.format(ens.id))
 
     def __getitem__(self, index):
         return self.ensemble_list[index]

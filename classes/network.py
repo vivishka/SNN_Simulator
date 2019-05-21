@@ -1,4 +1,5 @@
-
+import logging as log
+from .base import Helper
 from .connection import Connection
 from .layer import Ensemble
 from .encoder import Node, Reset
@@ -28,10 +29,12 @@ class Network(object):
         self.__connections = self.objects[Connection]
         self.__probes = self.objects[Probe]
         self.__reset = self.objects[Reset]
+        Helper.log('Network', log.INFO, 'new network created')
 
     def build(self):
         for attr, value in self.objects.items():
             self.objects[attr] = attr.get_objects()
+        Helper.log('Network', log.INFO, 'network built')
 
     def get_all_objects(self):
         return self.objects

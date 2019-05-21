@@ -1,4 +1,4 @@
-
+import logging as log
 from .base import SimulationObject, Helper
 from .neuron import NeuronType
 from .layer import Ensemble, Bloc
@@ -14,6 +14,7 @@ def gauss_sequence(value, dimension, x_min, x_max, y_max, gamma=1.5):
         mu = x_min + (i - 1.5) * ((x_max - x_min) / (dimension - 2.0))
         y = np.exp(-0.5*((value-mu)/sigma)**2)
         firing_sequence[i] = (1 - y) * y_max if y > 0.1 else -1
+    Helper.log('Encoder', log.DEBUG, 'generated firing sequence for input {0}: {1}'.format(value, firing_sequence))
     return firing_sequence
 
 
@@ -42,6 +43,7 @@ class DelayedNeuron(NeuronType):
         super(DelayedNeuron, self).__init__(ensemble, index)
         self.delay = -1
         self.active = False
+        Helper.log('Neuron', log.INFO, 'neuron type : delayed')
 
     def step(self):
         if self.active and Helper.time >= self.delay:
@@ -85,6 +87,7 @@ class GaussianFiringNeuron(NeuronType):
         self.firing_time = -1
         self.active = False
         self.mu = self.sigma = self.delay_max = self.threshold = None
+        Helper.log('Neuron', log.DEBUG, str(self.index) + 'neuron type: gaussian firing encoder')
 
     def set_params(self, mu, sigma, delay_max, threshold):
         self.mu = mu
@@ -94,7 +97,7 @@ class GaussianFiringNeuron(NeuronType):
 
     def step(self):
         if self.active and Helper.time >= self.firing_time:
-            print("node neuron {} fired".format(self.index))
+            # print("node neuron {} fired".format(self.index))
             self.active = False
             self.send_spike()
             GaussianFiringNeuron.nb_spikes += 1
@@ -110,17 +113,18 @@ class GaussianFiringNeuron(NeuronType):
             self.active = True
 
 
-class   EncoderEnsemble(Ensemble):
+class EncoderEnsemble(Ensemble):
 
     def __init__(self, size, neuron_type, label='', **kwargs):
         super(EncoderEnsemble, self).__init__(size, neuron_type, label, **kwargs)
+        Helper.log('Encoder', log.INFO, 'new encoder ensemble, layer {0}'.format(self.id))
 
     def step(self):
         for neuron in self.neuron_list:
             neuron.step()
 
 
-class Encoder(Bloc):
+class Encoder(Bloc):  # TODO do with ensemble instead of bloc ?
     """
     Creates a list of array to encode values into spikes
     Needs a Node that will provide values
@@ -176,6 +180,7 @@ class Encoder(Bloc):
                     sigma=sigma,
                     delay_max=delay_max,
                     threshold=threshold)
+        Helper.log('Encoder', log.INFO, 'new encoder bloc, layer {0}'.format(self.id))
 
     def set_one_value(self, value, index):
         for ens in self.ensemble_list:
@@ -235,6 +240,7 @@ class Node(SimulationObject):
         self.value = value
         self.args = args
         self.kwargs = kwargs
+        Helper.log('Encoder', log.INFO, 'new node created')
 
     def step(self):
         if callable(self.value):

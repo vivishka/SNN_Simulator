@@ -17,3 +17,5 @@ main.py
 
 # Ignore datasets
 /datasets
+
+*.log

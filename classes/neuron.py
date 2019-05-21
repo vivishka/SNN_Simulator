@@ -1,4 +1,4 @@
-
+import logging as log
 from .base import SimulationObject, Helper
 from .weights import Weights
 import sys
@@ -68,6 +68,8 @@ class NeuronType(SimulationObject):
         self.nb_in = 0
         self.nb_out = 0
 
+        Helper.log('Neuron', log.DEBUG, '{0} of layer {1} created'.format(self.index, self.ensemble.id))
+
     def extract_param(self, name, default):
         param = default
         if self.param is not None and name in self.param:
@@ -102,20 +104,25 @@ class NeuronType(SimulationObject):
         # self.nb_in += 1
 
         self.voltage += weight
+        Helper.log('Neuron', log.DEBUG,
+                   'spike received by neuron {0}, layer {1} of amplitude {2}, post-spike voltage {3}'
+                   .format(self.index, self.ensemble.id, weight, self.voltage))
 
     def send_spike(self):
-        """ send a spike to all the connected axons """
+        """ notify the spike to the layer """
         if self.ensemble.learner is not None:
             self.ensemble.learner.out_spike(self.ensemble.index, self.index)
 
+        Helper.log('Neuron', log.DEBUG, ' {0} spike notification to layer {1}'.format(self.index, self.ensemble.id))
         self.ensemble.create_spike(self.index)
 
         if self.spike_out_probed:
             self.probed_values['spike_out'].append(Helper.time, self.index)
+            Helper.log('Neuron', log.DEBUG, ' {0} spike notification to probe'.format(self.index))
         self.nb_out += 1
         if self.inhibiting:
+            Helper.log('Neuron', log.DEBUG, ' {0} inhibition propagation'.format(self.index))
             self.ensemble.propagate_inhibition(index_n=self.index)
-        # print("pew")
 
     def add_probe(self, probe, variable):
         self.probes[variable] = probe
@@ -123,8 +130,10 @@ class NeuronType(SimulationObject):
         self.ensemble.probed_neuron_set.add(self)
         if variable == 'spike_in':
             self.spike_in_probed = True
+            Helper.log('Neuron', log.DEBUG, 'probe plugged for input spikes on neuron ' + str(self.index))
         elif variable == 'spike_out':
             self.spike_out_probed = True
+            Helper.log('Neuron', log.DEBUG, 'probe plugged for output spikes on neuron ' + str(self.index))
         else:
             self.variable_probed = True
 
@@ -139,6 +148,7 @@ class NeuronType(SimulationObject):
         pass
 
     def reset(self):
+        Helper.log('Neuron', log.DEBUG, str(self.index) + ' reset')
         self.received = []
         self.last_active = 0
         self.inhibited = False
@@ -175,6 +185,7 @@ class LIF(NeuronType):
         self.voltage = 0
         self.threshold = self.extract_param('threshold', 1)
         self.tau_inv = 1.0 / self.extract_param('tau', 0.2)
+        Helper.log('Neuron', log.DEBUG, str(self.index) + ' neuron type: LIF')
 
     def step2(self):
         # Helper.nb +=1
@@ -214,6 +225,8 @@ class LIF(NeuronType):
         # spiking
         if self.voltage >= self.threshold:
             # print("neuron {0} spiked".format(self.label))
+            Helper.log('Neuron', log.DEBUG, str() + '{0} voltage {1} exceeds threshold {2}: spike generated'
+                       .format(self.index, self.voltage, self.threshold))
             self.voltage = 0
             self.send_spike()
 
@@ -229,6 +242,7 @@ class PoolingNeuron(NeuronType):
 
     def __init__(self, ensemble, index, **kwargs):
         super(PoolingNeuron, self).__init__(ensemble, index, **kwargs)
+        Helper.log('Neuron', log.DEBUG, ' neuron type: pooling')
 
     def step(self):
         if self.received and not self.inhibited:
@@ -251,6 +265,7 @@ class Neuron(NeuronType):
         self.threshold = 1
         self.threshold = self.extract_param('threshold', 1)
         # print("neuron {}, thr: {}".format(self.label, self.threshold))
+        Helper.log('Neuron', log.DEBUG, ' neuron type: neuron')
 
     def step(self):
         self.voltage += (Helper.dt + sum([self.weights[i] for i in self.received]))
