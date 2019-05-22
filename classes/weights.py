@@ -10,7 +10,7 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, dim, sparse=False, shared=False, kernel_size=[1, 1]):
+    def __init__(self, dim, sparse=False, shared=False, kernel_size=(1, 1)):
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
@@ -36,12 +36,10 @@ class Weights(object):
                     if 0 <= index < dim[1]:
                         tmp_matrix[row, index] = Helper.init_weight()
 
-        if sparse:
-            self.matrix = Sparse(tmp_matrix)
-        else:
-            self.matrix = tmp_matrix
+        self.matrix = Sparse(tmp_matrix)
 
     def check_ensemble_index(self, source_e):
+        # deptecated
         if source_e not in self.ensemble_index_dict:
             self.ensemble_index_dict[source_e] = self.ensemble_number
             self.ensemble_number += 1

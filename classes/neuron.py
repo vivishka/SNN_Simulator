@@ -187,21 +187,6 @@ class LIF(NeuronType):
         self.tau_inv = 1.0 / self.extract_param('tau', 0.2)
         Helper.log('Neuron', log.DEBUG, str(self.index) + ' neuron type: LIF')
 
-    def step2(self):
-        # Helper.nb +=1
-        if self.inhibited:
-            return
-
-        self.voltage += - self.tau_inv * self.voltage * Helper.dt
-
-        if self.voltage < 0:
-            self.voltage = 0
-        self.received = []
-        if self.voltage >= self.threshold:
-            self.voltage = 0
-            self.send_spike()
-        self.probe()
-
     def step(self):
         if self.inhibited:
             return
@@ -216,7 +201,7 @@ class LIF(NeuronType):
         # interpolation of the state
         elapsed_steps = Helper.step_nb - self.last_active
         self.last_active = Helper.step_nb
-        self.voltage = self.voltage * (1 - self.tau_inv * Helper.dt) ** elapsed_steps
+        self.voltage = self.voltage * (1 - self.tau_inv * Helper.dt) ** elapsed_steps + input_sum
 
         # probing
         if self.variable_probed:

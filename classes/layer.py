@@ -1,7 +1,6 @@
 import numpy as np
 import logging as log
 from .base import SimulationObject, Helper
-from .weights import Weights
 import sys
 sys.dont_write_bytecode = True
 
@@ -16,7 +15,7 @@ class Layer(SimulationObject):
         self.learner = None
         self.out_connections = []
         self.in_connections = []
-        self.id = Layer.layer_count + 1
+        self.id = Layer.layer_count
         Layer.layer_count += 1
         Helper.log('Layer', log.INFO, 'new layer created, {0}'.format(self.id))
 
@@ -61,7 +60,8 @@ class Ensemble(Layer):
         self.index = index
         self.size = (1, size) if isinstance(size, int) else size
         self.neuron_list = []
-        self.active_neuron_list = []
+        self.active_neuron_set = set()
+        # todo: only set
         self.probed_neuron_set = set()
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.ensemble_list.append(self)
@@ -73,7 +73,7 @@ class Ensemble(Layer):
                     neuron = neuron_type(self, (row, col), **kwargs)
                     self.neuron_array[(row, col)] = neuron
                     self.neuron_list.append(neuron)
-                    self.active_neuron_list.append(neuron)
+                    self.active_neuron_set.add(neuron)
         else:
             raise TypeError("Ensemble size should be int or (int, int)")
 
@@ -81,11 +81,9 @@ class Ensemble(Layer):
         for spike in self.input_spike_buffer:
             self.neuron_list[spike[1]].receive_spike(spike[2])
         self.input_spike_buffer = []
-        for neuron in set(self.active_neuron_list) | self.probed_neuron_set:
+        for neuron in self.active_neuron_set | self.probed_neuron_set:
             neuron.step()
-        self.active_neuron_list = []
-
-
+        self.active_neuron_set.clear()
 
     def reset(self):
         for neuron in self.neuron_list:
@@ -124,7 +122,7 @@ class Ensemble(Layer):
     def receive_spike(self, targets):
         self.input_spike_buffer += targets
         for target in targets:
-            self.active_neuron_list.append(self.neuron_list[target[1]])
+            self.active_neuron_set.add(self.neuron_list[target[1]])
 
     def __getitem__(self, index):
         if isinstance(index, int):

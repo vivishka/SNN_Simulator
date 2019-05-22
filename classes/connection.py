@@ -35,11 +35,12 @@ class Connection(SimulationObject):
     objects = []
     con_count = 0
 
-    def __init__(self, source_l, dest_l, kernel=[1,1], *args, **kwargs):
+    def __init__(self, source_l, dest_l, kernel=(1, 1), *args, **kwargs):
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
-        self.id = Connection.con_count + 1
+        self.id = Connection.con_count
         Connection.con_count += 1
+        self.connection_list = []
         self.stride = kwargs['stride'] if 'stride' in kwargs else 1
         self.padding = kwargs['padding'] if 'padding' in kwargs else 0  # TODO: perhaps ?
         self.shared = True if 'shared' in args else False
@@ -52,25 +53,14 @@ class Connection(SimulationObject):
         self.out_ensemble = None
         Helper.log('Connection', log.INFO, 'new connection {0} created between layers {1} and {2}'
                    .format(self.id, source_l.id, dest_l.id))
-        # the destination object is turned into a list of ensembles
-        self.dest_l_list = dest_l.ensemble_list
 
-        # Default behaviour when connecting to a dense network: all to all
-        # TODO: re organize default behaviour
-        # if kernel is None:
-        #     if dest_n_dim[0] == 1:
-        #         self.all2all = True
-        #     else:
-        #         self.kernel = (1, 1)
-        # else:
-        #     self.kernel = (kernel, kernel) if isinstance(kernel, int) else kernel
-        #     self.shared = True
         # check if connection is from ensemble to ensemble, generate sub-connections if needed recursively
-        if len(source_l.ensemble_list) + len(dest_l.ensemble_list) > 2:  # TODO less lazy test to allow 1-ensemble blocs
+        # TODO: idea: try to change __new()__ to return the list of sub connextions
+        if isinstance(source_l, Bloc) or isinstance(dest_l, Bloc):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
             for l_in in source_l.ensemble_list:
                 for l_out in dest_l.ensemble_list:
-                    Connection(l_in, l_out, kernel, *args, **kwargs)
+                    self.connection_list.append(Connection(l_in, l_out, kernel, *args, **kwargs))
 
         else:
             source_l.out_connections.append(self)
@@ -80,6 +70,7 @@ class Connection(SimulationObject):
             self.weights = Weights((len(self.out_ensemble.neuron_list), len(self.in_ensemble.neuron_list)), sparse=True,
                                    kernel_size=kernel)
             self.active = True
+            self.connection_list = [self]
 
     def connect_layers(self, source_e, dest_e):
         """
@@ -162,7 +153,7 @@ class Connection(SimulationObject):
 
     def register_neuron(self, index):
         self.in_neurons_spiking.append(index[0]*len(self.out_ensemble.ensemble_list)+index[1])
-        # Helper.log(log.INFO, 'CONNECTION: new neuron ' + str(index) + ' registered for receiving spike')
+        Helper.log('Layer', log.DEBUG, 'new neuron ' + str(index) + ' registered for receiving spike')
 
     def step(self):
         for index in self.in_neurons_spiking:
