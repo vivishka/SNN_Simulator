@@ -70,7 +70,7 @@ class Ensemble(Layer):
         if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
                 for col in range(len(element)):
-                    neuron = neuron_type(self, (row, col), **kwargs)
+                    neuron = neuron_type(ensemble=self, index=(row, col), **kwargs)
                     self.neuron_array[(row, col)] = neuron
                     self.neuron_list.append(neuron)
                     self.active_neuron_set.add(neuron)
@@ -78,9 +78,6 @@ class Ensemble(Layer):
             raise TypeError("Ensemble size should be int or (int, int)")
 
     def step(self):
-        for spike in self.input_spike_buffer:
-            self.neuron_list[spike[1]].receive_spike(spike[2])
-        self.input_spike_buffer = []
         for neuron in self.active_neuron_set | self.probed_neuron_set:
             neuron.step()
         self.active_neuron_set.clear()
@@ -120,8 +117,8 @@ class Ensemble(Layer):
             con.register_neuron(index)
 
     def receive_spike(self, targets):
-        self.input_spike_buffer += targets
         for target in targets:
+            self.neuron_list[target[1]].receive_spike(index=target[0], weight=target[2])
             self.active_neuron_set.add(self.neuron_list[target[1]])
 
     def __getitem__(self, index):

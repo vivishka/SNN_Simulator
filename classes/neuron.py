@@ -54,7 +54,6 @@ class NeuronType(SimulationObject):
         self.ensemble = ensemble
         self.index = index
         self.param = kwargs if kwargs is not None else {}
-        self.inputs = []
         self.received = []
         self.last_active = 0
         self.halted = False
@@ -79,19 +78,7 @@ class NeuronType(SimulationObject):
                 param = self.param[name]
         return param
 
-    def add_input(self, source_a):
-        """ Stores in the neuron the reference of the incoming connection.
-        is used to count the number of connections to this neuron
-        """
-        self.inputs.append(source_a)
-
-    def add_output(self, dest_a):
-        """ Append the object the neuron should output into
-        will call the method create_spike of this object
-        """
-        self.outputs.append(dest_a)
-
-    def receive_spike(self, weight):
+    def receive_spike(self, index, weight):
         """ Append an axons which emitted a received spikes this step """
         # if self.halted:
         #     self.ensemble.active_neuron_list.append(self)
@@ -103,10 +90,10 @@ class NeuronType(SimulationObject):
         #     self.probed_values['spike_in'].append(Helper.time, weight, weight)
         # self.nb_in += 1
 
-        self.voltage += weight
+        self.received.append((index, weight))
         Helper.log('Neuron', log.DEBUG,
-                   'spike received by neuron {0}, layer {1} of amplitude {2}, post-spike voltage {3}'
-                   .format(self.index, self.ensemble.id, weight, self.voltage))
+                   'spike received by neuron {0}, layer {1} of amplitude {2}'
+                   .format(self.index, self.ensemble.id, weight))
 
     def send_spike(self):
         """ notify the spike to the layer """
@@ -195,7 +182,7 @@ class LIF(NeuronType):
         self.halted = not self.variable_probed
 
         # sum inputs
-        input_sum = sum([self.weights[index] for index in self.received])
+        input_sum = sum(weight for (index, weight) in self.received)
         self.received = []
 
         # interpolation of the state
@@ -209,7 +196,6 @@ class LIF(NeuronType):
 
         # spiking
         if self.voltage >= self.threshold:
-            # print("neuron {0} spiked".format(self.label))
             Helper.log('Neuron', log.DEBUG, str() + '{0} voltage {1} exceeds threshold {2}: spike generated'
                        .format(self.index, self.voltage, self.threshold))
             self.voltage = 0

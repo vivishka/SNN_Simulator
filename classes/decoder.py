@@ -28,9 +28,11 @@ class NeuronLog(NeuronType):
         super(NeuronLog, self).__init__(ensemble, index, **kwargs)
         self.spike_times = []
 
-    def receive_spike(self, weight):
-        """ logs the ensemble index and the time of the received spike in a tuple"""
-        super(NeuronLog, self).receive_spike(weight)
+    def receive_spike(self, index, weight):
+        """ logs the ensemble index and the time of the received spike in a tuple
+        The weight is not important
+        """
+        super(NeuronLog, self).receive_spike(index, weight)
         for spike in self.received:
             self.spike_times.append((spike[0], Helper.time))
         self.received = []
@@ -70,6 +72,7 @@ class Decoder(Ensemble):
         """
         image = np.zeros(self.size, dtype=np.uint8)
 
+        # for every neuron, extracts the time of the first spike
         first_spike_list = [n.spike_times[0][1] for n in self.neuron_list if n.spike_times]
         if not first_spike_list:
             return image

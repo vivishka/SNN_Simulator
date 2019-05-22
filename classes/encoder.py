@@ -7,17 +7,6 @@ import sys
 sys.dont_write_bytecode = True
 
 
-def gauss_sequence(value, dimension, x_min, x_max, y_max, gamma=1.5):
-    firing_sequence = np.zeros(dimension)
-    sigma = (x_max - x_min) / (dimension - 2.0) / gamma
-    for i in range(dimension):
-        mu = x_min + (i - 1.5) * ((x_max - x_min) / (dimension - 2.0))
-        y = np.exp(-0.5*((value-mu)/sigma)**2)
-        firing_sequence[i] = (1 - y) * y_max if y > 0.1 else -1
-    Helper.log('Encoder', log.DEBUG, 'generated firing sequence for input {0}: {1}'.format(value, firing_sequence))
-    return firing_sequence
-
-
 class DelayedNeuron(NeuronType):
     """
     Neuron used as a in a node
