@@ -49,8 +49,8 @@ class Connection(SimulationObject):
         self.sparse = True if 'sparse' in args else False
         self.active = False
         self.in_neurons_spiking = []
-        self.in_ensemble = None
-        self.out_ensemble = None
+        self.source_e = None
+        self.dest_e = None
         Helper.log('Connection', log.INFO, 'new connection {0} created between layers {1} and {2}'
                    .format(self.id, source_l.id, dest_l.id))
 
@@ -65,11 +65,11 @@ class Connection(SimulationObject):
         else:
             source_l.out_connections.append(self)
             dest_l.in_connections.append(self)
-            self.out_ensemble = dest_l
-            self.in_ensemble = source_l
+            self.dest_e = dest_l
+            self.source_e = source_l
             self.weights = Weights(
-                source_dim=self.out_ensemble.neuron_list.dim,
-                dest_dim=self.in_ensemble.neuron_list.dim,
+                source_dim=self.dest_e.size,
+                dest_dim=self.source_e.size,
                 kernel_size=kernel,
                 sparse=True)
             self.active = True
@@ -77,7 +77,7 @@ class Connection(SimulationObject):
 
     def register_neuron(self, index):
         """ Registers the index of the source neurons that spiked"""
-        index_1d = Helper.get_index_1d(index_2d=index, length=self.in_ensemble.size[0])
+        index_1d = Helper.get_index_1d(index_2d=index, length=self.source_e.size[0])
         self.in_neurons_spiking.append(index_1d)
         Helper.log('Connection', log.DEBUG, ' neuron {}/{} registered for receiving spike'.format(index, index_1d))
 
@@ -86,7 +86,7 @@ class Connection(SimulationObject):
 
             targets = self.weights.get_target_weights(index)
             # for target in targets:
-            self.out_ensemble.receive_spike(targets)
+            self.dest_e.receive_spike(targets)
             Helper.log('Connection', log.DEBUG, 'spike propagated from layer {0} to {1}'
-                       .format(self.in_ensemble.id, self.out_ensemble.id))
+                       .format(self.source_e.id, self.dest_e.id))
         self.in_neurons_spiking = []

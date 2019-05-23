@@ -20,44 +20,22 @@ class Weights(object):
         self.dest_dim = dest_dim  # (x,y)
         self.sparse = sparse
 
-        # for row in range(n):
-        #     for col in range(n):
-        #         for i in kern:
-        #             for j in kern:
-        #                 if 0 <= row + i < n and 0 <= col + j < n:
-        #                     A[row * n + col, (row + i) * n + (col + j)] = np.random.rand()
-
-        tmp_matrix = np.zeros(np.do)
-        for row in range(dim[0]):
-
-            for kernel_row in range(kernel_size[0]):
-
-                row_offset = int((kernel_row - kernel_size[0] // 2) * np.sqrt(dim[1]))
-
-                for kernel_col in range(kernel_size[1]):
-
-                    col_offset = (kernel_col - kernel_size[1] // 2)
-
-                    index = row + row_offset + col_offset
-
-                    if 0 <= index < dim[1]:
-                        tmp_matrix[row, index] = Helper.init_weight()
+        tmp_matrix = np.zeros((np.prod(source_dim), np.prod(dest_dim)))
+        for source_row in range(source_dim[0]):
+            for source_col in range(source_dim[1]):
+                for kern_row in range(-kernel_size[0] // 2 + 1, kernel_size[0] // 2 + 1):
+                    for kern_col in range(-kernel_size[1] // 2 + 1, kernel_size[1] // 2 + 1):
+                        if 0 <= source_row + kern_row < source_dim[0] and 0 <= source_col + kern_col < source_dim[1]:
+                            index_x = source_row * source_dim[0] + source_col
+                            index_y = (source_row + kern_row) * source_dim[0] + (source_col + kern_col)
+                            print("img: ({}, {}), kern: ({}, {}), index: ({}, {})".format(
+                                source_row, source_col,
+                                kern_row, kern_col,
+                                index_x, index_y
+                            ))
+                            tmp_matrix[(index_x, index_y)] = Helper.init_weight()
 
         self.matrix = Sparse(tmp_matrix)
-
-    def check_ensemble_index(self, source_e):
-        # deptecated
-        if source_e not in self.ensemble_index_dict:
-            self.ensemble_index_dict[source_e] = self.ensemble_number
-            self.ensemble_number += 1
-            self.matrix.append(None)
-        return self.ensemble_index_dict[source_e]
-
-    def set_weights(self, source_e, weight_array):
-        """ sets the weights of the axons from the specified ensemble """
-        ens_number = self.check_ensemble_index(source_e)
-        self.matrix[ens_number] = weight_array
-        return ens_number
 
     def get_target_weights(self, index):
         """
