@@ -31,6 +31,15 @@ class Probe(SimulationObject):
             for var in self.variables:
                 neuron.add_probe(self, var)
 
+    def get_data(self, variable):
+        if variable not in self.variables:
+            print("no probe set for {}".format(variable))
+            return
+        values = []
+        for i, neuron in enumerate(self.neuron_list):
+            values.append(neuron.probed_values[variable])
+        return values
+
     def plot(self, variable):
         if variable not in self.variables:
             print("no probe set for {}".format(variable))
@@ -39,8 +48,8 @@ class Probe(SimulationObject):
         plt.title(self.target.label)
         plt.xlabel('time')
         colors = ['k', 'r', 'b', 'g', 'm']
-        for i, neuron in enumerate(self.neuron_list):
-            values = neuron.probed_values[variable]
+        values = self.get_data(variable)
+        for i, neuron in enumerate(values):
             # if variable == 'spike_in':
             #     plt.grid(axis='y')
             #     for index, graph in enumerate(values):
@@ -55,5 +64,5 @@ class Probe(SimulationObject):
             #     plt.ylabel('neuron index')
 
             plt.ylabel(variable)
-            plt.plot(*zip(*values), color=colors[i % 5])
+            plt.plot(*zip(*values[i]), color=colors[i % 5])
         return fig
