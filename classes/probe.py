@@ -12,6 +12,7 @@ class Probe(SimulationObject):
     """docstring for Probe."""
 
     objects = []
+    # TODO: work for spikes in and out,
 
     def __init__(self, target, variables):
         super(Probe, self).__init__()
@@ -21,7 +22,7 @@ class Probe(SimulationObject):
             self.neuron_list = target.neuron_list
         elif isinstance(target, NeuronType):
             self.neuron_list = [target]
-        elif isinstance(target, list) and isinstance(target[0], NeuronType):
+        elif isinstance(target, list) and all(isinstance(n, NeuronType) for n in target):
             self.neuron_list = target
         else:
             raise Exception("wrong type given to probe target")
