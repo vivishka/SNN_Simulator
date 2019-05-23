@@ -100,7 +100,7 @@ class NeuronType(SimulationObject):
         if self.ensemble.learner is not None:
             self.ensemble.learner.out_spike(self.ensemble.index, self.index)
 
-        Helper.log('Neuron', log.DEBUG, ' {0} spike notification to layer {1}'.format(self.index, self.ensemble.id))
+        Helper.log('Neuron', log.DEBUG, ' {0} emit spike from layer {1}'.format(self.index, self.ensemble.id))
         self.ensemble.create_spike(self.index)
 
         if self.spike_out_probed:

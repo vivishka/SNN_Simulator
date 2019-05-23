@@ -1,4 +1,5 @@
 import numpy as np
+import logging as log
 from .base import Helper
 from .layer import Ensemble
 from .neuron import NeuronType
@@ -34,6 +35,7 @@ class NeuronLog(NeuronType):
         """
         super(NeuronLog, self).receive_spike(index, weight)
         for spike in self.received:
+            Helper.log('Decoder', log.DEBUG, ' neuron {} received spike {}'.format(self.index, spike))
             self.spike_times.append((spike[0], Helper.time))
         self.received = []
 

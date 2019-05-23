@@ -24,11 +24,11 @@ class SimulationObject(object):
 
 class Helper(object):
     step_nb = 0
-    time = 0
-    dt = 0
-    nb = 0
+    time = 0.
+    dt = 0.
+    nb = 0.
 
-    logged_modules = []  # Helper, Neuron, Encoder, Connection, Simulator, Layer, All
+    logged_modules = []  # Helper, Neuron, Encoder, Decoder, Connection, Simulator, Layer, All
 
     def __init__(self):
         pass
@@ -52,14 +52,26 @@ class Helper(object):
     def log(module, level, message):
         if module in Helper.logged_modules or 'All' in Helper.logged_modules:
             if level == log.DEBUG:
-                log.debug('simulation time: {0} - {1}: {2}'.format(Helper.time, module, message))
-            if level == log.INFO:
-                log.info('simulation time: {0} - {1}: {2}'.format(Helper.time, module, message))
-            if level == log.WARNING:
-                log.warning('simulation time: {0} - {1}: {2}'.format(Helper.time, module, message))
-            if level == log.ERROR:
-                log.error('simulation time: {0} - {1}: {2}'.format(Helper.time, module, message))
-            if level == log.CRITICAL:
-                log.critical('simulation time: {0} - {1}: {2}'.format(Helper.time, module, message))
+                log.debug('simulation time: {0:.6f} - {1}: {2}'.format(Helper.time, module, message))
+            elif level == log.INFO:
+                log.info('simulation time: {0:.6f} - {1}: {2}'.format(Helper.time, module, message))
+            elif level == log.WARNING:
+                log.warning('simulation time: {0:.6f} - {1}: {2}'.format(Helper.time, module, message))
+            elif level == log.ERROR:
+                log.error('simulation time: {0:.6f} - {1}: {2}'.format(Helper.time, module, message))
+            elif level == log.CRITICAL:
+                log.critical('simulation time: {0:.6f} - {1}: {2}'.format(Helper.time, module, message))
 
+    @staticmethod
+    def get_index_2d(index_1d, length):
+        """ returns the (row, column) for a given index and length
+        ex index = 42, length = 10 => row = 4, col = 2
+        """
+        return index_1d // length, index_1d % length
 
+    @staticmethod
+    def get_index_1d(index_2d, length):
+        """ returns the index for a given (row, column) and length
+        ex index = (4, 2), length = 10 => index_1D = 42
+        """
+        return index_2d[0] * length + index_2d[1]

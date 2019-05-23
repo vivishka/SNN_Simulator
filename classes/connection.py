@@ -36,13 +36,13 @@ class Connection(SimulationObject):
     con_count = 0
 
     def __init__(self, source_l, dest_l, kernel=(1, 1), *args, **kwargs):
+
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
         self.id = Connection.con_count
         Connection.con_count += 1
         self.connection_list = []
         self.stride = kwargs['stride'] if 'stride' in kwargs else 1
-        self.padding = kwargs['padding'] if 'padding' in kwargs else 0  # TODO: perhaps ?
         self.shared = True if 'shared' in args else False
         self.all2all = True if 'all2all' in args else False
         self.weights = kwargs['weights'] if 'weights' in kwargs else None
@@ -67,93 +67,19 @@ class Connection(SimulationObject):
             dest_l.in_connections.append(self)
             self.out_ensemble = dest_l
             self.in_ensemble = source_l
-            self.weights = Weights((len(self.out_ensemble.neuron_list), len(self.in_ensemble.neuron_list)), sparse=True,
-                                   kernel_size=kernel)
+            self.weights = Weights(
+                source_dim=self.out_ensemble.neuron_list.dim,
+                dest_dim=self.in_ensemble.neuron_list.dim,
+                kernel_size=kernel,
+                sparse=True)
             self.active = True
             self.connection_list = [self]
 
-    def connect_layers(self, source_e, dest_e):
-        """
-        Create a connection between neurons of the source and destination
-        Initializes the weights of the destination neurons
-        one2one: kernel = 1; conv: kernel = (n x m) & weights shared
-
-        Parameters
-        ----------
-        source_e : Ensemble
-            Source Ensemble
-        dest_e : Ensemble
-            destination Ensemble
-        """
-
-        # TODO: better init of the weight depending on dimension
-        # weights setting
-        # TODO: load and save from variable / file
-        # dictionary: (source obj ID, dest obj ID) : np array
-
-        # TODO: wth happens here ?
-        if self.shared:
-            weights = self.weights[source_e.index, dest_e.index]
-            # changing the weight matrix of one neuron will change the matrix
-            # for all the neurons of the ensemble as they share the same object
-            dest_e.neuron_list[0].weights.set_weights(source_e, weights)
-        else:
-            for i, dest_n in enumerate(dest_e.neuron_list):
-                weights = self.weights[source_e.index, dest_e.index, i]
-                dest_n.weights.set_weights(source_e, weights)
-
-        # # creation of axons for each neuron of the source ensemble
-        # for row in range(source_e.size[0]):
-        #     for col in range(source_e.size[1]):
-        #         axon = Axon(source_e=source_e, source_n=source_e[(row, col)], dest_e=dest_e)
-        #         self.axon_list.append(axon)
-
-        # connection of each neuron of the destination to the source axons
-        for row in range(dest_e.size[0]):
-            for col in range(dest_e.size[1]):
-                self.connect_kernel(source_e=source_e, dest_e=dest_e, dest_n_index=(row, col))
-
-    def connect_kernel(self, source_e, dest_e, dest_n_index):
-        """
-        Create a connection between neurons of the source and one neuron of the destination
-        all2all: flag set, one2one: kernel = 1; conv: kernel = (n x m) & weights shared
-
-        Parameters
-        ----------
-        source_e : Ensemble
-            Source Ensemble
-        dest_e : Ensemble
-            destination Ensemble
-        dest_n_index: (int, int)
-            destination neuron index
-        """
-        # TODO: check if everything necessary here
-        if self.all2all:
-            for row in range(source_e.size[0]):
-                for col in range(source_e.size[1]):
-                    source_axon = source_e.neuron_array[row, col].outputs[-1]
-                    source_axon.add_synapse(dest_n=dest_e[dest_n_index], index_n=(row, col))
-        else:
-            # kernel size 1: 0 to 0, 2: 0 to 1, 3: -1 to 1, ...
-            for row in range(-((self.kernel[0] - 1) // 2), self.kernel[0] // 2 + 1):
-                source_row = dest_n_index[0] * self.stride + row
-                for col in range(-((self.kernel[1] - 1) // 2), self.kernel[1] // 2 + 1):
-                    source_col = dest_n_index[1] * self.stride + col
-
-                    # lazy range test but eh #1
-                    # the stride may cause issues when the destination ensemble size does not match
-                    #  perhaps add warning
-                    try:
-                        # add the synapse to the source axon (-1: last added axon)
-                        source_axon = source_e.neuron_array[source_row, source_col].outputs[-1]
-                        source_axon.add_synapse(dest_n=dest_e[dest_n_index], index_n=(row, col))
-                    except IndexError:
-                        # zero padding
-                        pass
-
     def register_neuron(self, index):
-        self.in_neurons_spiking.append(index[0]*len(self.out_ensemble.ensemble_list)+index[1])
-        Helper.log('Layer', log.DEBUG, 'new neuron ' + str(index) + ' registered for receiving spike')
+        """ Registers the index of the source neurons that spiked"""
+        index_1d = Helper.get_index_1d(index_2d=index, length=self.in_ensemble.size[0])
+        self.in_neurons_spiking.append(index_1d)
+        Helper.log('Connection', log.DEBUG, ' neuron {}/{} registered for receiving spike'.format(index, index_1d))
 
     def step(self):
         for index in self.in_neurons_spiking:

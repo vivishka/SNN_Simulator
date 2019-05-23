@@ -10,17 +10,24 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, dim, sparse=False, shared=False, kernel_size=(1, 1)):
+    def __init__(self, source_dim, dest_dim, kernel_size, shared=False, sparse=False):
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
         self.shared = shared  # ?
         self.kernel_size = kernel_size
-        self.dim = dim  # (x,y)
+        self.source_dim = source_dim  # (x,y)
+        self.dest_dim = dest_dim  # (x,y)
         self.sparse = sparse
 
-        tmp_matrix = np.ndarray(dim)
-        tmp_matrix.fill(0)
+        # for row in range(n):
+        #     for col in range(n):
+        #         for i in kern:
+        #             for j in kern:
+        #                 if 0 <= row + i < n and 0 <= col + j < n:
+        #                     A[row * n + col, (row + i) * n + (col + j)] = np.random.rand()
+
+        tmp_matrix = np.zeros(np.do)
         for row in range(dim[0]):
 
             for kernel_row in range(kernel_size[0]):

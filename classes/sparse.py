@@ -79,16 +79,3 @@ class Sparse(object):
                     pass
         return kernel
 
-    @staticmethod
-    def get_index_2d(index_1d, length):
-        """ returns the (row, column) for a given index and length
-        ex index = 42, length = 10 => row = 4, col = 2
-        """
-        return index_1d // length, index_1d % length
-
-    @staticmethod
-    def get_index_1d(index_2d, length):
-        """ returns the index for a given (row, column) and length
-        ex index = (4, 2), length = 10 => index_1D = 42
-        """
-        return index_2d[0] * length + index_2d[1]

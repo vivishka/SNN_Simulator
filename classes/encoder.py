@@ -86,7 +86,7 @@ class GaussianFiringNeuron(NeuronType):
 
     def step(self):
         if self.active and Helper.time >= self.firing_time:
-            # print("node neuron {} fired".format(self.index))
+            Helper.log('Encoder', log.DEBUG, ' neuron {} from layer {} fired'.format(self.index, self.ensemble.id))
             self.active = False
             self.send_spike()
             GaussianFiringNeuron.nb_spikes += 1
