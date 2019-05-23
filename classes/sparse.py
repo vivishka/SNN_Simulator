@@ -1,19 +1,19 @@
 import numpy as np
+from .base import Helper
 
 
 class Sparse(object):
     """
     Sparse way of storing the weights
 
-    :param mat: np.ndarray. Dense matrix containg the weights an a lot of zeros
+    :param mat: np.ndarray. Dense matrix containing the weights an a lot of zeros
 
     """
     def __init__(self, mat):
         self.shape = mat.shape
-
         self.mat = []
 
-        nb_non_zero = 0  # nonzero() 	Return the indices of the elements that are non-zero. ndarray doc
+        nb_non_zero = 0
         for i in range(self.shape[0]):
             row = []
             for j in range(self.shape[1]):
@@ -24,7 +24,7 @@ class Sparse(object):
 
         self.size = nb_non_zero
 
-    def todense(self):
+    def to_dense(self):
         mat = np.zeros(self.shape)
         for row in self.mat:
             for data in row:
@@ -62,20 +62,19 @@ class Sparse(object):
         """
         if isinstance(index, int):
             index_1d = index
-            index_2d = Sparse.get_index_2d(index, length)
+            index_2d = Helper.get_index_2d(index, length)
         elif isinstance(index, tuple) and len(index) == 2:
-            index_1d = Sparse.get_index_1d(index, length)
+            index_1d = Helper.get_index_1d(index, length)
             index_2d = index
         else:
             return
         kernel = np.zeros(kernel_size)
-        for row in range(kernel_size[1]):
-            for col in range(kernel_size[1]):
-                x = index_2d[0] + row - kernel_size[0] // 2
-                y = index_2d[1] + col - kernel_size[1] // 2
+        for row in range(- kernel_size[0] // 2 + 1, kernel_size[0] // 2 + 1):
+            for col in range(- kernel_size[1] // 2 + 1, kernel_size[1] // 2 + 1):
+                x = index_2d[0] + row
+                y = index_2d[1] + col
                 try:
-                    kernel[row, col] = self[(index_1d, Sparse.get_index_1d((x, y), length))]
+                    kernel[row, col] = self[(index_1d, Helper.get_index_1d((x, y), length))]
                 except IndexError:
                     pass
         return kernel
-

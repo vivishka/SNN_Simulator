@@ -20,19 +20,21 @@ class Weights(object):
         self.dest_dim = dest_dim  # (x,y)
         self.sparse = sparse
 
+        # TODO: if source_dim != dest dim
+        #  padding
+        #  stride
+        #  ALL 2 ALL connection
         tmp_matrix = np.zeros((np.prod(source_dim), np.prod(dest_dim)))
+        # for every source neuron
         for source_row in range(source_dim[0]):
             for source_col in range(source_dim[1]):
+                # for every square in the kernel:
                 for kern_row in range(-kernel_size[0] // 2 + 1, kernel_size[0] // 2 + 1):
                     for kern_col in range(-kernel_size[1] // 2 + 1, kernel_size[1] // 2 + 1):
+                        # test if the kernel is square is inside the matrix
                         if 0 <= source_row + kern_row < source_dim[0] and 0 <= source_col + kern_col < source_dim[1]:
                             index_x = source_row * source_dim[0] + source_col
                             index_y = (source_row + kern_row) * source_dim[0] + (source_col + kern_col)
-                            print("img: ({}, {}), kern: ({}, {}), index: ({}, {})".format(
-                                source_row, source_col,
-                                kern_row, kern_col,
-                                index_x, index_y
-                            ))
                             tmp_matrix[(index_x, index_y)] = Helper.init_weight()
 
         self.matrix = Sparse(tmp_matrix)
@@ -48,7 +50,7 @@ class Weights(object):
         # need real implementation later depending on matrix format
 
     def __getitem__(self, index):
-        return self.matrix[index[0]][index[1:]]
+        return self.matrix[index]
 
     def __setitem__(self, index, value):
-        self.matrix[index[0]][index[1:]] = value
+        self.matrix[index] = value
