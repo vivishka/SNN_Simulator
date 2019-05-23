@@ -1,6 +1,7 @@
 import numpy as np
 import logging as log
 from .base import SimulationObject, Helper
+from .learner import Learner
 import sys
 sys.dont_write_bytecode = True
 
@@ -66,6 +67,7 @@ class Ensemble(Layer):
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.ensemble_list.append(self)
         self.input_spike_buffer = []
+        self.learner = Learner(self)
         Helper.log('Layer', log.DEBUG, 'layer type : ensemble of size {0}'.format(self.size))
         if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
@@ -120,6 +122,7 @@ class Ensemble(Layer):
         for target in targets:
             self.neuron_list[target[1]].receive_spike(index=target[0], weight=target[2])
             self.active_neuron_set.add(self.neuron_list[target[1]])
+
 
     def __getitem__(self, index):
         if isinstance(index, int):

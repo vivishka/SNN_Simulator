@@ -27,8 +27,9 @@ class Helper(object):
     time = 0.
     dt = 0.
     nb = 0.
+    input_index = 0
 
-    logged_modules = []  # Helper, Neuron, Encoder, Decoder, Connection, Simulator, Layer, All
+    logged_modules = []  # Helper, Neuron, Encoder, Decoder, Connection, Simulator, Layer, Learner, All
 
     def __init__(self):
         pass
