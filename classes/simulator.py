@@ -13,7 +13,7 @@ sys.dont_write_bytecode = True
 class Simulator(object):
     """docstring for simulator."""
 
-    def __init__(self, model, dt=0.001, input_period=float('inf')):
+    def __init__(self, model, dt=0.001, batch_size = 1, input_period=float('inf')):
         super(Simulator, self).__init__()
         self.model = model
         self.nb_step = 0
@@ -29,6 +29,7 @@ class Simulator(object):
         self.spike_list = []
         self.step_time = 0
         self.prop_time = 0
+        self.batch_size = batch_size
         Helper.log('Simulator', log.INFO, 'new simulator created')
 
     def run(self, duration):
@@ -45,13 +46,14 @@ class Simulator(object):
             node.step()
         # runs for the specified number of steps
         for i in range(self.nb_step):
-            Helper.log('Simulator', log.INFO, 'next step {0}'.format(i+1))
+            Helper.log('Simulator', log.DEBUG, 'next step {0}'.format(i+1))
             if Helper.time >= self.next_reset:
-                Helper.log('Simulator', log.INFO, 'end of input cycle: reset of network and next input')
+                Helper.log('Simulator', log.DEBUG, 'end of input cycle: reset of network and next input')
                 self.reset()
                 self.next_reset += self.input_period
                 for node in self.nodes:
                     node.step()
+
             self.step()
 
         end = time.time()
@@ -67,18 +69,18 @@ class Simulator(object):
         # TODO:  progress bar
         Helper.step()
         # print("{:.4f}".format(Helper.time))
-        Helper.log('Simulator', log.INFO, 'simulating ensembles')
+        Helper.log('Simulator', log.DEBUG, 'simulating ensembles')
         start = time.time()
         for ens in self.ensembles:
             ens.step()
-        Helper.log('Simulator', log.INFO, 'all ensembles simulated')
+        Helper.log('Simulator', log.DEBUG, 'all ensembles simulated')
         # self.step_ens()
         mid = time.time()
-        Helper.log('Simulator', log.INFO, 'simulating connections')
+        Helper.log('Simulator', log.DEBUG, 'simulating connections')
         self.propagate_all()
-        Helper.log('Simulator', log.INFO, 'all connections propagated')
+        Helper.log('Simulator', log.DEBUG, 'all connections propagated')
         end = time.time()
-        Helper.log('Simulator', log.INFO, 'end of step {0}'.format(Helper.step_nb))
+        Helper.log('Simulator', log.DEBUG, 'end of step {0}'.format(Helper.step_nb))
         self.step_time += mid - start
         self.prop_time += end - mid
 
@@ -93,10 +95,22 @@ class Simulator(object):
 
     def reset(self):
         # TODO: reset connection if active
-        Helper.log('Simulator', log.INFO, 'resetting all ensembles')
+        Helper.log('Simulator', log.DEBUG, 'resetting all ensembles')
         for ens in self.ensembles:
             ens.reset()
-        Helper.log('Simulator', log.INFO, 'all ensembles reset')
+        Helper.log('Simulator', log.DEBUG, 'all ensembles reset')
+
+        Helper.log('Simulator', log.INFO, 'learners input cycle processing')
+        for ensemble in self.ensembles:
+            ensemble.learner.reset_input()
+        if Helper.input_index == self.batch_size:
+            Helper.log('Simulator', log.INFO, 'end of batch: updating matrices')
+            for ensemble in self.ensembles:
+                ensemble.learner.process()
+            Helper.input_index = 0
+        else:
+            Helper.log('Simulator', log.INFO, 'next input')
+            Helper.input_index += 1
 
     def register_spike(self, axon):
         # print("reg")
