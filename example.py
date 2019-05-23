@@ -1,10 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
+import logging as log
+from classes.base import Helper
 from classes.network import Network
 from classes.neuron import LIF
 from classes.neuron import PoolingNeuron
-from classes.layer import Bloc
+from classes.layer import Bloc, Ensemble
 from classes.simulator import Simulator
 from classes.connection import Connection
 # from classes.probe import Probe
@@ -13,6 +15,8 @@ from classes.encoder import Encoder, Node
 
 import sys
 sys.dont_write_bytecode = True
+
+Helper.init_logging('example.log', log.INFO, ['All'])
 
 filename = 'datasets/fashionmnist/fashion-mnist_test.csv'
 img_size = (28, 28)
