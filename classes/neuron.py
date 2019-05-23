@@ -112,9 +112,9 @@ class NeuronType(SimulationObject):
             self.ensemble.propagate_inhibition(index_n=self.index)
 
     def add_probe(self, probe, variable):
-        self.probes[variable] = probe
-        self.probed_values[variable] = []
-        self.ensemble.probed_neuron_set.add(self)
+        self.probes[variable] = probe  # add probe to the dict of variable names
+        self.probed_values[variable] = []  # creates the array of preobed values
+        self.ensemble.probed_neuron_set.add(self)  # probed neurons step every step
         if variable == 'spike_in':
             self.spike_in_probed = True
             Helper.log('Neuron', log.DEBUG, 'probe plugged for input spikes on neuron ' + str(self.index))
@@ -129,7 +129,6 @@ class NeuronType(SimulationObject):
             # TODO: check existence
             if var not in 'spike_in, spike_out':
                 self.probed_values[var].append((Helper.time, self.__getattribute__(var)))
-                # probe.log_value(self.index, self.__getattribute__(var))
 
     def step(self):
         pass

@@ -10,7 +10,7 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, source_dim, dest_dim, kernel_size, shared=False, sparse=False):
+    def __init__(self, source_dim, dest_dim, kernel_size=None, shared=False, sparse=False):
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
@@ -25,17 +25,22 @@ class Weights(object):
         #  stride
         #  ALL 2 ALL connection
         tmp_matrix = np.zeros((np.prod(source_dim), np.prod(dest_dim)))
-        # for every source neuron
-        for source_row in range(source_dim[0]):
-            for source_col in range(source_dim[1]):
-                # for every square in the kernel:
-                for kern_row in range(-kernel_size[0] // 2 + 1, kernel_size[0] // 2 + 1):
-                    for kern_col in range(-kernel_size[1] // 2 + 1, kernel_size[1] // 2 + 1):
-                        # test if the kernel is square is inside the matrix
-                        if 0 <= source_row + kern_row < source_dim[0] and 0 <= source_col + kern_col < source_dim[1]:
-                            index_x = source_row * source_dim[0] + source_col
-                            index_y = (source_row + kern_row) * source_dim[0] + (source_col + kern_col)
-                            tmp_matrix[(index_x, index_y)] = Helper.init_weight()
+        if kernel_size is None:
+            tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) / float(np.prod(dest_dim))
+
+        else:
+            # for every source neuron
+            for source_row in range(source_dim[0]):
+                for source_col in range(source_dim[1]):
+                    # for every square in the kernel:
+                    for kern_row in range(-kernel_size[0] // 2 + 1, kernel_size[0] // 2 + 1):
+                        for kern_col in range(-kernel_size[1] // 2 + 1, kernel_size[1] // 2 + 1):
+                            # test if the kernel is square is inside the matrix
+                            if (0 <= source_row + kern_row < source_dim[0] and
+                                    0 <= source_col + kern_col < source_dim[1]):
+                                index_x = source_row * source_dim[0] + source_col
+                                index_y = (source_row + kern_row) * source_dim[0] + (source_col + kern_col)
+                                tmp_matrix[(index_x, index_y)] = Helper.init_weight() / np.prod(kernel_size)
 
         self.matrix = Sparse(tmp_matrix)
 
