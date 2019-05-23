@@ -55,7 +55,7 @@ class Connection(SimulationObject):
                    .format(self.id, source_l.id, dest_l.id))
 
         # check if connection is from ensemble to ensemble, generate sub-connections if needed recursively
-        # TODO: idea: try to change __new()__ to return the list of sub connextions
+        # TODO: idea: try to change __new()__ to return the list of sub connections
         if isinstance(source_l, Bloc) or isinstance(dest_l, Bloc):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
             for l_in in source_l.ensemble_list:
@@ -68,8 +68,8 @@ class Connection(SimulationObject):
             self.dest_e = dest_l
             self.source_e = source_l
             self.weights = Weights(
-                source_dim=self.dest_e.size,
-                dest_dim=self.source_e.size,
+                source_dim=self.source_e.size,
+                dest_dim=self.dest_e.size,
                 kernel_size=kernel,
                 sparse=True)
             self.active = True

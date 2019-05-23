@@ -26,7 +26,7 @@ class Weights(object):
         #  ALL 2 ALL connection
         tmp_matrix = np.zeros((np.prod(source_dim), np.prod(dest_dim)))
         if kernel_size is None:
-            tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) / float(np.prod(dest_dim))
+            tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
 
         else:
             # for every source neuron
@@ -40,7 +40,7 @@ class Weights(object):
                                     0 <= source_col + kern_col < source_dim[1]):
                                 index_x = source_row * source_dim[0] + source_col
                                 index_y = (source_row + kern_row) * source_dim[0] + (source_col + kern_col)
-                                tmp_matrix[(index_x, index_y)] = Helper.init_weight() / np.prod(kernel_size)
+                                tmp_matrix[(index_x, index_y)] = Helper.init_weight() * 2. / np.prod(kernel_size)
 
         self.matrix = Sparse(tmp_matrix)
 

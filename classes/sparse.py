@@ -36,10 +36,12 @@ class Sparse(object):
             return self.mat[item]
         elif isinstance(item, tuple) and len(item) == 2:
             row = self.mat[item[0]]
-            # todo: optimisation dichotomy
             for data in row:
                 if data[1] == item[1]:
                     return data[2]
+            # i = bisect_left(row, item[1])
+            # if i == item[1]:
+            #     return row[i][2]
         return 0
 
     def __setitem__(self, key, value):
@@ -50,7 +52,15 @@ class Sparse(object):
             # todo: optimisation dichotomy
             for j, data in enumerate(row):
                 if data[1] == key[1]:
-                    row[j] = (key[0], key[1], value)
+                    if value == 0:
+                        del row[j]
+                    else:
+                        row[j] = (key[0], key[1], value)
+                    return
+                elif data[1] > key[1]:
+                    if data != 0:
+                        row.insert(j, (key[0], key[1], value))
+                    return
 
     def get_kernel(self, index, length, kernel_size):
         """
@@ -60,6 +70,7 @@ class Sparse(object):
         :param kernel_size: (int, int).
         :return: np.ndarray containing the extracted weights around the index
         """
+        # TODO: fix kernel issue
         if isinstance(index, int):
             index_1d = index
             index_2d = Helper.get_index_2d(index, length)
@@ -69,10 +80,10 @@ class Sparse(object):
         else:
             return
         kernel = np.zeros(kernel_size)
-        for row in range(- kernel_size[0] // 2 + 1, kernel_size[0] // 2 + 1):
-            for col in range(- kernel_size[1] // 2 + 1, kernel_size[1] // 2 + 1):
-                x = index_2d[0] + row
-                y = index_2d[1] + col
+        for row in range(kernel_size[0]):
+            for col in range(kernel_size[1]):
+                x = index_2d[0] + row - (kernel_size[0] - 1) // 2
+                y = index_2d[1] + col - (kernel_size[1] - 1) // 2
                 try:
                     kernel[row, col] = self[(index_1d, Helper.get_index_1d((x, y), length))]
                 except IndexError:
