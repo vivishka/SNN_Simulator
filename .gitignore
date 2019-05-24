@@ -19,3 +19,5 @@ main.py
 /datasets
 
 *.log
+
+*.w
