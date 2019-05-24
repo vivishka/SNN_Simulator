@@ -87,7 +87,6 @@ class Decoder(Ensemble):
             return image
 
         min_val = min(first_spike_list)
-        max_val = max(first_spike_list)
 
         for row in range(self.size[0]):
             for col in range(self.size[1]):
@@ -149,4 +148,3 @@ class Decoder(Ensemble):
     def reset(self):
         super(Decoder, self).reset()
         self.decoded_wta.append(self.get_first_spike())
-        self.decoded_image.append(self.decode_image())

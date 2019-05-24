@@ -63,11 +63,23 @@ sim.run(0.2)
 
 
 if img:
+    # plt.figure()
+    # plt.imshow(image, cmap='gray')
+    # d1.plot('first_spike', 'after encoder')
+    # d2.plot('first_spike', 'after bloc 1')
+    # d3.plot('first_spike', 'after bloc 2')
+
     plt.figure()
-    plt.imshow(image, cmap='gray')
-    d1.plot('first_spike', 'after encoder')
-    d2.plot('first_spike', 'after bloc 1')
-    d3.plot('first_spike', 'after bloc 2')
+    plt.imshow(dataset.get(1), cmap='gray')
+    for image in d1.decoded_wta:
+        plt.figure()
+        plt.imshow(image, cmap='gray')
+    for image in d2.decoded_wta:
+        plt.figure()
+        plt.imshow(image, cmap='gray')
+    for image in d3.decoded_wta:
+        plt.figure()
+        plt.imshow(image, cmap='gray')
 else:
     d1.plot('first_spike')
     d2.plot('first_spike')
