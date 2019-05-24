@@ -20,15 +20,11 @@ class Network(object):
             Ensemble: [],
             Node: [],
             Connection: [],
-            Probe: [],
-            Reset: []
 
         }
         self.__ensembles = self.objects[Ensemble]
         self.__nodes = self.objects[Node]
         self.__connections = self.objects[Connection]
-        self.__probes = self.objects[Probe]
-        self.__reset = self.objects[Reset]
         Helper.log('Network', log.INFO, 'new network created')
 
     def build(self):
