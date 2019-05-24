@@ -15,7 +15,10 @@ class Weights(object):
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
         self.shared = shared  # ?
-        self.kernel_size = kernel_size
+        if isinstance(kernel_size, int):
+            self.kernel_size = (kernel_size, kernel_size)
+        else:
+            self.kernel_size = kernel_size
         self.source_dim = source_dim  # (x,y)
         self.dest_dim = dest_dim  # (x,y)
         self.sparse = sparse
@@ -33,14 +36,14 @@ class Weights(object):
             for source_row in range(source_dim[0]):
                 for source_col in range(source_dim[1]):
                     # for every square in the kernel:
-                    for kern_row in range(-kernel_size[0] // 2 + 1, kernel_size[0] // 2 + 1):
-                        for kern_col in range(-kernel_size[1] // 2 + 1, kernel_size[1] // 2 + 1):
+                    for kern_row in range(-self.kernel_size[0] // 2 + 1, self.kernel_size[0] // 2 + 1):
+                        for kern_col in range(-self.kernel_size[1] // 2 + 1, self.kernel_size[1] // 2 + 1):
                             # test if the kernel is square is inside the matrix
                             if (0 <= source_row + kern_row < source_dim[0] and
                                     0 <= source_col + kern_col < source_dim[1]):
                                 index_x = source_row * source_dim[0] + source_col
                                 index_y = (source_row + kern_row) * source_dim[0] + (source_col + kern_col)
-                                tmp_matrix[(index_x, index_y)] = Helper.init_weight() * 2. / np.prod(kernel_size)
+                                tmp_matrix[(index_x, index_y)] = Helper.init_weight() * 2. / np.prod(self.kernel_size)
 
         self.matrix = Sparse(tmp_matrix)
 

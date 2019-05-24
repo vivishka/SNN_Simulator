@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import logging as log
 from .base import Helper
 from .layer import Ensemble
@@ -78,7 +79,7 @@ class Decoder(Ensemble):
         of the first spike received by each neuron
         # TODO: change from 255 to 1.0
         """
-        image = np.zeros(self.size, dtype=np.uint8)
+        image = np.zeros(self.size)
 
         # for every neuron, extracts the time of the first spike
         first_spike_list = [n.spike_times[0][1] for n in self.neuron_list if n.spike_times]
@@ -91,18 +92,15 @@ class Decoder(Ensemble):
         for row in range(self.size[0]):
             for col in range(self.size[1]):
                 if self.neuron_array[row, col].spike_times:
+                    # extracts the time of the first arrived spike
                     value = self.neuron_array[row, col].spike_times[0][1]
-                    if min_val == max_val:
-                        value = 0
-                    else:
-                        value = ((value - min_val) / (max_val - min_val))
-                    image[row, col] = np.uint8((1 - value) * 255)
-
+                    image[row, col] = value - min_val
                 else:
-                    image[row, col] = 0
+                    image[row, col] = np.nan
         return image
 
-    def decode_image(self):
+    def decoded_image(self):
+        # DEPRECATED
         """
         Decoding algorithm to directly decode encoded input
         Mainly used for debug
@@ -130,6 +128,20 @@ class Decoder(Ensemble):
         min_val = image.min()
         image = (image - min_val)/(max_val - min_val) * 255
         return image.astype(np.uint8)
+
+    def plot(self, plot_type, title=None):
+        if plot_type == 'first_spike':
+            table = self.get_first_spike()
+            plt.figure()
+            plt.imshow(table, cmap='gray_r')
+            plt.xlabel('column number')
+            plt.ylabel('row number')
+            if title is not None:
+                plt.title(title)
+            for row in range(self.size[0]):
+                for col in range(self.size[1]):
+                    if table[row, col] == np.nan:
+                        plt.plot(row, col, 'bo')
 
     def step(self):
         pass

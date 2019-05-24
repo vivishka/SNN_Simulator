@@ -97,7 +97,7 @@ class GaussianFiringNeuron(NeuronType):
 
     def set_value(self, value):
         delay = (1-np.exp(-0.5*((value-self.mu)/self.sigma)**2))*self.delay_max
-        # print("neuron {} will spike at {}".format(self.index, delay))
+        Helper.log('Encoder', log.DEBUG, "neuron {} will spike at {}".format(self.index, delay))
         if delay < (self.delay_max * self. threshold):
             self.firing_time = Helper.time + delay
             self.active = True
