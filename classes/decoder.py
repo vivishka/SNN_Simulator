@@ -43,6 +43,10 @@ class NeuronLog(NeuronType):
         """" non stepping neuron"""
         pass
 
+    def reset(self):
+        super(NeuronLog, self).reset()
+        self.spike_times = []
+
 
 class Decoder(Ensemble):
     """
@@ -63,6 +67,8 @@ class Decoder(Ensemble):
 
     def __init__(self, size):
         super(Decoder, self).__init__(size, NeuronLog)
+        self.decoded_wta = []
+        self.decoded_image = []
 
     def get_first_spike(self):
         """
@@ -96,7 +102,7 @@ class Decoder(Ensemble):
                     image[row, col] = 0
         return image
 
-    def decoded_image(self):
+    def decode_image(self):
         """
         Decoding algorithm to directly decode encoded input
         Mainly used for debug
@@ -127,3 +133,8 @@ class Decoder(Ensemble):
 
     def step(self):
         pass
+
+    def reset(self):
+        super(Decoder, self).reset()
+        self.decoded_wta.append(self.get_first_spike())
+        self.decoded_image.append(self.decode_image())
