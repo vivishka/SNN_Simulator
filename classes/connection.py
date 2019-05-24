@@ -1,5 +1,4 @@
 import logging as log
-import numpy as np
 from .base import SimulationObject, Helper
 from .layer import Bloc
 from .weights import Weights
@@ -51,6 +50,9 @@ class Connection(SimulationObject):
         self.in_neurons_spiking = []
         self.source_e = None
         self.dest_e = None
+        self.is_probed = False
+        self.probed_values = []
+
         Helper.log('Connection', log.INFO, 'new connection {0} created between layers {1} and {2}'
                    .format(self.id, source_l.id, dest_l.id))
 
@@ -90,3 +92,10 @@ class Connection(SimulationObject):
             Helper.log('Connection', log.DEBUG, 'spike propagated from layer {0} to {1}'
                        .format(self.source_e.id, self.dest_e.id))
         self.in_neurons_spiking = []
+
+    def add_probe(self, index):
+        self.is_probed = True
+        weight = self.weights.matrix[index]
+        self.probed_values.append(weight)
+        # TODO: add function in connection to change weights. change saved when this function is called
+        #  or in learner directly

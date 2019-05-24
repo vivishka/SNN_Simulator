@@ -2,6 +2,7 @@
 import numpy as np
 from .base import SimulationObject, Helper
 from .layer import Ensemble
+from .learner import Learner
 from .neuron import NeuronType
 from .connection import Connection
 import matplotlib.pyplot as plt
@@ -15,11 +16,11 @@ class Probe(SimulationObject):
     objects = []
     # TODO: work for spikes in and out,
 
-    def __init__(self, target, variables):
+    def __init__(self, target, var):
         super(Probe, self).__init__()
         Probe.objects.append(self)
         self.target = target
-        self.variables = [variables] if isinstance(variables, str) else variables
+        self.var = [var] if isinstance(var, str) else var
 
         if isinstance(target, Ensemble):
             self.__probe_neurons(target.neuron_list)
@@ -29,6 +30,8 @@ class Probe(SimulationObject):
             self.__probe_neurons(target)
         elif isinstance(target, Connection):
             self.__probe_connection()
+        elif isinstance(target, Learner):
+            self.__probe_connection()
         else:
             raise Exception("wrong type given to probe target")
 
@@ -37,14 +40,15 @@ class Probe(SimulationObject):
     def __probe_neurons(self, neuron_list):
         self.target = neuron_list
         for neuron in neuron_list:
-            for var in self.variables:
+            for var in self.var:
                 neuron.add_probe(self, var)
 
     def __probe_connection(self):
-        self.target.add_probe(self)
+        # add probe to the learner
+        self.target.add_probe(self.var)
 
     def get_data(self, variable):
-        if variable not in self.variables:
+        if variable not in self.var:
             print("no probe set for {}".format(variable))
             return
         values = []
@@ -53,7 +57,7 @@ class Probe(SimulationObject):
         return values
 
     def plot(self, variable):
-        if variable not in self.variables:
+        if variable not in self.var:
             print("no probe set for {}".format(variable))
             return
         fig = plt.figure()
