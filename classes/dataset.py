@@ -19,7 +19,6 @@ class Dataset(object):
         pass
 
     def next(self):
-        self.index += 1
         try:
             out = self.data[self.index]
             Helper.log('Dataset', log.INFO, 'next data : index {0}'.format(self.index))
@@ -27,7 +26,7 @@ class Dataset(object):
             self.index -= 1
             out = self.data[self.index]
             Helper.log('Dataset', log.ERROR, 'reading out of range of dataset ! (index {0})'.format(self.index))
-
+        self.index += 1
         return out
 
     def get(self, index):
