@@ -146,5 +146,5 @@ class Decoder(Ensemble):
         pass
 
     def reset(self):
-        super(Decoder, self).reset()
         self.decoded_wta.append(self.get_first_spike())
+        super(Decoder, self).reset()
