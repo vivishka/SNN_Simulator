@@ -1,4 +1,4 @@
-from .sparse import Sparse
+from .compactmatrix import CompactMatrix
 from .base import Helper
 import numpy as np
 
@@ -45,7 +45,7 @@ class Weights(object):
                                 index_y = (source_row + kern_row) * source_dim[0] + (source_col + kern_col)
                                 tmp_matrix[(index_x, index_y)] = Helper.init_weight() * 2. / np.prod(self.kernel_size)
 
-        self.matrix = Sparse(tmp_matrix)
+        self.matrix = CompactMatrix(tmp_matrix)
 
     def get_target_weights(self, index):
         """
