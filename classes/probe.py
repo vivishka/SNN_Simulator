@@ -2,7 +2,9 @@
 import numpy as np
 from .base import SimulationObject, Helper
 from .layer import Ensemble
+from .learner import Learner
 from .neuron import NeuronType
+from .connection import Connection
 import matplotlib.pyplot as plt
 import sys
 sys.dont_write_bytecode = True
@@ -14,35 +16,48 @@ class Probe(SimulationObject):
     objects = []
     # TODO: work for spikes in and out,
 
-    def __init__(self, target, variables):
+    def __init__(self, target, var):
         super(Probe, self).__init__()
         Probe.objects.append(self)
         self.target = target
+        self.var = [var] if isinstance(var, str) else var
+
         if isinstance(target, Ensemble):
-            self.neuron_list = target.neuron_list
+            self.__probe_neurons(target.neuron_list)
         elif isinstance(target, NeuronType):
-            self.neuron_list = [target]
+            self.__probe_neurons([target])
         elif isinstance(target, list) and all(isinstance(n, NeuronType) for n in target):
-            self.neuron_list = target
+            self.__probe_neurons(target)
+        elif isinstance(target, Connection):
+            self.__probe_connection()
+        elif isinstance(target, Learner):
+            self.__probe_connection()
         else:
             raise Exception("wrong type given to probe target")
-        self.variables = [variables] if isinstance(variables, str) else variables
+
         # self.is_spike = variable in 'spike_in, spike_out'
-        for neuron in self.neuron_list:
-            for var in self.variables:
+
+    def __probe_neurons(self, neuron_list):
+        self.target = neuron_list
+        for neuron in neuron_list:
+            for var in self.var:
                 neuron.add_probe(self, var)
 
+    def __probe_connection(self):
+        # add probe to the learner
+        self.target.add_probe(self.var)
+
     def get_data(self, variable):
-        if variable not in self.variables:
+        if variable not in self.var:
             print("no probe set for {}".format(variable))
             return
         values = []
-        for i, neuron in enumerate(self.neuron_list):
+        for i, neuron in enumerate(self.target):
             values.append(neuron.probed_values[variable])
         return values
 
     def plot(self, variable):
-        if variable not in self.variables:
+        if variable not in self.var:
             print("no probe set for {}".format(variable))
             return
         fig = plt.figure()
