@@ -9,10 +9,10 @@ from classes.neuron import PoolingNeuron
 from classes.layer import Bloc, Ensemble
 from classes.simulator import Simulator
 from classes.connection import Connection
-# from classes.probe import Probe
+from classes.probe import Probe
 from classes.decoder import Decoder
 from classes.encoder import Encoder, Node
-
+from classes.dataset import *
 import sys
 sys.dont_write_bytecode = True
 
@@ -20,12 +20,8 @@ Helper.init_logging('example.log', log.INFO, ['All'])
 
 filename = 'datasets/fashionmnist/fashion-mnist_test.csv'
 img_size = (28, 28)
-with open(filename, newline='') as file:
-    readCSV = csv.reader(file, delimiter=',')
-    readCSV.__next__()
-    row = readCSV.__next__()
-    image = np.array(row[1:]).astype(np.uint8).reshape(img_size)
 
+dataset = ImageDataset(filename, 1)
 
 model = Network()
 
@@ -35,7 +31,7 @@ model = Network()
 img = True
 if img:
     e1 = Encoder(img_size, 16, 0, 255, 0.1)
-    n1 = Node(e1, image, 5, 0)
+    n1 = Node(e1, dataset, 5, 0)
     b1 = Bloc(8, img_size, LIF)
     b2 = Bloc(4, img_size, LIF)
     b3 = Bloc(2, img_size, LIF)
@@ -85,7 +81,7 @@ sim.run(0.2)
 
 if img:
     plt.figure()
-    plt.imshow(image, cmap='gray')
+    plt.imshow(dataset.get(1), cmap='gray')
     plt.figure()
     plt.imshow(d1.decoded_image(), cmap='gray')
     plt.figure()

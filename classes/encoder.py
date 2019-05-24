@@ -2,6 +2,7 @@ import logging as log
 from .base import SimulationObject, Helper
 from .neuron import NeuronType
 from .layer import Ensemble, Bloc
+from .dataset import Dataset, ImageDataset
 import numpy as np
 import sys
 sys.dont_write_bytecode = True
@@ -113,7 +114,7 @@ class EncoderEnsemble(Ensemble):
             neuron.step()
 
 
-class Encoder(Bloc):  # TODO do with ensemble instead of bloc ?
+class Encoder(Bloc):
     """
     Creates a list of array to encode values into spikes
     Needs a Node that will provide values
@@ -222,21 +223,22 @@ class Node(SimulationObject):
         """
     objects = []
 
-    def __init__(self, encoder, value, *args, **kwargs):
+    def __init__(self, encoder, data, *args, **kwargs):
         super(Node, self).__init__()
         Node.objects.append(self)
         self.encoder = encoder
-        self.value = value
+        self.data = data
         self.args = args
         self.kwargs = kwargs
         Helper.log('Encoder', log.INFO, 'new node created')
 
     def step(self):
-        if callable(self.value):
-            value = self.value(*self.args, **self.kwargs)
+        if callable(self.data):
+            value = self.data(*self.args, **self.kwargs)
+        elif isinstance(self.data, Dataset):
+            value = self.data.next()
         else:
-            value = self.value
-
+            value = self.data
         self.encoder.set_all_values(value)
 
 
