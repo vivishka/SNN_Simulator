@@ -1,4 +1,5 @@
 import logging as log
+import pickle
 from .connection import Connection
 from .neuron import NeuronType
 from .layer import Ensemble
@@ -125,3 +126,20 @@ class Simulator(object):
                 Helper.log('Simulator', log.DEBUG, 'propagating through connection {0}'.format(con.id))
                 con.step()
 
+    def save(self, file):
+        with open(file, 'wb') as savefile:
+            data = []
+            Helper.log('Simulator', log.INFO, 'saving weights ...')
+            for con in self.connections:
+                if con.active:
+                    data.append((con.id, con.weights.matrix))
+            pickle.dump(data, savefile, pickle.HIGHEST_PROTOCOL)
+            Helper.log('Simulator', log.INFO, 'done')
+
+    def load(self, file):
+        with open(file, 'rb') as savefile:
+            Helper.log('Simulator', log.INFO, 'loading weights ...')
+            data = pickle.load(savefile)
+            for con in data:
+                self.connections[con[0]].weights.matrix = con[1]
+            Helper.log('Simulator', log.INFO, 'done')
