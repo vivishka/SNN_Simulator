@@ -29,20 +29,21 @@ class CompactMatrix(object):
         if nb_non_zero / mat.size > 0.5:
             self.sparse = False
             self.matrix = np.ndarray(self.shape, dtype=tuple)
+            self.size = np.prod(self.shape)
             for i in range(self.shape[0]):
                 for j in range(self.shape[1]):
                     self.matrix[i, j] = (i, j, mat[i, j])
+
         else:
             self.sparse = True
             self.matrix = []
+            self.size = nb_non_zero
             for i in range(self.shape[0]):
                 row = []
                 for j in range(self.shape[1]):
                     if mat[i, j] != 0:
                         row.append((i, j, mat[i, j]))
                 self.matrix.append(row)
-
-        self.size = nb_non_zero
 
     def to_dense(self):
         mat = np.zeros(self.shape)

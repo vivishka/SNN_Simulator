@@ -1,5 +1,6 @@
 
-import logging as log
+# import logging as log
+import numpy as np
 from .base import SimulationObject, Helper
 from .layer import Ensemble
 from .learner import Learner
@@ -35,14 +36,44 @@ class ConnectionProbe(Probe):
     def get_data(self,):
         return self.target.probed_values
 
-    def plot(self, index):
-        values = self.get_data()
-        graph = []
-        for batch_weights in values:
-            graph.append(batch_weights[index])
-
+    def plot(self, index=None):
         plt.figure()
-        plt.plot(graph)
+        values = self.get_data()
+        graph = None
+        if index is None:
+            # all weights of the matrix
+            graph = np.ndarray((len(values), values[0].size))
+            for t, batch_matrix in enumerate(values):
+                i = 0
+                for row in batch_matrix:
+                    for neuron_weight in row:
+                        w = neuron_weight[2]
+                        graph[t, i] = w
+                        i += 1
+
+            # row: weight index, col: time
+            graph = graph.transpose()
+
+        elif isinstance(index, int):
+            # multiple lines
+            # row: time, col: weight index
+            graph = np.ndarray((len(values), len(values[0][index])))
+            for t, batch_matrix in enumerate(values):
+                row = batch_matrix[index]
+                for i, neuron_weight in enumerate(row):
+                    w = neuron_weight[2]
+                    graph[t, i] = w
+
+            # row: weight index, col: time
+            graph = graph.transpose()
+
+        elif isinstance(index, tuple):
+            graph = [[]]
+            for batch_matrix in values:
+                graph[0].append(batch_matrix[index])
+
+        for weight in graph:
+            plt.plot(weight)
 
 
 class NeuronProbe(Probe):
