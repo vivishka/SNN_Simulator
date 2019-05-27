@@ -26,21 +26,21 @@ class CompactMatrix(object):
 
         # when matrix is not sparse enough: classical sparse matrix better
         nb_non_zero = len(mat.nonzero()[0])
-        if nb_non_zero / mat.size > 0.5:
-            self.sparse = False
-            self.matrix = np.ndarray(self.shape, dtype=tuple)
-            for i in range(self.shape[0]):
-                for j in range(self.shape[1]):
-                    self.matrix[i, j] = (i, j, mat[i, j])
-        else:
-            self.sparse = True
-            self.matrix = []
-            for i in range(self.shape[0]):
-                row = []
-                for j in range(self.shape[1]):
-                    if mat[i, j] != 0:
-                        row.append((i, j, mat[i, j]))
-                self.matrix.append(row)
+        # if nb_non_zero / mat.size > 0.5:
+        #     self.sparse = False
+        #     self.matrix = np.ndarray(self.shape, dtype=tuple)
+        #     for i in range(self.shape[0]):
+        #         for j in range(self.shape[1]):
+        #             self.matrix[i, j] = (i, j, mat[i, j])
+        # else:
+        self.sparse = True
+        self.matrix = []
+        for i in range(self.shape[0]):
+            row = []
+            for j in range(self.shape[1]):
+                if mat[i, j] != 0:
+                    row.append((i, j, mat[i, j]))
+            self.matrix.append(row)
 
         self.size = nb_non_zero
 

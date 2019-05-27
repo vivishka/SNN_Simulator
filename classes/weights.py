@@ -10,7 +10,7 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, source_dim, dest_dim, kernel_size=None, shared=False, sparse=False):
+    def __init__(self, source_dim, dest_dim, kernel_size=None, shared=False):
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
@@ -21,7 +21,6 @@ class Weights(object):
             self.kernel_size = kernel_size
         self.source_dim = source_dim  # (x,y)
         self.dest_dim = dest_dim  # (x,y)
-        self.sparse = sparse
 
         # TODO: if source_dim != dest dim
         #  padding
@@ -51,10 +50,7 @@ class Weights(object):
         """
         read weights of connections to neurons receiving a spike from neuron index 'index'
         """
-        if self.sparse:
-            return self.matrix[index]
-        else:
-            return self.matrix[index]
+        return self.matrix[index]
         # need real implementation later depending on matrix format
 
     def __getitem__(self, index):

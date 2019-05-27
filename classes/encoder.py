@@ -148,7 +148,7 @@ class Encoder(Bloc):
     """
 
     def __init__(self, size, depth, in_min, in_max, delay_max, threshold=.9, gamma=1.5):
-        super(Encoder, self).__init__(depth)
+        super(Encoder, self).__init__(depth, size)
         self.size = (1, size) if isinstance(size, int) else size
         self.ensemble_list = []
 

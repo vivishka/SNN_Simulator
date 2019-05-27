@@ -53,7 +53,7 @@ class Ensemble(Layer):
     objects = []
     # index = 0
 
-    def __init__(self, size, neuron_type, label='', bloc=None, index=0, **kwargs):
+    def __init__(self, size, neuron_type, label='', bloc=None, index=0, learner=False, **kwargs):
         lbl = label if label != '' else id(self)
         super(Ensemble, self).__init__("Ens_{}".format(lbl))
         Ensemble.objects.append(self)
@@ -66,7 +66,7 @@ class Ensemble(Layer):
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.ensemble_list.append(self)
         self.input_spike_buffer = []
-        self.learner = Learner(self)
+        self.learner = Learner(self) if learner else None
         Helper.log('Layer', log.DEBUG, 'layer type : ensemble of size {0}'.format(self.size))
         if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
@@ -84,7 +84,8 @@ class Ensemble(Layer):
         self.active_neuron_set.clear()
 
     def reset(self):
-        self.learner.reset_input()
+        if self.learner:
+            self.learner.reset_input()
         for neuron in self.neuron_list:
             neuron.reset()
 
@@ -118,10 +119,12 @@ class Ensemble(Layer):
         for con in self.out_connections:
             con.register_neuron(index)
 
-    def receive_spike(self, targets):
+    def receive_spike(self, targets, c_source):
         for target in targets:
             self.neuron_list[target[1]].receive_spike(index=target[0], weight=target[2])
             self.active_neuron_set.add(self.neuron_list[target[1]])
+            if self.learner:
+                self.learner.in_spike(target[0], target[1], target[2], c_source)
 
     def __getitem__(self, index):
         if isinstance(index, int):
@@ -157,7 +160,7 @@ class Bloc(Layer):
     """
     index = 0
 
-    def __init__(self, depth, *args, **kwargs):
+    def __init__(self, depth, size, learner=False, *args, **kwargs):
         super(Bloc, self).__init__()
         self.index = Bloc.index
         Bloc.index += 1
@@ -165,7 +168,7 @@ class Bloc(Layer):
         self.inhibition_radius = (1, 1)
         for i in range(depth):
             if args or kwargs:
-                ens = Ensemble(*args, **kwargs, bloc=self, index=i)
+                ens = Ensemble(size, bloc=self, index=i, learner=learner, *args, **kwargs)
                 # ens.bloc = self
                 # ens.bloc_index = i
                 self.ensemble_list.append(ens)
