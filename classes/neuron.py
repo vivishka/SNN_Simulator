@@ -5,7 +5,7 @@ import sys
 sys.dont_write_bytecode = True
 
 
-class NeuronType(SimulationObject):
+class NeuronType(object):
     """
     The NeuronType object is an abstract version of a neuron
     Used to construct subclass
@@ -47,12 +47,12 @@ class NeuronType(SimulationObject):
     """
     nb_neuron = 0
 
-    def __init__(self, ensemble, index, **kwargs):
-        super(NeuronType, self).__init__(
-            "{0}_Neuron_{1}".format(ensemble.label, index))
+    def __init__(self, *args, **kwargs):
+        # super(NeuronType, self).__init__(
+        #     "{0}_Neuron_{1}".format(ensemble.label, index))
         NeuronType.nb_neuron += 1
-        self.ensemble = ensemble
-        self.index = index
+        self.ensemble = None
+        self.index = (0, 0)
         self.param = kwargs if kwargs is not None else {}
         self.received = []
         self.last_active = 0
@@ -67,7 +67,8 @@ class NeuronType(SimulationObject):
         self.nb_in = 0
         self.nb_out = 0
 
-        Helper.log('Neuron', log.DEBUG, '{0} of layer {1} created'.format(self.index, self.ensemble.id))
+        # TODO: change that
+        # Helper.log('Neuron', log.DEBUG, '{0} of layer {1} created'.format(self.index, self.ensemble.id))
 
     def extract_param(self, name, default):
         param = default
@@ -80,16 +81,7 @@ class NeuronType(SimulationObject):
 
     def receive_spike(self, index, weight):
         """ Append an axons which emitted a received spikes this step """
-        # if self.halted:
-        #     self.ensemble.active_neuron_list.append(self)
-        #     self.halted = False
-        # if self.ensemble.learner is not None:
-        #     self.ensemble.learner.out_spike(self.ensemble.index, self.index, weight)
-        # if self.spike_in_probed:
-        #     weight = self.weights[weight]
-        #     self.probed_values['spike_in'].append(Helper.time, weight, weight)
-        # self.nb_in += 1
-
+        # TODO: if in spike probing: do here
         self.received.append((index, weight))
         Helper.log('Neuron', log.DEBUG,
                    'spike received by neuron {0}, layer {1} of amplitude {2}'
@@ -165,9 +157,8 @@ class LIF(NeuronType):
         neuron parameter, decay rate of the neuron
     """
 
-    def __init__(self, ensemble, index, **kwargs):
-        super(LIF, self).__init__(ensemble, index, **kwargs)
-        Neuron.objects.append(self)
+    def __init__(self, *args, **kwargs):
+        super(LIF, self).__init__(*args, **kwargs)
         self.voltage = 0
         self.threshold = self.extract_param('threshold', 1)
         self.tau_inv = 1.0 / self.extract_param('tau', 0.2)
@@ -218,33 +209,3 @@ class PoolingNeuron(NeuronType):
         if self.received and not self.inhibited:
             self.received = []
             self.send_spike()
-
-
-class Neuron(NeuronType):
-    """'
-    test model for a neuron
-    used for debug
-    """
-
-    objects = []
-
-    def __init__(self, ensemble, index, **kwargs):
-        super(Neuron, self).__init__(ensemble, index, **kwargs)
-        Neuron.objects.append(self)
-        self.voltage = 0
-        self.threshold = 1
-        self.threshold = self.extract_param('threshold', 1)
-        # print("neuron {}, thr: {}".format(self.label, self.threshold))
-        Helper.log('Neuron', log.DEBUG, ' neuron type: neuron')
-
-    def step(self):
-        self.voltage += (Helper.dt + sum([self.weights[i] for i in self.received]))
-        self.received = []
-        # print("neuron " + self.name + " V: ", int(self.voltage*1000))
-        if self.voltage >= self.threshold:
-            self.voltage = 0
-            self.send_spike()
-        self.probe()
-
-    def reset(self):
-        self.voltage = 0

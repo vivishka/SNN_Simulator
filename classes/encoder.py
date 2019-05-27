@@ -72,8 +72,8 @@ class GaussianFiringNeuron(NeuronType):
 
     nb_spikes = 0
 
-    def __init__(self, ensemble, index):
-        super(GaussianFiringNeuron, self).__init__(ensemble, index)
+    def __init__(self,):
+        super(GaussianFiringNeuron, self).__init__()
         self.firing_time = -1
         self.active = False
         self.mu = self.sigma = self.delay_max = self.threshold = None
@@ -103,15 +103,15 @@ class GaussianFiringNeuron(NeuronType):
             self.active = True
 
 
-class EncoderEnsemble(Ensemble):
-
-    def __init__(self, size, neuron_type, label='', **kwargs):
-        super(EncoderEnsemble, self).__init__(size, neuron_type, label, **kwargs)
-        Helper.log('Encoder', log.INFO, 'new encoder ensemble, layer {0}'.format(self.id))
-
-    def step(self):
-        for neuron in self.neuron_list:
-            neuron.step()
+# class EncoderEnsemble(Ensemble):
+#
+#     def __init__(self, size, neuron_type, label='', **kwargs):
+#         super(EncoderEnsemble, self).__init__(size, neuron_type, label, **kwargs)
+#         Helper.log('Encoder', log.INFO, 'new encoder ensemble, layer {0}'.format(self.id))
+#
+#     def step(self):
+#         for neuron in self.neuron_list:
+#             neuron.step()
 
 
 class Encoder(Bloc):
@@ -147,21 +147,16 @@ class Encoder(Bloc):
 
     """
 
-    def __init__(self, size, depth, in_min, in_max, delay_max, threshold=.9, gamma=1.5):
-        super(Encoder, self).__init__(depth, size)
-        self.size = (1, size) if isinstance(size, int) else size
-        self.ensemble_list = []
+    def __init__(self, depth, size, in_min, in_max, delay_max, threshold=.9, gamma=1.5):
+        super(Encoder, self).__init__(
+            depth=depth,
+            size=size,
+            neuron_type=GaussianFiringNeuron(),
+            learner=False)
 
         sigma = (in_max - in_min) / (depth - 2.0) / gamma
-        # recreates the list of ensembles
-        for ens_index in range(depth):
-            ens = EncoderEnsemble(
-                size=size,
-                neuron_type=GaussianFiringNeuron,
-                bloc=self,
-                index=ens_index)
-            ens.bloc_index = ens_index
-            self.ensemble_list.append(ens)
+
+        for ens_index, ens in enumerate(self.ensemble_list):
 
             mu = in_min + (ens_index + 1 - 1.5) * ((in_max - in_min) / (depth - 2.0))
             for neuron in ens.neuron_list:
@@ -170,6 +165,11 @@ class Encoder(Bloc):
                     sigma=sigma,
                     delay_max=delay_max,
                     threshold=threshold)
+
+                # those neurons needs to always be active
+                # TODO: optimize this
+                ens.probed_neuron_set.add(neuron)
+
         Helper.log('Encoder', log.INFO, 'new encoder bloc, layer {0}'.format(self.id))
 
     def set_one_value(self, value, index):
@@ -240,26 +240,3 @@ class Node(SimulationObject):
         else:
             value = self.data
         self.encoder.set_all_values(value)
-
-
-class Reset(SimulationObject):
-    """docstring for Reset."""
-
-    objects = []
-    # TODO: put it in the simulation
-
-    def __init__(self, delay, period):
-        super(Reset, self).__init__()
-        Reset.objects.append(self)
-        self. delay = delay
-        self.period = period
-        self.next_reset = delay
-        self.reset_funct = None
-
-    def set_reset_funct(self, function):
-        self.reset_funct = function
-
-    def step(self):
-        if Helper.time > self.next_reset:
-            self.next_reset += self.period
-            self.reset_funct()

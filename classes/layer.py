@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 import logging as log
 from .base import SimulationObject, Helper
 from .learner import Learner
@@ -51,9 +52,8 @@ class Ensemble(Layer):
     """
 
     objects = []
-    # index = 0
 
-    def __init__(self, size, neuron_type, label='', bloc=None, index=0, learner=False, **kwargs):
+    def __init__(self, size, neuron_type, bloc=None, index=0, learner=False, label='', **kwargs):
         lbl = label if label != '' else id(self)
         super(Ensemble, self).__init__("Ens_{}".format(lbl))
         Ensemble.objects.append(self)
@@ -71,10 +71,16 @@ class Ensemble(Layer):
         if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
                 for col in range(len(element)):
-                    neuron = neuron_type(ensemble=self, index=(row, col), **kwargs)
+                    # Creates copies of the neuron given as argument
+                    neuron = copy.deepcopy(neuron_type)
+                    neuron.ensemble = self
+                    neuron.index = (row, col)
                     self.neuron_array[(row, col)] = neuron
                     self.neuron_list.append(neuron)
                     self.active_neuron_set.add(neuron)
+                    Helper.log('Layer', log.DEBUG,
+                               'neuron {0} of layer {1} created'.format(neuron.index, neuron.ensemble.id))
+
         else:
             raise TypeError("Ensemble size should be int or (int, int)")
 
@@ -160,20 +166,24 @@ class Bloc(Layer):
     """
     index = 0
 
-    def __init__(self, depth, size, learner=False, *args, **kwargs):
+    def __init__(self, depth, size, neuron_type, learner=False, *args, **kwargs):
         super(Bloc, self).__init__()
         self.index = Bloc.index
         Bloc.index += 1
         self.depth = depth
+        self.size = (1, size) if isinstance(size, int) else size
         self.inhibition_radius = (1, 1)
+
+        # Ensemble creation
         for i in range(depth):
-            if args or kwargs:
-                ens = Ensemble(size, bloc=self, index=i, learner=learner, *args, **kwargs)
-                # ens.bloc = self
-                # ens.bloc_index = i
-                self.ensemble_list.append(ens)
-            else:
-                self.ensemble_list.append(None)
+            ens = Ensemble(
+                size=size,
+                neuron_type=neuron_type,
+                bloc=self,
+                index=i,
+                learner=learner,
+                *args, **kwargs)
+            self.ensemble_list.append(ens)
         Helper.log('Layer', log.INFO, 'layer type : bloc of size {0}'.format(depth))
 
     def set_inhibition(self, radius=None):

@@ -2,8 +2,7 @@ import logging as log
 from .base import Helper
 from .connection import Connection
 from .layer import Ensemble
-from .encoder import Node, Reset
-from .probe import Probe
+from .encoder import Node
 
 import sys
 sys.dont_write_bytecode = True

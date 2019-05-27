@@ -3,9 +3,8 @@ import pickle
 from .connection import Connection
 from .neuron import NeuronType
 from .layer import Ensemble
-from .encoder import Reset, Node
+from .encoder import Node
 from .base import Helper
-import multiprocessing as mp
 import sys
 import time
 sys.dont_write_bytecode = True

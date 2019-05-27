@@ -43,7 +43,7 @@ class ConnectionProbe(Probe):
 
     def plot(self, connection_index='all', neuron_index='all'):
         plt.figure()
-        values = self.get_data()
+        # values = self.get_data()
         graph = None
 
         if connection_index == 'all':

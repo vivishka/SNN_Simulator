@@ -26,8 +26,8 @@ class NeuronLog(NeuronType):
         list of tuple (ensemble index, time) of every received spike
 
     """
-    def __init__(self, ensemble, index, **kwargs):
-        super(NeuronLog, self).__init__(ensemble, index, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super(NeuronLog, self).__init__(*args, **kwargs)
         self.spike_times = []
 
     def receive_spike(self, index, weight):
@@ -68,7 +68,11 @@ class Decoder(Ensemble):
     """
 
     def __init__(self, size):
-        super(Decoder, self).__init__(size, NeuronLog)
+        super(Decoder, self).__init__(
+            size=size,
+            neuron_type=NeuronLog(),
+            learner=False
+        )
         self.decoded_wta = []
         self.decoded_image = []
 
