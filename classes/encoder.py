@@ -233,10 +233,10 @@ class Node(SimulationObject):
         Helper.log('Encoder', log.INFO, 'new node created')
 
     def step(self):
-        if callable(self.data):
-            value = self.data(*self.args, **self.kwargs)
-        elif isinstance(self.data, Dataset):
+        if isinstance(self.data, Dataset):
             value = self.data.next()
+        elif callable(self.data):
+            value = self.data(*self.args, **self.kwargs)
         else:
             value = self.data
         self.encoder.set_all_values(value)

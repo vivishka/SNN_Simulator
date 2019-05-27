@@ -104,7 +104,7 @@ class NeuronType(SimulationObject):
         self.ensemble.create_spike(self.index)
 
         if self.spike_out_probed:
-            self.probed_values['spike_out'].append(Helper.time, self.index)
+            self.probed_values['spike_out'].append((Helper.time, self.index))
             Helper.log('Neuron', log.DEBUG, ' {0} spike notification to probe'.format(self.index))
         self.nb_out += 1
         if self.inhibiting:

@@ -61,7 +61,7 @@ class Probe(SimulationObject):
             print("no probe set for {}".format(variable))
             return
         fig = plt.figure()
-        plt.title(self.target.label)
+#        plt.title(self.target.label)
         plt.xlabel('time')
         colors = ['k', 'r', 'b', 'g', 'm']
         values = self.get_data(variable)
