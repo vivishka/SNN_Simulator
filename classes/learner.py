@@ -9,7 +9,7 @@ import logging as log
 class Learner(object):
     """"""
 
-    def __init__(self, layer, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, min_weight=0, max_weight=1):
+    def __init__(self, layer, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, min_weight=0, max_weight=0.6):
         self.layer = layer
         self.in_spikes = []
         self.out_spikes = []
@@ -52,7 +52,7 @@ class Learner(object):
                         dw = - self.eta_down * self.max_weight / 2 * np.exp(dt * in_s[3] / self.tau_down)
                     # in_s[4].update_weight(in_s[3] + dw, in_s[1], in_s[2])
                     Helper.log('Learner', log.DEBUG, 'Weight updated dw = {0}'.format(dw))
-                    new_w =  in_s[3] + dw
+                    new_w = in_s[3] + dw
                     if new_w > self.max_weight:
                         new_w = self.max_weight
                     elif new_w < self.min_weight:

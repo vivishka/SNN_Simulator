@@ -10,17 +10,19 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, source_dim, dest_dim, kernel_size=None, shared=False):
+    def __init__(self, source_dim, dest_dim, kernel_size=None, shared=False, min_w=0, max_w=0.6):
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
-        self.shared = shared  # ?
+        self.shared = shared
         if isinstance(kernel_size, int):
             self.kernel_size = (kernel_size, kernel_size)
         else:
             self.kernel_size = kernel_size
         self.source_dim = source_dim  # (x,y)
         self.dest_dim = dest_dim  # (x,y)
+        self.min_w = min_w
+        self.max_w = max_w
 
         # TODO: if source_dim != dest dim
         #  padding
@@ -28,8 +30,8 @@ class Weights(object):
         #  ALL 2 ALL connection
         tmp_matrix = np.zeros((np.prod(source_dim), np.prod(dest_dim)))
         if kernel_size is None:
-            tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
-
+            # tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
+            tmp_matrix = np.random.randn(np.prod(source_dim), np.prod(dest_dim)) * (self.max_w - self.min_w)/15 + (self.max_w - self.min_w) * 0.75
         else:
             # for every source neuron
             for source_row in range(source_dim[0]):
