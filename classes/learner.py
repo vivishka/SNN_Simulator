@@ -26,9 +26,11 @@ class Learner(object):
 
     def in_spike(self, source_n, dest_n, weight, source_c):
         self.buffer_in.append([Helper.time, source_n, dest_n, weight, source_c, Helper.input_index])
+        Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered input spike {1}'.format(self.layer.id,[Helper.time, source_n, dest_n, weight, source_c, Helper.input_index]))
 
     def out_spike(self, source_n):
         self.buffer_out.append([Helper.time, source_n, Helper.input_index])
+        Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered output spike from {1}'.format(self.layer.id, source_n))
 
     def reset_input(self):  # call every input cycle
         self.in_spikes.append(self.buffer_in)
@@ -49,7 +51,13 @@ class Learner(object):
                     else:
                         dw = - self.eta_down * self.max_weight / 2 * np.exp(dt * in_s[3] / self.tau_down)
                     # in_s[4].update_weight(in_s[3] + dw, in_s[1], in_s[2])
-                    in_s[4].weights[(in_s[1], in_s[2])] = in_s[3] + dw  # update weights in source connection
+                    Helper.log('Learner', log.DEBUG, 'Weight updated dw = {0}'.format(dw))
+                    new_w =  in_s[3] + dw
+                    if new_w > self.max_weight:
+                        new_w = self.max_weight
+                    elif new_w < self.min_weight:
+                        new_w = self.min_weight
+                    in_s[4].weights[(in_s[1], in_s[2])] = new_w  # update weights in source connection
         self.out_spikes = []
         self.in_spikes = []
         for connection in self.layer.in_connections:

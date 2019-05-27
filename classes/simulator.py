@@ -14,7 +14,7 @@ sys.dont_write_bytecode = True
 class Simulator(object):
     """docstring for simulator."""
 
-    def __init__(self, model, dt=0.001, batch_size = 1, input_period=float('inf')):
+    def __init__(self, model, dt=0.001, batch_size=1, input_period=float('inf')):
         super(Simulator, self).__init__()
         self.model = model
         self.nb_step = 0
@@ -90,13 +90,11 @@ class Simulator(object):
             ens.reset()
         Helper.log('Simulator', log.DEBUG, 'all ensembles reset')
 
-        Helper.log('Simulator', log.INFO, 'learners input cycle processing')
-        for ensemble in self.ensembles:
-            ensemble.learner.reset_input()
         if Helper.input_index == self.batch_size:
             Helper.log('Simulator', log.INFO, 'end of batch: updating matrices')
             for ensemble in self.ensembles:
-                ensemble.learner.process()
+                if ensemble.learner:
+                    ensemble.learner.process()
             Helper.input_index = 0
         else:
             Helper.log('Simulator', log.INFO, 'next input')

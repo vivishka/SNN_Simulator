@@ -73,8 +73,7 @@ class Connection(SimulationObject):
             self.weights = Weights(
                 source_dim=self.source_e.size,
                 dest_dim=self.dest_e.size,
-                kernel_size=kernel,
-                sparse=True)
+                kernel_size=kernel)
             self.active = True
             self.connection_list = [self]
 
@@ -87,9 +86,9 @@ class Connection(SimulationObject):
     def step(self):
         for index in self.in_neurons_spiking:
 
-            targets = self.weights.get_target_weights(index)
+            targets = self.weights.get_target_weights(index)  # source dest weight
             # for target in targets:
-            self.dest_e.receive_spike(targets)
+            self.dest_e.receive_spike(targets, self)
             Helper.log('Connection', log.DEBUG, 'spike propagated from layer {0} to {1}'
                        .format(self.source_e.id, self.dest_e.id))
         self.in_neurons_spiking = []
