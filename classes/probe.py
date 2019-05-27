@@ -1,5 +1,5 @@
 
-import numpy as np
+import logging as log
 from .base import SimulationObject, Helper
 from .layer import Ensemble
 from .learner import Learner
@@ -16,36 +16,54 @@ class Probe(SimulationObject):
     objects = []
     # TODO: work for spikes in and out,
 
-    def __init__(self, target, var):
+    def __init__(self, target, var=None):
         super(Probe, self).__init__()
         Probe.objects.append(self)
         self.target = target
         self.var = [var] if isinstance(var, str) else var
+        # self.is_spike = variable in 'spike_in, spike_out'
+
+
+class ConnectionProbe(Probe):
+
+    def __init__(self, target):
+        super(ConnectionProbe, self).__init__(target)
+        if not isinstance(target, Connection):
+            raise Exception("wrong type given to probe target")
+
+        self.target.add_probe(self.var)
+
+    def get_data(self,):
+        return self.target.probed_values
+
+    def plot(self, index):
+        values = self.get_data()
+        graph = []
+        for batch_weights in values:
+            graph.append(batch_weights[index])
+
+        plt.figure()
+        plt.plot(graph)
+
+
+class NeuronProbe(Probe):
+    
+    def __init__(self, target, variables):
+        super(NeuronProbe, self).__init__(target, variables)
 
         if isinstance(target, Ensemble):
-            self.__probe_neurons(target.neuron_list)
+            neuron_list = target.neuron_list
         elif isinstance(target, NeuronType):
-            self.__probe_neurons([target])
+            neuron_list = [target]
         elif isinstance(target, list) and all(isinstance(n, NeuronType) for n in target):
-            self.__probe_neurons(target)
-        elif isinstance(target, Connection):
-            self.__probe_connection()
-        elif isinstance(target, Learner):
-            self.__probe_connection()
+            neuron_list = target
         else:
             raise Exception("wrong type given to probe target")
 
-        # self.is_spike = variable in 'spike_in, spike_out'
-
-    def __probe_neurons(self, neuron_list):
         self.target = neuron_list
         for neuron in neuron_list:
             for var in self.var:
                 neuron.add_probe(self, var)
-
-    def __probe_connection(self):
-        # add probe to the learner
-        self.target.add_probe(self.var)
 
     def get_data(self, variable):
         if variable not in self.var:
@@ -61,7 +79,7 @@ class Probe(SimulationObject):
             print("no probe set for {}".format(variable))
             return
         fig = plt.figure()
-        plt.title(self.target.label)
+        # plt.title(self.target[0].label)
         plt.xlabel('time')
         colors = ['k', 'r', 'b', 'g', 'm']
         values = self.get_data(variable)

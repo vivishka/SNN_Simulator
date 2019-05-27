@@ -1,4 +1,5 @@
 import logging as log
+import copy
 from .base import SimulationObject, Helper
 from .layer import Bloc
 from .weights import Weights
@@ -93,9 +94,13 @@ class Connection(SimulationObject):
                        .format(self.source_e.id, self.dest_e.id))
         self.in_neurons_spiking = []
 
-    def add_probe(self, index):
+    def get_weights_copy(self):
+        return copy.deepcopy(self.weights.matrix)
+
+    def probe(self):
+        if self.is_probed:
+            self.probed_values.append(self.get_weights_copy())
+
+    def add_probe(self):
         self.is_probed = True
-        weight = self.weights.matrix[index]
-        self.probed_values.append(weight)
-        # TODO: add function in connection to change weights. change saved when this function is called
-        #  or in learner directly
+        self.probed_values = self.get_weights_copy()

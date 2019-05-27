@@ -52,9 +52,6 @@ class Learner(object):
                     in_s[4].weights[(in_s[1], in_s[2])] = in_s[3] + dw  # update weights in source connection
         self.out_spikes = []
         self.in_spikes = []
+        for connection in self.layer.in_connections:
+            connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
-
-
-
-
-
