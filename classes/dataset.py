@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import logging as log
 from .base import Helper
 import sys
@@ -7,12 +8,12 @@ sys.dont_write_bytecode = True
 
 class Dataset(object):
 
-    def __init__(self, path='', index=0):
+    def __init__(self, index=0):
         self.index = index
         self.data = []
         self.labels = []
         self.file = None
-        self.path = path
+
         Helper.log('Dataset', log.INFO, 'new dataset initialized')
 
     def load(self):
@@ -21,9 +22,9 @@ class Dataset(object):
     def next(self):
         try:
             out = self.data[self.index]
-            Helper.log('Dataset', log.INFO, 'next data : index {0}'.format(self.index))
+            Helper.log('Dataset', log.INFO, 'next data : index {0}, value {1}'.format(self.index, out))
         except IndexError:
-            self.index -= 1
+            self.index = 0
             out = self.data[self.index]
             Helper.log('Dataset', log.ERROR, 'reading out of range of dataset ! (index {0})'.format(self.index))
         self.index += 1
@@ -32,18 +33,24 @@ class Dataset(object):
     def get(self, index):
         return self.data[index]
 
+    def plot(self, value):
+        plt.figure()
+        if value == 'Data' or value == 'All':
+            plt.plot(self.data)
+        elif value == 'Labels' or value == 'All':
+            plt.plot(self.labels)
+
 
 class VectorDataset(Dataset):
 
-    def __init__(self, path='', index=0, size=50):
-        super(VectorDataset, self).__init__(path, index)
+    def __init__(self, index=0, size=50):
+        super(VectorDataset, self).__init__(index)
         self.size = size
 
     def load(self):
-        for input_data in range(self.size):
-            exp = self.generator()
-            self.labels.append(exp[0])
-            self.data.append(exp[1])
+        exp = self.generator()
+        self.labels = exp[0]
+        self.data = exp[1]
 
     def generator(self):
         pass
@@ -51,23 +58,24 @@ class VectorDataset(Dataset):
 
 class Exp1Dataset(VectorDataset):
 
-    def __init__(self, path='', index=0, size=50, width=0.25, gap=0.5):
-        super(Exp1Dataset, self).__init__(path, index, size)
+    def __init__(self, index=0, size=50, width=0.25, gap=0.5):
+        super(Exp1Dataset, self).__init__(index, size)
         self.width = width
         self.gap = gap
         self.load()
 
     def generator(self):
-        cat = np.random.randint(0, 1)
-        data = self.width * np.random.rand() + (self.gap + self.width)*cat
-        return cat, data
+        cat = np.random.randint(2, size=self.size)
+        data = self.width * np.random.rand(self.size) + (self.gap + self.width) * cat
+        return cat.tolist(), data.tolist()
 
 
 class ImageDataset(Dataset):
 
-    def __init__(self, path='', index=0, size=(28, 28)):
-        super(ImageDataset, self).__init__(path, index)
+    def __init__(self, path, index=0, size=(28, 28)):
+        super(ImageDataset, self).__init__(index)
         self.size = size
+        self.path = path
         self.load()
 
     def load(self):
