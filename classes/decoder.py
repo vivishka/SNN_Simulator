@@ -46,6 +46,7 @@ class NeuronLog(NeuronType):
 
     def reset(self):
         super(NeuronLog, self).reset()
+        Helper.log('Decoder', log.DEBUG, ' spikes for input: {}'.format(self.spike_times))
         self.spike_times = []
 
 
@@ -95,7 +96,8 @@ class Decoder(Ensemble):
                     value = self.neuron_array[row, col].spike_times[0][1]
                     image[row, col] = value - min_val
                 else:
-                    image[row, col] = np.nan
+                    # image[row, col] = None
+                    image[row, col] = Helper.input_period +1*Helper.dt
         return image
 
     def decoded_image(self):
@@ -128,19 +130,25 @@ class Decoder(Ensemble):
         image = (image - min_val)/(max_val - min_val) * 255
         return image.astype(np.uint8)
 
-    def plot(self, plot_type, title=None):
-        if plot_type == 'first_spike':
-            table = self.get_first_spike()
-            plt.figure()
-            plt.imshow(table, cmap='gray_r')
-            plt.xlabel('column number')
-            plt.ylabel('row number')
-            if title is not None:
-                plt.title(title)
-            for row in range(self.size[0]):
-                for col in range(self.size[1]):
-                    if table[row, col] == np.nan:
-                        plt.plot(row, col, 'bo')
+    def plot(self, index=-1, title=None):
+
+        table = self.decoded_wta
+        if table[0].shape[0] == 1:
+            graph = np.ndarray((len(table), table[0].shape[1]))
+            for row, value in enumerate(table):
+                graph[row] = value
+        else:
+            graph = self.decoded_wta[index]
+        plt.figure()
+        plt.imshow(graph, cmap='gray_r')
+        plt.xlabel('column number')
+        plt.ylabel('row number')
+        if title is not None:
+            plt.title(title)
+        # for row in range(self.size[0]):
+        #     for col in range(self.size[1]):
+        #         if table[row, col] == np.nan:
+        #             plt.plot(row, col, 'bo')
 
     def step(self):
         pass

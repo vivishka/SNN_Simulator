@@ -22,6 +22,7 @@ class Simulator(object):
         self.next_reset = input_period
         Helper.dt = dt
         Helper.time = 0
+        Helper.input_period = input_period
         model.build()
         self.objects = model.get_all_objects()
         self.ensembles = self.objects[Ensemble]
