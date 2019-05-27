@@ -14,7 +14,6 @@ class Probe(SimulationObject):
     """docstring for Probe."""
 
     objects = []
-    # TODO: work for spikes in and out,
 
     def __init__(self, target, var=None):
         super(Probe, self).__init__()
@@ -31,7 +30,7 @@ class ConnectionProbe(Probe):
         if not isinstance(target, Connection):
             raise Exception("wrong type given to probe target")
 
-        self.target.add_probe(self.var)
+        self.target.add_probe()
 
     def get_data(self,):
         return self.target.probed_values

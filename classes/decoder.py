@@ -78,7 +78,6 @@ class Decoder(Ensemble):
 
         :return: an array the same size as this ensemble containing the time
         of the first spike received by each neuron
-        # TODO: change from 255 to 1.0
         """
         image = np.zeros(self.size)
 
@@ -107,9 +106,6 @@ class Decoder(Ensemble):
         Mainly used for debug
 
         :return: an array the same size as this ensemble representing the decoded value
-        # TODO: change from 255 to 1.0
-        # TODO: edge cases (empty list, min == max, ...)
-        # TODO: broken by connection overhaul
         """
         image = np.zeros(self.size, )
 

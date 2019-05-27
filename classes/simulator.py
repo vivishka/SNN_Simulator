@@ -40,8 +40,6 @@ class Simulator(object):
         self.nb_step = int(duration / Helper.dt)
         Helper.log('Simulator', log.INFO, 'total steps: {0}'.format(self.nb_step))
         # shares the spike register with all the axons
-        # for connect in self.connections:
-        #     connect.set_notifier(self.register_spike)
         Helper.log('Simulator', log.INFO, 'nodes init')
         # starts the inputs
         for node in self.nodes:
@@ -76,7 +74,6 @@ class Simulator(object):
         for ens in self.ensembles:
             ens.step()
         Helper.log('Simulator', log.DEBUG, 'all ensembles simulated')
-        # self.step_ens()
         mid = time.time()
         Helper.log('Simulator', log.DEBUG, 'simulating connections')
         self.propagate_all()
@@ -85,15 +82,6 @@ class Simulator(object):
         Helper.log('Simulator', log.DEBUG, 'end of step {0}'.format(Helper.step_nb))
         self.step_time += mid - start
         self.prop_time += end - mid
-
-    def step_ens(self): # TODO: obsolete ?
-        processes = [mp.Process(target=ens.step) for ens in self.ensembles]
-        for p in processes:
-            p.start()
-
-        # Exit the completed processes
-        for p in processes:
-            p.join()
 
     def reset(self):
         # TODO: reset connection if active

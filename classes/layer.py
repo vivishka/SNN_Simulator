@@ -62,7 +62,6 @@ class Ensemble(Layer):
         self.size = (1, size) if isinstance(size, int) else size
         self.neuron_list = []
         self.active_neuron_set = set()
-        # todo: only set
         self.probed_neuron_set = set()
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.ensemble_list.append(self)
@@ -122,7 +121,6 @@ class Ensemble(Layer):
         for target in targets:
             self.neuron_list[target[1]].receive_spike(index=target[0], weight=target[2])
             self.active_neuron_set.add(self.neuron_list[target[1]])
-
 
     def __getitem__(self, index):
         if isinstance(index, int):
