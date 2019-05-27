@@ -84,6 +84,7 @@ class Ensemble(Layer):
         self.active_neuron_set.clear()
 
     def reset(self):
+        self.learner.reset_input()
         for neuron in self.neuron_list:
             neuron.reset()
 

@@ -104,3 +104,6 @@ class Connection(SimulationObject):
     def add_probe(self):
         self.is_probed = True
         self.probed_values = [self.get_weights_copy()]
+
+    def __getitem__(self, item):
+        return self.connection_list[item]
