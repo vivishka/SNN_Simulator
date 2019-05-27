@@ -27,53 +27,69 @@ class Probe(SimulationObject):
 class ConnectionProbe(Probe):
 
     def __init__(self, target):
-        super(ConnectionProbe, self).__init__(target)
         if not isinstance(target, Connection):
             raise Exception("wrong type given to probe target")
+        super(ConnectionProbe, self).__init__(target.connection_list)
 
-        self.target.add_probe()
+        for connection in self.target:
+            connection.add_probe()
 
-    def get_data(self,):
-        return self.target.probed_values
+    def get_data(self, connection_index):
+        return self.target[connection_index].probed_values
+        # values = []
+        # for connection in self.target:
+        #     values = connection.probed_values
+        # return values
 
-    def plot(self, index=None):
+    def plot(self, connection_index='all', neuron_index='all'):
         plt.figure()
         values = self.get_data()
         graph = None
-        if index is None:
-            # all weights of the matrix
-            graph = np.ndarray((len(values), values[0].size))
-            for t, batch_matrix in enumerate(values):
-                i = 0
-                for row in batch_matrix:
-                    for neuron_weight in row:
+
+        if connection_index == 'all':
+            target_range = range(len(self.target))
+        elif isinstance(connection_index, int):
+            target_range = [connection_index]
+        elif isinstance(connection_index, list):
+            target_range = connection_index
+
+        for connect_index in target_range:
+
+            values = self.get_data(connection_index=connect_index)
+            if neuron_index == 'all':
+                # all weights of the matrix
+                graph = np.ndarray((len(values), values[0].size))
+                for t, batch_matrix in enumerate(values):
+                    i = 0
+                    for row in batch_matrix:
+                        for neuron_weight in row:
+                            w = neuron_weight[2]
+                            graph[t, i] = w
+                            i += 1
+
+                # row: weight index, col: time
+                graph = graph.transpose()
+
+            elif isinstance(neuron_index, int):
+                # multiple lines
+                # row: time, col: weight index
+                graph = np.ndarray((len(values), len(values[0][neuron_index])))
+                for t, batch_matrix in enumerate(values):
+                    row = batch_matrix[index]
+                    for i, neuron_weight in enumerate(row):
                         w = neuron_weight[2]
                         graph[t, i] = w
-                        i += 1
 
-            # row: weight index, col: time
-            graph = graph.transpose()
+                # row: weight index, col: time
+                graph = graph.transpose()
 
-        elif isinstance(index, int):
-            # multiple lines
-            # row: time, col: weight index
-            graph = np.ndarray((len(values), len(values[0][index])))
-            for t, batch_matrix in enumerate(values):
-                row = batch_matrix[index]
-                for i, neuron_weight in enumerate(row):
-                    w = neuron_weight[2]
-                    graph[t, i] = w
+            elif isinstance(neuron_index, tuple):
+                graph = [[]]
+                for batch_matrix in values:
+                    graph[0].append(batch_matrix[neuron_index])
 
-            # row: weight index, col: time
-            graph = graph.transpose()
-
-        elif isinstance(index, tuple):
-            graph = [[]]
-            for batch_matrix in values:
-                graph[0].append(batch_matrix[index])
-
-        for weight in graph:
-            plt.plot(weight)
+            for weight in graph:
+                plt.plot(weight)
 
 
 class NeuronProbe(Probe):
