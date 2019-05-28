@@ -1,6 +1,7 @@
 from .compactmatrix import CompactMatrix
 from .base import Helper
 import numpy as np
+import logging as log
 
 
 class Weights(object):
@@ -31,7 +32,8 @@ class Weights(object):
         tmp_matrix = np.zeros((np.prod(source_dim), np.prod(dest_dim)))
         if kernel_size is None:
             # tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
-            tmp_matrix = np.random.randn(np.prod(source_dim), np.prod(dest_dim)) * (self.max_w - self.min_w)/15 + (self.max_w - self.min_w) * 0.75
+            tmp_matrix = np.random.randn(np.prod(source_dim), np.prod(dest_dim)) *\
+                         (self.max_w - self.min_w)/15 + (self.max_w - self.min_w) * 0.75
         else:
             # for every source neuron
             for source_row in range(source_dim[0]):
@@ -44,7 +46,13 @@ class Weights(object):
                                     0 <= source_col + kern_col < source_dim[1]):
                                 index_x = source_row * source_dim[0] + source_col
                                 index_y = (source_row + kern_row) * source_dim[0] + (source_col + kern_col)
-                                tmp_matrix[(index_x, index_y)] = Helper.init_weight() * 2. / np.prod(self.kernel_size)
+                                if 0 <= index_x < tmp_matrix.shape[0] and 0 <= index_y < tmp_matrix.shape[1]:
+                                    tmp_matrix[(index_x, index_y)] = \
+                                        Helper.init_weight() * 2. / np.prod(self.kernel_size)
+                                else:
+                                    Helper.log('Connection',
+                                               log.WARNING,
+                                               'index ({}, {})out of range in weight matrix'.format(index_x, index_y))
 
         self.matrix = CompactMatrix(tmp_matrix)
 
