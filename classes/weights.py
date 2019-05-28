@@ -46,8 +46,10 @@ class Weights(object):
     def init_weights_dense(self):
         # TODO: perhapse fix weight init
         # tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
-        tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim))
-        tmp_matrix *= (self.max_w - self.min_w) / 15 + (self.max_w - self.min_w) * 0.75
+        tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim)) * \
+                     (self.max_w - self.min_w) / 10 + (self.max_w - self.min_w) * 0.75
+        # tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim))
+        # tmp_matrix *= (self.max_w - self.min_w) / 15 + (self.max_w - self.min_w) * 0.75
         self.matrix = CompactMatrix(tmp_matrix)
 
     def init_weight_kernel(self):

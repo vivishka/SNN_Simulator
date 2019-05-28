@@ -64,3 +64,41 @@ class Learner(object):
         for connection in self.layer.in_connections:
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
+
+
+class LearnerClassifier(Learner):
+
+    def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, min_weight=0, max_weight=0.6, dataset=None,
+                 feedback_gain=0.001):
+        super(LearnerClassifier, self).__init__(eta_up, eta_down, tau_up, tau_down, min_weight, max_weight)
+        self.dataset = dataset
+        self.feedback_gain = feedback_gain
+
+    def process(self):
+        # remove multiple output spikes from buffer TODO: optimize : high complexity
+
+        for index, experiment in enumerate(self.out_spikes):
+            if experiment:
+                duplicates = []
+                Helper.log('Learner', log.INFO, 'Classifier learner processing input experiment')
+                for out in experiment:
+                    Helper.log('Learner', log.INFO, 'Classifier learner processing spike {}'.format(out))
+                    for other in experiment:
+                        Helper.log('Learner', log.INFO, 'Classifier learner comparing with spike {}'.format(other))
+                        if out != other and out[0] == other[0]:
+                            duplicates.append(out)
+                            Helper.log('Learner', log.INFO,
+                                       'Classifier learner ignored simultaneous output spikes, reducing weights')
+                for duplicate in duplicates:
+                    for con in self.layer.in_connections:
+                        con.weights.matrix.add(-self.feedback_gain, self.min_weight, self.max_weight)
+                    self.out_spikes[index].remove(duplicate)
+            else:
+                Helper.log('Learner', log.INFO,
+                           'Classifier learner found no output spikes, increasing weights')
+                for con in self.layer.in_connections:
+                    con.weights.matrix.add(self.feedback_gain, self.min_weight, self.max_weight)
+            if not experiment:
+                Helper.log('Learner', log.DEBUG, 'Batch {} empty : '.format(index))
+        super(LearnerClassifier, self).process()
+
