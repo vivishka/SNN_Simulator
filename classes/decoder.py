@@ -71,7 +71,7 @@ class Decoder(Ensemble):
         super(Decoder, self).__init__(
             size=size,
             neuron_type=NeuronLog(),
-            learner=False
+            learner=None
         )
         self.decoded_wta = []
         self.decoded_image = []

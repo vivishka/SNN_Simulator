@@ -152,7 +152,7 @@ class Encoder(Bloc):
             depth=depth,
             size=size,
             neuron_type=GaussianFiringNeuron(),
-            learner=False)
+            learner=None)
 
         sigma = (in_max - in_min) / (depth - 2.0) / gamma
 

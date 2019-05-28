@@ -53,7 +53,7 @@ class Ensemble(Layer):
 
     objects = []
 
-    def __init__(self, size, neuron_type, bloc=None, index=0, learner=False, label='', **kwargs):
+    def __init__(self, size, neuron_type, bloc=None, index=0, learner=None, label='', **kwargs):
         lbl = label if label != '' else id(self)
         super(Ensemble, self).__init__("Ens_{}".format(lbl))
         Ensemble.objects.append(self)
@@ -66,7 +66,9 @@ class Ensemble(Layer):
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.ensemble_list.append(self)
         self.input_spike_buffer = []
-        self.learner = Learner(self) if learner else None
+        if learner is not None:
+            self.learner = learner
+            self.learner.layer = self
         Helper.log('Layer', log.DEBUG, 'layer type : ensemble of size {0}'.format(self.size))
         if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
@@ -166,7 +168,7 @@ class Bloc(Layer):
     """
     index = 0
 
-    def __init__(self, depth, size, neuron_type, learner=False, *args, **kwargs):
+    def __init__(self, depth, size, neuron_type, learner=None, *args, **kwargs):
         super(Bloc, self).__init__()
         self.index = Bloc.index
         Bloc.index += 1
@@ -181,7 +183,7 @@ class Bloc(Layer):
                 neuron_type=neuron_type,
                 bloc=self,
                 index=i,
-                learner=learner,
+                learner=copy.deepcopy(learner) if learner is not None else None,
                 *args, **kwargs)
             self.ensemble_list.append(ens)
         Helper.log('Layer', log.INFO, 'layer type : bloc of size {0}'.format(depth))

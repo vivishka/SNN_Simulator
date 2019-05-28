@@ -9,8 +9,8 @@ import logging as log
 class Learner(object):
     """"""
 
-    def __init__(self, layer, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, min_weight=0, max_weight=0.6):
-        self.layer = layer
+    def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, min_weight=0, max_weight=0.6):
+        self.layer = None
         self.in_spikes = []
         self.out_spikes = []
         self.eta_up = eta_up
@@ -22,7 +22,8 @@ class Learner(object):
         self.buffer_in = []  # [time, source_n, dest_n  , weight, source_c, batch_index]
         self.buffer_out = []  # [time, source_n, batch_id]
 
-        Helper.log('Learner', log.INFO, 'Learner initialized on ensemble {0}'.format(self.layer.id))
+        # Helper.log('Learner', log.INFO, 'Learner initialized on ensemble {0}'.format(self.layer.id))
+        Helper.log('Learner', log.INFO, 'Learner initialized TODO: change log'.format())
 
     def in_spike(self, source_n, dest_n, weight, source_c):
         self.buffer_in.append([Helper.time, source_n, dest_n, weight, source_c, Helper.input_index])
