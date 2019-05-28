@@ -138,8 +138,18 @@ class CompactMatrix(object):
                                                      self.matrix[row][col][1],
                                                      self.matrix[row][col][2] + other)
                 else:
-                    self.matrix[row] = (self.matrix[col][0],
-                                        self.matrix[col][1],
-                                        self.matrix[col][2] + other)
+                    if min > self.matrix[row][2] + other:
+                        self.matrix[row] = (self.matrix[row][0],
+                                            self.matrix[row][1],
+                                            min)
+
+                    elif max < self.matrix[row][2] + other:
+                        self.matrix[row] = (self.matrix[row][0],
+                                            self.matrix[row][1],
+                                            max)
+                    else:
+                        self.matrix[row] = (self.matrix[row][0],
+                                            self.matrix[row][1],
+                                            self.matrix[row][2] + other)
         else:
             raise Exception("CompactMatrix add bad operand")

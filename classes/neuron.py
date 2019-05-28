@@ -161,7 +161,7 @@ class LIF(NeuronType):
         super(LIF, self).__init__(*args, **kwargs)
         self.voltage = 0
         self.threshold = self.extract_param('threshold', 1)
-        self.tau_inv = 1.0 / self.extract_param('tau', 0.2)
+        self.tau_inv = 1.0 / self.extract_param('tau', 2)
         Helper.log('Neuron', log.DEBUG, str(self.index) + ' neuron type: LIF')
 
     def step(self):

@@ -46,7 +46,7 @@ class NeuronLog(NeuronType):
 
     def reset(self):
         super(NeuronLog, self).reset()
-        Helper.log('Decoder', log.DEBUG, ' spikes for input: {}'.format(self.spike_times))
+        # Helper.log('Decoder', log.DEBUG, ' spikes for input: {}'.format(self.spike_times))
         self.spike_times = []
 
 
@@ -88,10 +88,11 @@ class Decoder(Ensemble):
         # for every neuron, extracts the time of the first spike
         first_spike_list = [n.spike_times[0][1] for n in self.neuron_list if n.spike_times]
         if not first_spike_list:
+            Helper.log("Decoder", log.DEBUG, "get first spike: No spike received")
             return image
 
         min_val = min(first_spike_list)
-
+        Helper.log("Decoder", log.DEBUG, "get first spike: First spike logged at time {}".format(min_val))
         for row in range(self.size[0]):
             for col in range(self.size[1]):
                 if self.neuron_array[row, col].spike_times:

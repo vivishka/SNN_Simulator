@@ -9,7 +9,7 @@ import logging as log
 class Learner(object):
     """"""
 
-    def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, min_weight=0, max_weight=0.6):
+    def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=1, tau_down=1, min_weight=0, max_weight=0.6):
         self.layer = None
         self.in_spikes = []
         self.out_spikes = []
@@ -45,6 +45,7 @@ class Learner(object):
         for experiment in range(Helper.input_index):  # for each experiment in the batch that ends
             Helper.log('Learner', log.DEBUG, 'Processing batch'.format(experiment))
             for out_s in self.out_spikes[experiment]:
+                Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(out_s[0]))
                 for in_s in self.in_spikes[experiment]:
                     dt = out_s[0] - in_s[0]
                     if dt >= 0:
@@ -52,7 +53,10 @@ class Learner(object):
                     else:
                         dw = - self.eta_down * self.max_weight / 2 * np.exp(dt * in_s[3] / self.tau_down)
                     # in_s[4].update_weight(in_s[3] + dw, in_s[1], in_s[2])
-                    Helper.log('Learner', log.DEBUG, 'Weight updated dw = {0}'.format(dw))
+                    Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.format(in_s[4].id,
+                                                                                                         in_s[1],
+                                                                                                         in_s[2],
+                                                                                                         dw))
                     new_w = in_s[3] + dw
                     if new_w > self.max_weight:
                         new_w = self.max_weight
@@ -68,7 +72,7 @@ class Learner(object):
 
 class LearnerClassifier(Learner):
 
-    def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, min_weight=0, max_weight=0.6, dataset=None,
+    def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, min_weight=0, max_weight=1., dataset=None,
                  feedback_gain=0.001):
         super(LearnerClassifier, self).__init__(eta_up, eta_down, tau_up, tau_down, min_weight, max_weight)
         self.dataset = dataset
@@ -82,9 +86,9 @@ class LearnerClassifier(Learner):
                 duplicates = []
                 Helper.log('Learner', log.INFO, 'Classifier learner processing input experiment')
                 for out in experiment:
-                    Helper.log('Learner', log.INFO, 'Classifier learner processing spike {}'.format(out))
+                    Helper.log('Learner', log.DEBUG, 'Classifier learner processing spike {}'.format(out))
                     for other in experiment:
-                        Helper.log('Learner', log.INFO, 'Classifier learner comparing with spike {}'.format(other))
+                        Helper.log('Learner', log.DEBUG, 'Classifier learner comparing with spike {}'.format(other))
                         if out != other and out[0] == other[0]:
                             duplicates.append(out)
                             Helper.log('Learner', log.INFO,
@@ -99,6 +103,7 @@ class LearnerClassifier(Learner):
                 for con in self.layer.in_connections:
                     con.weights.matrix.add(self.feedback_gain, self.min_weight, self.max_weight)
             if not experiment:
-                Helper.log('Learner', log.DEBUG, 'Batch {} empty : '.format(index))
+                Helper.log('Learner', log.DEBUG, 'No valid spike during input cycle {}: increasing all weights'
+                           .format(index))
         super(LearnerClassifier, self).process()
 
