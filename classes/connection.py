@@ -44,9 +44,7 @@ class Connection(SimulationObject):
         self.connection_list = []
         self.stride = kwargs['stride'] if 'stride' in kwargs else 1
         self.shared = True if 'shared' in args else False
-        self.all2all = True if 'all2all' in args else False
         self.weights = kwargs['weights'] if 'weights' in kwargs else None
-        self.sparse = True if 'sparse' in args else False
         self.active = False
         self.in_neurons_spiking = []
         self.source_e = None
@@ -106,3 +104,13 @@ class Connection(SimulationObject):
 
     def __getitem__(self, item):
         return self.connection_list[item]
+
+
+class DiagonalConnection(Connection):
+    
+    def __init__(self, source_l, dest_l):
+        super(DiagonalConnection, self).__init__(source_l, dest_l, kernel=None,)
+        for i, connection in enumerate(self.connection_list):
+            for col in range(connection.weights.matrix.shape[1]):
+                if col != i:
+                    connection.weights[(0, col)] = 0
