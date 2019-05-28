@@ -1,4 +1,4 @@
-from .compactmatrix import CompactMatrix
+from .compactmatrix import CompactMatrix, SharedCompactMatrix
 from .base import Helper
 import numpy as np
 import logging as log
@@ -18,8 +18,13 @@ class Weights(object):
         self.shared = shared
         if isinstance(kernel_size, int):
             self.kernel_size = (kernel_size, kernel_size)
-        else:
+        elif isinstance(kernel_size, tuple) and len(kernel_size) == 2:
             self.kernel_size = kernel_size
+        elif kernel_size is None:
+            self.kernel_size = None
+        else:
+            Helper.log('Connection', log.ERROR, 'Wrong kernel size')
+            raise Exception("wrong kernel size")
         self.source_dim = source_dim  # (x,y)
         self.dest_dim = dest_dim  # (x,y)
         self.min_w = min_w
@@ -29,32 +34,81 @@ class Weights(object):
         #  padding
         #  stride
         #  ALL 2 ALL connection
-        tmp_matrix = np.zeros((np.prod(source_dim), np.prod(dest_dim)))
+        self.matrix = None
         if kernel_size is None:
-            # tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
-            tmp_matrix = np.random.randn(np.prod(source_dim), np.prod(dest_dim)) *\
-                         (self.max_w - self.min_w)/15 + (self.max_w - self.min_w) * 0.75
+            self.init_weights_dense()
         else:
-            # for every source neuron
-            for source_row in range(source_dim[0]):
-                for source_col in range(source_dim[1]):
-                    # for every square in the kernel:
-                    for kern_row in range(-self.kernel_size[0] // 2 + 1, self.kernel_size[0] // 2 + 1):
-                        for kern_col in range(-self.kernel_size[1] // 2 + 1, self.kernel_size[1] // 2 + 1):
-                            # test if the kernel is square is inside the matrix
-                            if (0 <= source_row + kern_row < source_dim[0] and
-                                    0 <= source_col + kern_col < source_dim[1]):
-                                index_x = source_row * source_dim[0] + source_col
-                                index_y = (source_row + kern_row) * source_dim[0] + (source_col + kern_col)
-                                if 0 <= index_x < tmp_matrix.shape[0] and 0 <= index_y < tmp_matrix.shape[1]:
-                                    tmp_matrix[(index_x, index_y)] = \
-                                        Helper.init_weight() * 2. / np.prod(self.kernel_size)
-                                else:
-                                    Helper.log('Connection',
-                                               log.WARNING,
-                                               'index ({}, {})out of range in weight matrix'.format(index_x, index_y))
+            if shared:
+                self.init_weight_shared()
+            else:
+                self.init_weight_kernel()
+
+    def init_weights_dense(self):
+        # TODO: perhapse fix weight init
+        # tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
+        tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim))
+        tmp_matrix *= (self.max_w - self.min_w) / 15 + (self.max_w - self.min_w) * 0.75
+        self.matrix = CompactMatrix(tmp_matrix)
+
+    def init_weight_kernel(self):
+        tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)))
+        # for every source neuron
+        for source_row in range(self.source_dim[0]):
+            for source_col in range(self.source_dim[1]):
+
+                # for every square in the kernel:
+                for kern_row in range(-self.kernel_size[0] // 2 + 1, self.kernel_size[0] // 2 + 1):
+                    for kern_col in range(-self.kernel_size[1] // 2 + 1, self.kernel_size[1] // 2 + 1):
+
+                        # test if the kernel is square is inside the matrix
+                        if (0 <= source_row + kern_row < self.source_dim[0] and
+                                0 <= source_col + kern_col < self.source_dim[1]):
+
+                            # computes the source (row) and dest (col) indexes
+                            index_x = source_row * self.source_dim[0] + source_col
+                            index_y = (source_row + kern_row) * self.source_dim[0] + (source_col + kern_col)
+
+                            # check if fuckuped
+                            if 0 <= index_x < tmp_matrix.shape[0] and 0 <= index_y < tmp_matrix.shape[1]:
+                                tmp_matrix[(index_x, index_y)] = Helper.init_weight() * 2. / np.prod(self.kernel_size)
+                            else:
+                                Helper.log('Connection',
+                                           log.WARNING,
+                                           'index ({}, {})out of range in weight matrix'.format(index_x, index_y))
 
         self.matrix = CompactMatrix(tmp_matrix)
+
+    def init_weight_shared(self):
+        tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)), dtype=object)
+        kernel = np.random.rand(*self.kernel_size)
+        # tmp_kernel = np.arange(self.kernel_size[0] * self.kernel_size[1]).reshape(self.kernel_size)
+
+        # for every source neuron
+        for source_row in range(self.source_dim[0]):
+            for source_col in range(self.source_dim[1]):
+
+                # for every square in the kernel:
+                for kern_row in range(-self.kernel_size[0] // 2 + 1, self.kernel_size[0] // 2 + 1):
+                    for kern_col in range(-self.kernel_size[1] // 2 + 1, self.kernel_size[1] // 2 + 1):
+
+                        # test if the kernel is square is inside the matrix
+                        if (0 <= source_row + kern_row < self.source_dim[0] and
+                                0 <= source_col + kern_col < self.source_dim[1]):
+
+                            # computes the source (row) and dest (col) indexes
+                            index_x = source_row * self.source_dim[0] + source_col
+                            index_y = (source_row + kern_row) * self.source_dim[0] + (source_col + kern_col)
+
+                            # check if fuckuped
+                            if 0 <= index_x < tmp_matrix.shape[0] and 0 <= index_y < tmp_matrix.shape[1]:
+                                tmp_matrix[(index_x, index_y)] = \
+                                    (kern_row + self.kernel_size[0] // 2, kern_col + self.kernel_size[1] // 2)
+                            else:
+                                Helper.log('Connection',
+                                           log.WARNING,
+                                           'index ({}, {})out of range in weight matrix'.format(index_x, index_y))
+
+        self.matrix = SharedCompactMatrix(mat=tmp_matrix, kernel=kernel)
 
     def get_target_weights(self, index):
         """
