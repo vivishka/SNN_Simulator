@@ -36,16 +36,11 @@ class ConnectionProbe(Probe):
 
     def get_data(self, connection_index):
         return self.target[connection_index].probed_values
-        # values = []
-        # for connection in self.target:
-        #     values = connection.probed_values
-        # return values
 
     def plot(self, connection_index='all', neuron_index='all'):
         plt.figure()
-        # values = self.get_data()
         graph = None
-
+        target_range = []
         if connection_index == 'all':
             target_range = range(len(self.target))
         elif isinstance(connection_index, int):
@@ -75,7 +70,7 @@ class ConnectionProbe(Probe):
                 # row: time, col: weight index
                 graph = np.ndarray((len(values), len(values[0][neuron_index])))
                 for t, batch_matrix in enumerate(values):
-                    row = batch_matrix[index]
+                    row = batch_matrix[neuron_index]
                     for i, neuron_weight in enumerate(row):
                         w = neuron_weight[2]
                         graph[t, i] = w
@@ -136,19 +131,6 @@ class NeuronProbe(Probe):
         colors = ['k', 'r', 'b', 'g', 'm']
         values = self.get_data(variable)
         for i, neuron in enumerate(values):
-            # if variable == 'spike_in':
-            #     plt.grid(axis='y')
-            #     for index, graph in enumerate(values):
-            #         color = colors[index % 5]
-            #         for time in graph:
-            #             plt.plot(time, index, 'o', color=color)
-            #     plt.ylabel('neuron index')
-            # elif variable == 'spike_out':
-            #     plt.grid()
-            #     color = [colors[i % 5] for i in range(self.nb)]
-            #     plt.eventplot(values.flatten(), color=color)
-            #     plt.ylabel('neuron index')
-
             plt.ylabel(variable)
             plt.plot(*zip(*values[i]), color=colors[i % 5])
         return fig
