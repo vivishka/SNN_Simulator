@@ -108,7 +108,7 @@ class CompactMatrix(object):
             source_index_1d = Helper.get_index_1d(index, length)
             source_index_2d = index
         else:
-            return kernel
+            return kernel, self.matrix[0]
         if not (0 <= source_index_1d < self.shape[0]):
             return kernel
         for row in range(kernel_size[0]):
@@ -119,3 +119,27 @@ class CompactMatrix(object):
                 if 0 <= dest_index_1d < self.shape[1]:
                     kernel[row, col] = self[source_index_1d, dest_index_1d]
         return kernel
+
+    def add(self, other, min, max):
+        if isinstance(other, (float, int)):
+            for row in range(len(self.matrix)):
+                if isinstance(self.matrix[row], list):
+                    for col in range(len(self.matrix[row])):
+                        if min > self.matrix[row][col][2] + other:
+                            self.matrix[row][col] = (self.matrix[row][col][0],
+                                                     self.matrix[row][col][1],
+                                                     min)
+                        elif max < self.matrix[row][col][2] + other:
+                            self.matrix[row][col] = (self.matrix[row][col][0],
+                                                     self.matrix[row][col][1],
+                                                     max)
+                        else:
+                            self.matrix[row][col] = (self.matrix[row][col][0],
+                                                     self.matrix[row][col][1],
+                                                     self.matrix[row][col][2] + other)
+                else:
+                    self.matrix[row] = (self.matrix[col][0],
+                                        self.matrix[col][1],
+                                        self.matrix[col][2] + other)
+        else:
+            raise Exception("CompactMatrix add bad operand")

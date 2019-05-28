@@ -91,6 +91,12 @@ class ConnectionProbe(Probe):
             for weight in graph:
                 plt.plot(weight)
 
+    def print(self):
+        data = []
+        for con in self.target:
+            data.append(con.probed_values[-1].to_dense().tolist()[0])
+        print(data)
+
 
 class NeuronProbe(Probe):
     
