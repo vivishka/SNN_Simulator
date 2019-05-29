@@ -104,29 +104,19 @@ class CompactMatrix(object):
                     kernel[row, col] = self[source_index_1d, dest_index_1d]
         return kernel
 
-    def add(self, other, min, max):
+    def add(self, other, min_weight, max_weight):
+        # only works for scalar
         if isinstance(other, (float, int)):
-            for row in range(len(self.matrix)):
-                if isinstance(self.matrix[row], list):
-                    for col in range(len(self.matrix[row])):
-                        if min > self.matrix[row][col][2] + other:
-                            self.matrix[row][col] = (self.matrix[row][col][0],
-                                                     self.matrix[row][col][1],
-                                                     min)
-                        elif max < self.matrix[row][col][2] + other:
-                            self.matrix[row][col] = (self.matrix[row][col][0],
-                                                     self.matrix[row][col][1],
-                                                     max)
-                        else:
-                            self.matrix[row][col] = (self.matrix[row][col][0],
-                                                     self.matrix[row][col][1],
-                                                     self.matrix[row][col][2] + other)
-                else:
-                    self.matrix[row] = (self.matrix[col][0],
-                                        self.matrix[col][1],
-                                        self.matrix[col][2] + other)
+
+            for row, whole_row in enumerate(self.matrix):
+                for col, data in enumerate(whole_row):
+
+                    # clamping
+                    new_weight = np.clip(data[2] + other, min_weight, max_weight)
+                    self.matrix[row][col] = (data[0], data[1], new_weight)
         else:
             raise Exception("CompactMatrix add bad operand")
+
 
 class SharedCompactMatrix(CompactMatrix):
 
@@ -156,6 +146,19 @@ class SharedCompactMatrix(CompactMatrix):
                     self.kernel[data[2]] = value
                     return
 
+    def add(self, other, min_weight, max_weight):
+        # only works for scalar
+        if isinstance(other, (float, int)):
+
+            for row in self.kernel.shape[0]:
+                for col in self.kernel.shape[1]:
+                    data = self.kernel[row, col]
+                    # clamping
+                    new_weight = np.clip(data[2] + other, min_weight, max_weight)
+                    self.kernel[row][col] = (data[0], data[1], new_weight)
+        else:
+            raise Exception("CompactMatrix add bad operand")
+
 
 class DenseCompactMatrix(CompactMatrix):
 
@@ -167,7 +170,9 @@ class DenseCompactMatrix(CompactMatrix):
         self.matrix = np.ndarray(self.shape, dtype=tuple)
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
-                self.matrix[i, j] = (i, j, mat[i, j])
+                # weight = None if mat[i, j] == 0 else mat[i, j]
+                weight = mat[i, j]
+                self.matrix[i, j] = (i, j, weight)
 
     def to_dense(self):
         mat = np.zeros(self.shape)
@@ -188,3 +193,18 @@ class DenseCompactMatrix(CompactMatrix):
             self.matrix[key] = value
         elif isinstance(key, tuple) and len(key) == 2:
             self.matrix[key] = (key[0], key[1], value)
+
+    def add(self, other, min_weight, max_weight):
+        # only works for scalar
+        if isinstance(other, (float, int)):
+
+            for row in self.shape[0]:
+                for col in self.shape[1]:
+
+                    data = self.matrix[row, col]
+                    # clamping
+                    # TODO: do not add to zero
+                    new_weight = np.clip(data[2] + other, min_weight, max_weight)
+                    self.matrix[row][col] = (data[0], data[1], new_weight)
+        else:
+            raise Exception("CompactMatrix add bad operand")
