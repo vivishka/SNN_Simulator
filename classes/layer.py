@@ -59,7 +59,7 @@ class Ensemble(Layer):
         Blocks in which this Ensemble belongs to
     index: int
         index of the Ensemble in the Block
-    learner: Learner
+    learner: Learner or None
         instanced Learner
     *args, **kwargs:
         Arguments passed to initialize the neurons
@@ -136,7 +136,7 @@ class Ensemble(Layer):
     def reset(self):
         """
         called every input period,
-        notify the learner of the new period
+        notify the learner of the new period, it will save the spikes
         reset the internal states of every neuron
         """
         if self.learner:
