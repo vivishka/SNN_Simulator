@@ -93,6 +93,7 @@ class CompactMatrix(object):
             return kernel
         for row in range(kernel_size[0]):
             for col in range(kernel_size[1]):
+                # TODO: check if kernel_size[1] for both ?
                 x = source_index_2d[0] + row - (kernel_size[0] - 1) // 2
                 y = source_index_2d[1] + col - (kernel_size[1] - 1) // 2
                 dest_index_1d = Helper.get_index_1d((x, y), length)
@@ -173,18 +174,32 @@ class SharedCompactMatrix(CompactMatrix):
 
 
 class DenseCompactMatrix(CompactMatrix):
+    """
+        Sparse way of storing the weights for a convolutional connection
+        the matrix stores the index of the weight in the kernel instead of the weight itself
 
+        Parameters
+        ----------
+        mat: np.ndarray.
+            Dense matrix containing the weights an a lot of zeros
+
+        Attributes
+        ----------
+        super.matrix: np.ndarray[int, int, float]
+             dense representation of the matrix
+             redundancy is used to speed up the spike propagation
+
+        """
     def __init__(self, mat):
         super(DenseCompactMatrix, self).__init__(mat)
-        # TODO: finish this
         self.size = np.prod(self.shape)
         self.sparse = False
+
+        # change matrix to dense
         self.matrix = np.ndarray(self.shape, dtype=tuple)
         for i in range(self.shape[0]):
             for j in range(self.shape[1]):
-                # weight = None if mat[i, j] == 0 else mat[i, j]
-                weight = mat[i, j]
-                self.matrix[i, j] = (i, j, weight)
+                self.matrix[i, j] = (i, j, mat[i, j])
 
     def to_dense(self):
         mat = np.zeros(self.shape)

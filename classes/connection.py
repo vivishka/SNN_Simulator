@@ -9,42 +9,55 @@ sys.dont_write_bytecode = True
 
 class Connection(SimulationObject):
     """
-    A connection is a list of axons connected between 2 ensembles
+    A Connection is represents a matrix of weights between 2 ensembles
+    when connected to Blocs, will create a list of connection for every Ensemble
+    in that case, the mother Connection is only used to store the other Connections
 
     Parameters
     ----------
-    source: Ensemble or Bloc
-         The emitting ensemble
-    dest : Ensemble or Bloc
+    source_l: Layer
+         The emitting layer
+    dest_l : Layer
         The receiving ensemble
-    pattern: ConnectionPattern
-        the way neurons should be connected together
+    kernel: int or (int, int) or None
+        if specified, the kernel linking the 2 layers
+        if not, layers will be fully connected
     *args, **kwargs
         The list of arguments to configure the connection
 
     Attributes
     ----------
-    source: Ensemble
-         Stores the emitting ensemble
-    dest : Ensemble
-        Stores the receiving ensemble
-    axon_list: [Axon]
-        The list of axons
+    id: int
+        global ID of the Connection
+    connection_list: list[Connection]
+        list of the created sub connections
+    weights: Weights
+        stores the weights of the Connection
+    active: bool
+        True if a connection between 2 Ensembles
+    source_e: Ensemble
+        emitting ensemble
+    dest_e : Ensemble
+        receiving ensemble
+    in_neurons_spiking: list
+        stores the neuron received the previous step to propagate them
+    is_probed: bool
+        true when connection is probed
+    probed_values: list[Weights]
+        stores the new weights after they are updated
     """
 
     objects = []
     con_count = 0
 
-    def __init__(self, source_l, dest_l, kernel=None, *args, **kwargs):
+    def __init__(self, source_l, dest_l, kernel=None, shared=False, *args, **kwargs):
 
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
         self.id = Connection.con_count
         Connection.con_count += 1
         self.connection_list = []
-        self.stride = kwargs['stride'] if 'stride' in kwargs else 1
-        self.shared = True if 'shared' in args else False
-        self.weights = kwargs['weights'] if 'weights' in kwargs else None
+        self.shared = shared
         self.active = False
         self.in_neurons_spiking = []
         self.source_e = None
@@ -71,7 +84,8 @@ class Connection(SimulationObject):
             self.weights = Weights(
                 source_dim=self.source_e.size,
                 dest_dim=self.dest_e.size,
-                kernel_size=kernel)
+                kernel_size=kernel,
+                shared=self.shared)
             self.active = True
             self.connection_list = [self]
 
@@ -92,13 +106,16 @@ class Connection(SimulationObject):
         self.in_neurons_spiking = []
 
     def get_weights_copy(self):
+        """ Returns a copy of the weight matrix """
         return copy.deepcopy(self.weights.matrix)
 
     def probe(self):
+        """ stores the weight matrix to be analyzed later. Called every batch"""
         if self.is_probed:
             self.probed_values.append(self.get_weights_copy())
 
     def add_probe(self):
+        """ Notify the Connection to probe itself"""
         self.is_probed = True
         self.probed_values = [self.get_weights_copy()]
 
