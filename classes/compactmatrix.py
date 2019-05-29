@@ -13,10 +13,13 @@ class CompactMatrix(object):
 
     Attributes
     ----------
-    matrix: list or np.ndarray
-         Compact matrix
+    matrix: list[list[(int, int, float)]]
+         Compact representation of the matrix
+         redundancy is used to speed up the spike propagation
     shape : (int, int)
-        shape of the matrix
+        shape of the matrix: (dim source ensemble, dim dest ensemble)
+    size: int
+        the number of non zero coefficient in the matrix
     sparse: boolean
         Is the matrix sparse or dense
     """
@@ -60,20 +63,13 @@ class CompactMatrix(object):
             for j, data in enumerate(row):
                 # if dest index weight already exist
                 if data[1] == key[1]:
-                    # remove 0 weights
-                    if value == 0:
-                        del row[j]
-                        self.size -= 1
-                    # else modify
-                    else:
-                        row[j] = (key[0], key[1], value)
+                    row[j] = (key[0], key[1], value)
                     return
                 # if non existent
                 elif data[1] > key[1]:
-                    if data != 0:
-                        # add the weight
-                        row.insert(j, (key[0], key[1], value))
-                        self.size += 1
+                    # add the weight
+                    row.insert(j, (key[0], key[1], value))
+                    self.size += 1
                     return
 
     def get_kernel(self, index, length, kernel_size):
@@ -119,11 +115,27 @@ class CompactMatrix(object):
 
 
 class SharedCompactMatrix(CompactMatrix):
+    """
+        Sparse way of storing the weights for a convolutional connection
+        the matrix stores the index of the weight in the kernel instead of the weight itself
 
+        Parameters
+        ----------
+        mat: np.ndarray.
+            Dense matrix containing the weights an a lot of zeros
+
+        Attributes
+        ----------
+        super.matrix: list[list[(int, int, (int, int))]]
+             Compact representation of the matrix
+             redundancy is used to speed up the spike propagation
+
+        kernel: np.ndarray
+            kernel shared by the whole connection
+        """
     def __init__(self, mat, kernel):
         super(SharedCompactMatrix, self).__init__(mat)
         self.kernel = kernel
-        self.sparse = False
 
     def get_kernel(self, index=None, length=None, kernel_size=None):
         return self.kernel
@@ -203,7 +215,6 @@ class DenseCompactMatrix(CompactMatrix):
 
                     data = self.matrix[row, col]
                     # clamping
-                    # TODO: do not add to zero
                     new_weight = np.clip(data[2] + other, min_weight, max_weight)
                     self.matrix[row][col] = (data[0], data[1], new_weight)
         else:

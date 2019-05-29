@@ -113,4 +113,4 @@ class DiagonalConnection(Connection):
         for i, connection in enumerate(self.connection_list):
             for col in range(connection.weights.matrix.shape[1]):
                 if col != i:
-                    connection.weights[(0, col)] = 0
+                    connection.weights[(0, col)] = 0.

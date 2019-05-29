@@ -34,11 +34,12 @@ class NeuronLog(NeuronType):
         """ logs the ensemble index and the time of the received spike in a tuple
         The weight is not important
         """
-        super(NeuronLog, self).receive_spike(index, weight)
-        for spike in self.received:
-            Helper.log('Decoder', log.DEBUG, ' neuron {} received spike {}'.format(self.index, spike))
-            self.spike_times.append((spike[0], Helper.time))
-        self.received = []
+        if weight != 0.:
+            super(NeuronLog, self).receive_spike(index, weight)
+            for spike in self.received:
+                Helper.log('Decoder', log.DEBUG, ' neuron {} received spike {}'.format(self.index, spike))
+                self.spike_times.append((spike[0], Helper.time))
+            self.received = []
 
     def step(self):
         """" non stepping neuron"""
