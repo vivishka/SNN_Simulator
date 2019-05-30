@@ -8,7 +8,24 @@ sys.dont_write_bytecode = True
 
 
 class Layer(SimulationObject):
+    """
+    Layer cannot be instanced by itself, it can be a Block or an Ensemble
 
+    Parameters
+    ---------
+
+
+    Attributes
+    ----------
+    ensemble_list: list[Ensemble]
+        if Block: the list of Ensembles inside, if Ensemble: itself
+    out_connections: list[Connection]
+        outbound Connections
+    in_connections: list[Connection]
+        inbound Connections
+    id: int
+        global index of the layer
+    """
     layer_count = 0
 
     def __init__(self, lbl=""):
@@ -35,20 +52,37 @@ class Ensemble(Layer):
     Parameters
     ---------
     size: int or (int, int)
-        Size of the ensemble
+        Size / number of neurons of the ensemble
     neuron_type : NeuronType
-        Class of the neurons
+        instanced NeuronType that every neuron of the Ensemble will copy
+    block: Bloc
+        Blocks in which this Ensemble belongs to
+    index: int
+        index of the Ensemble in the Block
+    learner: Learner or None
+        instanced Learner
     *args, **kwargs:
         Arguments passed to initialize the neurons
 
     Attributes
     ----------
+    bloc: Bloc
+        Blocks in which this Ensemble belongs to
+    index: int:
+        index of the Ensemble in the Block
     size: (int, int)
         Size of the ensemble, if the given parameter was an int, the size is (1, n)
-    neuron_type: NeuronType
-        Class of the neurons
     neuron_list: [NeuronType]
-        List of initialized neurons
+        List of initialized neurons, accessible by int
+    neuron_array: np.ndarray[NeuronType]
+        2D array of the neurons, accessible by (int, int)
+    active_neuron_set: set(NeuronType)
+        set of the neurons which received a spike and should be simulated the next step
+    probed_neuron_set: set(NeuronType)
+        set of the neurons which are probed and should be simulated every step
+    learner: Learner
+        every batch, modifies the weights of the inbound connections
+
     """
 
     objects = []
@@ -61,11 +95,10 @@ class Ensemble(Layer):
         self.index = index
         self.size = (1, size) if isinstance(size, int) else size
         self.neuron_list = []
+        self.neuron_array = np.ndarray(self.size, dtype=object)
         self.active_neuron_set = set()
         self.probed_neuron_set = set()
-        self.neuron_array = np.ndarray(self.size, dtype=object)
         self.ensemble_list.append(self)
-        self.input_spike_buffer = []
         if learner is not None:
             self.learner = learner
             self.learner.layer = self
@@ -79,6 +112,7 @@ class Ensemble(Layer):
                     neuron.index = (row, col)
                     self.neuron_array[(row, col)] = neuron
                     self.neuron_list.append(neuron)
+                    # step every neuron once to initialize
                     self.active_neuron_set.add(neuron)
                     Helper.log('Layer', log.DEBUG,
                                'neuron {0} of layer {1} created'.format(neuron.index, neuron.ensemble.id))
@@ -87,19 +121,30 @@ class Ensemble(Layer):
             raise TypeError("Ensemble size should be int or (int, int)")
 
     def step(self):
-        for neuron in self.active_neuron_set | self.probed_neuron_set:
+        """
+        simulate all the neurons of the Ensemble that are either probed or have received a spike
+        """
+        # optimisation: merge the smaller set into the larger is faster
+        if len(self.active_neuron_set) > len(self.probed_neuron_set):
+            simulated_neuron_set = self.active_neuron_set | self.probed_neuron_set
+        else:
+            simulated_neuron_set = self.probed_neuron_set | self.active_neuron_set
+        for neuron in simulated_neuron_set:
             neuron.step()
         self.active_neuron_set.clear()
 
     def reset(self):
+        """
+        called every input period,
+        notify the learner of the new period, it will save the spikes
+        reset the internal states of every neuron
+        """
         if self.learner:
             self.learner.reset_input()
         for neuron in self.neuron_list:
             neuron.reset()
 
-    def add_probe(self, index, value):
-        for neuron in self.neuron_list:
-            neuron.add_probe(index, value)
+    # <inhibition region>
 
     def set_inhibition(self):
         for neuron in self.neuron_list:
@@ -123,6 +168,10 @@ class Ensemble(Layer):
         self.bloc.propagate_inhibition(index_n)
         self.inhibit()
 
+    # </inhibition region>
+
+    # <spike region>
+
     def create_spike(self, index):
         for con in self.out_connections:
             con.register_neuron(index)
@@ -134,6 +183,8 @@ class Ensemble(Layer):
             if self.learner:
                 self.learner.in_spike(target[0], target[1], target[2], c_source)
 
+    # </spike region>
+
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.neuron_list[index]
@@ -141,7 +192,12 @@ class Ensemble(Layer):
             return self.neuron_array[index]
 
     def __setitem__(self, index, value):
-        self.neuron_list[index] = value
+        if isinstance(index, int):
+            self.neuron_list[index] = value
+            self.neuron_array[Helper.get_index_2d(index, self.size[1])] = value
+        else:
+            self.neuron_array[index] = value
+            self.neuron_list[Helper.get_index_1d(index, self.size[1])] = value
 
 
 class Bloc(Layer):
@@ -154,6 +210,12 @@ class Bloc(Layer):
     ---------
     depth: int
         Number of Ensemble in this bloc
+    size: int or (int, int)
+        Size / number of neurons of the ensemble
+    neuron_type : NeuronType
+        instanced NeuronType that every neuron of the Ensemble will copy
+    learner: Learner
+        instanced Learner
     *args, **args: list, Dict
         Arguments passed to initialize the Ensembles
 

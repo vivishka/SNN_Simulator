@@ -1,9 +1,7 @@
 
 # import logging as log
 import numpy as np
-from .base import SimulationObject, Helper
 from .layer import Ensemble
-from .learner import Learner
 from .neuron import NeuronType
 from .connection import Connection
 import matplotlib.pyplot as plt
@@ -11,21 +9,46 @@ import sys
 sys.dont_write_bytecode = True
 
 
-class Probe(SimulationObject):
-    """docstring for Probe."""
+class Probe(object):
+    """
+    Notify the target that the specified values are probed
+    Mother class, should not be instanced by itself
 
-    objects = []
+    Parameters
+    ----------
+    target: object or list[objects]
+        probed object
+    var : str or list[str] or None
+        probed variables
+
+    Attributes
+    ----------
+    target: object object or list[objects]
+         probed object
+    var : list[str]
+        The receiving ensemble
+    """
 
     def __init__(self, target, var=None):
         super(Probe, self).__init__()
-        Probe.objects.append(self)
         self.target = target
         self.var = [var] if isinstance(var, str) else var
-        # self.is_spike = variable in 'spike_in, spike_out'
 
 
 class ConnectionProbe(Probe):
+    """
+    Probe for connections
+    if a not active (group of) Connection is given, all the sub Connections are probed
 
+    Parameters
+    ----------
+    target: Connection
+        probed Connection, can be active or not
+
+    Attributes
+    ----------
+
+    """
     def __init__(self, target):
         if not isinstance(target, Connection):
             raise Exception("wrong type given to probe target")
@@ -126,7 +149,6 @@ class NeuronProbe(Probe):
             print("no probe set for {}".format(variable))
             return
         fig = plt.figure()
-        # plt.title(self.target[0].label)
         plt.xlabel('time')
         colors = ['k', 'r', 'b', 'g', 'm']
         values = self.get_data(variable)

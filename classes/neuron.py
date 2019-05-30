@@ -1,5 +1,5 @@
 import logging as log
-from .base import SimulationObject, Helper
+from .base import Helper
 from .weights import Weights
 import sys
 sys.dont_write_bytecode = True
@@ -105,7 +105,7 @@ class NeuronType(object):
 
     def add_probe(self, probe, variable):
         self.probes[variable] = probe  # add probe to the dict of variable names
-        self.probed_values[variable] = []  # creates the array of preobed values
+        self.probed_values[variable] = []  # creates the array of probed values
         self.ensemble.probed_neuron_set.add(self)  # probed neurons step every step
         if variable == 'spike_in':
             self.spike_in_probed = True
@@ -128,7 +128,7 @@ class NeuronType(object):
     def reset(self):
         Helper.log('Neuron', log.DEBUG, str(self.index) + ' reset')
         self.received = []
-        self.last_active = 0
+        self.last_active = Helper.step_nb
         self.inhibited = False
         self.halted = False
 
