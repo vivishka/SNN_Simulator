@@ -45,17 +45,16 @@ class Dataset(object):
 
 class VectorDataset(Dataset):
 
-    def __init__(self, index=0, size=50):
+    def __init__(self, index=0, size=50,):
         super(VectorDataset, self).__init__(index)
         self.size = size
 
     def load(self):
-        exp = self.generator()
-        self.labels = exp[0]
-        self.data = exp[1]
+        self.labels, self.data = self.generator()
         self.n_cats = len(set(self.labels))
-        # for(cat in range(self.n_cats))
-        # self.pop_cats =
+        self.pop_cats = np.zeros(self.n_cats)
+        for label in self.labels:
+            self.pop_cats[label] += 1
 
     def generator(self):
         pass

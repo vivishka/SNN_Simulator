@@ -111,9 +111,9 @@ class ConnectionProbe(Probe):
 
     def print(self):
         data = []
-        for con in self.target:
+        for index, con in enumerate(self.target):
             data.append(con.probed_values[-1].to_dense().tolist()[0])
-        print(data)
+            print(['%.4f' % elem for elem in data[-1]])
 
 
 class NeuronProbe(Probe):

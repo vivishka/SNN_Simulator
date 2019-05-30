@@ -167,12 +167,11 @@ class DecoderClassifier(Decoder):
         self.dataset = dataset
 
     def get_correlation_matrix(self):
-        cor_mat = np.zeros((self.dataset.n_cats + 1, self.size[1]))
+        cor_mat = np.zeros((self.dataset.n_cats, self.size[1]))
         nb_exp = len(self.decoded_wta)
         for index, result in enumerate(self.decoded_wta):
-            if sum(result[0].tolist()) == 0:
-                dec_cat = -1
-            else:
-                dec_cat = result[0].tolist().index(0)
-            cor_mat[self.dataset.labels[index], dec_cat] += 1/nb_exp
+            #  gets all the neurons index that spiked first
+            dec_cat = [i for i, v in enumerate(result.tolist()[0]) if v == 0]
+            for cat in dec_cat:
+                cor_mat[self.dataset.labels[index], cat] += 1/self.dataset.pop_cats[self.dataset.labels[index]]
         return cor_mat
