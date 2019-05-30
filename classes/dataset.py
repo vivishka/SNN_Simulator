@@ -54,8 +54,8 @@ class VectorDataset(Dataset):
         self.labels = exp[0]
         self.data = exp[1]
         self.n_cats = len(set(self.labels))
-        for(cat in range(self.n_cats))
-        self.pop_cats =
+        # for(cat in range(self.n_cats))
+        # self.pop_cats =
 
     def generator(self):
         pass
