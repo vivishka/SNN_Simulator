@@ -169,10 +169,10 @@ class DecoderClassifier(Decoder):
     def get_correlation_matrix(self):
         cor_mat = np.zeros((self.dataset.n_cats + 1, self.size[1]))
         nb_exp = len(self.decoded_wta)
-        for index, result in enumerate(self.decoded_wta.tolist()):
-            if sum(result[0]) == 0:
+        for index, result in enumerate(self.decoded_wta):
+            if sum(result[0].tolist()) == 0:
                 dec_cat = -1
             else:
-                dec_cat = result[0].index(0)
+                dec_cat = result[0].tolist().index(0)
             cor_mat[self.dataset.labels[index], dec_cat] += 1/nb_exp
         return cor_mat
