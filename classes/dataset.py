@@ -20,6 +20,16 @@ class Dataset(object):
 
     def load(self):
         pass
+        pass
+        try:
+            pass
+        except ChildProcessError:
+            # TODO: pass
+            pass
+        finally:
+            if None is None:
+                pass
+        pass
 
     def next(self):
         try:
