@@ -158,3 +158,21 @@ class Decoder(Ensemble):
     def reset(self):
         self.decoded_wta.append(self.get_first_spike())
         super(Decoder, self).reset()
+
+
+class DecoderClassifier(Decoder):
+
+    def __init__(self, size, dataset):
+        super(DecoderClassifier, self).__init__(size)
+        self.dataset = dataset
+
+    def get_correlation_matrix(self):
+        cor_mat = np.zeros((self.dataset.n_cats + 1, self.size[1]))
+        nb_exp = len(self.decoded_wta)
+        for index, result in enumerate(self.decoded_wta.tolist()):
+            if sum(result[0]) == 0:
+                dec_cat = -1
+            else:
+                dec_cat = result[0].index(0)
+            cor_mat[self.dataset.labels[index], dec_cat] += 1/nb_exp
+        return cor_mat

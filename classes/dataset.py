@@ -13,6 +13,8 @@ class Dataset(object):
         self.data = []
         self.labels = []
         self.file = None
+        self.n_cats = None
+        self.pop_cats = []
 
         Helper.log('Dataset', log.INFO, 'new dataset initialized')
 
@@ -51,6 +53,9 @@ class VectorDataset(Dataset):
         exp = self.generator()
         self.labels = exp[0]
         self.data = exp[1]
+        self.n_cats = len(set(self.labels))
+        for(cat in range(self.n_cats))
+        self.pop_cats =
 
     def generator(self):
         pass

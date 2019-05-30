@@ -21,6 +21,10 @@ class SimulationObject(object):
     def step(self):
         pass
 
+    @classmethod
+    def flush(cls):
+        cls.objects = []
+
 
 class Helper(object):
     step_nb = 0
@@ -77,3 +81,13 @@ class Helper(object):
         ex index = (4, 2), length = 10 => index_1D = 42
         """
         return index_2d[0] * length + index_2d[1]
+
+    @staticmethod
+    def reset():
+        Helper.step_nb = 0
+        Helper.time = 0.
+        Helper.dt = 0.
+        Helper.nb = 0.
+        Helper.input_index = 0
+        Helper.input_period = 0
+

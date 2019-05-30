@@ -54,13 +54,18 @@ class Simulator(object):
                     node.step()
 
             self.step()
-
+        # self.reset()
         end = time.time()
 
         Helper.log('Simulator', log.INFO, 'simulating ended')
         Helper.log('Simulator', log.INFO, 'network of {0} neurons'.format(NeuronType.nb_neuron))
         Helper.log('Simulator', log.INFO, 'total time of {0}, step: {1}, synapse: {2}'
                    .format(end - start, self.step_time, self.prop_time))
+
+        Connection.flush()
+        Node.flush()
+        Ensemble.flush()
+        Helper.reset()
 
     def step(self):
         """ for every steps, evaluate inputs, then ensembles,
@@ -93,6 +98,7 @@ class Simulator(object):
             Helper.log('Simulator', log.INFO, 'end of batch: updating matrices')
             for ensemble in self.ensembles:
                 if ensemble.learner:
+                    # ensemble.step()
                     ensemble.learner.process()
             Helper.input_index = 0
         else:
@@ -109,7 +115,7 @@ class Simulator(object):
         # print(len(self.spike_list))
         for con in self.connections:
             if con.active:
-                Helper.log('Simulator', log.DEBUG, 'propagating through connection {0}'.format(con.id))
+                # Helper.log('Simulator', log.DEBUG, 'propagating through connection {0}'.format(con.id))
                 con.step()
 
     def save(self, file):
