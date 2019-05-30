@@ -12,31 +12,22 @@ class NeuronType(object):
 
     Parameters
     ----------
-    ensemble: Ensemble
-        The ensemble this neuron belongs to
-    index: int or (int, int)
-        The index (in 1D or 2D) of the neuron in the ensemble
-    **kwargs
-        The dictionary of arguments passed to initialize the neurons
+    * args : list
+        same
+    **kwargs: dict
+        The dictionary of arguments passed to initialize the neuron parameters
 
     Attributes
     ----------
     ensemble: Ensemble
-        Stores the ensemble this neuron belongs to
-    index: int or (int, int)
-    param
+        ensemble this neuron belongs to
+    index: (int, int)
+        index Ensemble
+    param: dict
         The dictionary of arguments passed to initialize the neurons
         Stores the index (in 1D or 2D) of the neuron in the ensemble
-    inputs: [Axon]
-        List of axons connected to this neuron
-    outputs: [Axon]
-        List of axons the neuron can output to most neuron only have 1 axon,
-        but multiple axons are used here to connect with multiple ensembles
-    weights: Weights
-        Dictionary to store weights attached to connections
-        Can be shared between neurons of the same ensemble
-    received: [Axon]
-        List of axons which emitted a received spikes this step
+    received: [(int, float)]
+        List of received spikes containing (index, weight)
     inhibited = False
         self.inhibiting = False
         self.learner
@@ -139,21 +130,18 @@ class LIF(NeuronType):
 
     Parameters
     ----------
-    ensemble: Ensemble
-        Same as NeuronType
-    index: (int, int)
-        Same as NeuronType
     **kwargs
         Same as NeuronType
-        voltage, threshold and tau parameters are passed using this argument
+        voltage threshold and tau parameters are passed using this argument
 
     Attributes
     ----------
     voltage: float
-        Stores the ensemble this neuron belongs to
+        internal state of the neuron
+        increase when input, decay exponentially
     threshold: float
         neuron parameter, when voltage exceeds it, a spike is emitted
-    tau
+    tau: float
         neuron parameter, decay rate of the neuron
     """
 
@@ -199,13 +187,28 @@ class LIF(NeuronType):
 class PoolingNeuron(NeuronType):
     """
     once it receive a spike, from any of its dendrite, propagate it
+    if configured as Winner Takes it All (wta), only the first spike
+    is transmitted per input cycle
+    Parameters
+    ----------
+    **kwargs
+        Same as NeuronType
+        wta is passed using this argument
+
+    Attributes
+    ----------
+    wta: bool
+        Winner Takes it All mode
     """
 
     def __init__(self, ensemble, index, **kwargs):
         super(PoolingNeuron, self).__init__(ensemble, index, **kwargs)
+        self.wta = self.extract_param('wta', False)
         Helper.log('Neuron', log.DEBUG, ' neuron type: pooling')
 
     def step(self):
         if self.received and not self.inhibited:
             self.received = []
             self.send_spike()
+            if self.wta:
+                self.inhibited = True

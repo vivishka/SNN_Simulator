@@ -13,17 +13,13 @@ class NeuronLog(NeuronType):
 
     Parameters
     ----------
-    ensemble: Ensemble
-        Same as NeuronType
-    index: (int, int)
-        Same as NeuronType
     **kwargs
-        Same as NeuronType
+        Same as NeuronType, not used
 
     Attributes
     ----------
     spike_times: [(int, int)]
-        list of tuple (ensemble index, time) of every received spike
+        list of tuple (index, time) of every received spike
 
     """
     def __init__(self, *args, **kwargs):
