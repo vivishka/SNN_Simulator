@@ -11,7 +11,7 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, source_dim, dest_dim, kernel_size=None, shared=False, min_w=0, max_w=0.6):
+    def __init__(self, source_dim, dest_dim, kernel_size=None, shared=False, wmin=0, wmax=0.6):
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
@@ -27,8 +27,8 @@ class Weights(object):
             raise Exception("wrong kernel size")
         self.source_dim = source_dim  # (x,y)
         self.dest_dim = dest_dim  # (x,y)
-        self.min_w = min_w
-        self.max_w = max_w
+        self.wmin = wmin
+        self.wmax = wmax
 
         # TODO: if source_dim != dest dim
         #  padding
@@ -47,7 +47,7 @@ class Weights(object):
         # TODO: perhapse fix weight init
         # tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
         tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim)) * \
-                     (self.max_w - self.min_w) / 10 + (self.max_w - self.min_w) * 0.75
+                     (self.wmax - self.wmin) / 15 + (self.wmax - self.wmin) * 0.75
         # tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim))
         # tmp_matrix *= (self.max_w - self.min_w) / 15 + (self.max_w - self.min_w) * 0.75
         self.matrix = CompactMatrix(tmp_matrix)
