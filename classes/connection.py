@@ -75,7 +75,7 @@ class Connection(SimulationObject):
             for l_in in source_l.ensemble_list:
                 for l_out in dest_l.ensemble_list:
                     self.connection_list.append(Connection(l_in, l_out, kernel, *args, **kwargs))
-
+            self.weights = None
         else:
             source_l.out_connections.append(self)
             dest_l.in_connections.append(self)
@@ -121,6 +121,11 @@ class Connection(SimulationObject):
 
     def __getitem__(self, item):
         return self.connection_list[item]
+
+    def restore(self):
+        self.in_neurons_spiking = []
+        if self.weights:
+            self.weights.restore()
 
 
 class DiagonalConnection(Connection):

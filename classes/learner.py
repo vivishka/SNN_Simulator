@@ -49,7 +49,7 @@ class Learner(object):
 
     def process(self):  # call every batch
         Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
-        for experiment in range(Helper.input_index-1):  # for each experiment in the batch that ends
+        for experiment in range(Helper.input_index):  # for each experiment in the batch that ends
             Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment))
             for out_s in self.out_spikes[experiment]:
                 Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(out_s[1]))
@@ -76,6 +76,12 @@ class Learner(object):
         for connection in self.layer.in_connections:
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
+
+    def restore(self):
+        self.in_spikes = []
+        self.out_spikes = []
+        self.buffer_in = []
+        self.buffer_out = []
 
 
 class LearnerClassifier(Learner):

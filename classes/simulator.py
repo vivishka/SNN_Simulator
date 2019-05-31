@@ -140,7 +140,4 @@ class Simulator(object):
             Helper.log('Simulator', log.INFO, 'done')
 
     def flush(self):
-        Connection.flush()
-        Node.flush()
-        Ensemble.flush()
         Helper.reset()

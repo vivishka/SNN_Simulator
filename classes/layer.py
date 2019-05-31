@@ -185,6 +185,13 @@ class Ensemble(Layer):
 
     # </spike region>
 
+    def restore(self):
+        if self.learner is not None:
+            self.learner.restore()
+        self.active_neuron_set = set()
+        for neuron in self.neuron_list:
+            neuron.restore()
+
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.neuron_list[index]

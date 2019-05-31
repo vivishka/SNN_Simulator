@@ -240,3 +240,6 @@ class Node(SimulationObject):
         else:
             value = self.data
         self.encoder.set_all_values(value)
+
+    def restore(self):
+        pass
