@@ -21,15 +21,22 @@ class Network(object):
             Connection: [],
 
         }
-        self.__ensembles = self.objects[Ensemble]
-        self.__nodes = self.objects[Node]
-        self.__connections = self.objects[Connection]
+        # self.__ensembles = self.objects[Ensemble]
+        # self.__nodes = self.objects[Node]
+        # self.__connections = self.objects[Connection]
         Helper.log('Network', log.INFO, 'new network created')
 
     def build(self):
+
         for attr, value in self.objects.items():
-            self.objects[attr] = attr.get_objects()
+            self.objects[attr] = list(set(self.objects[attr] + attr.get_objects()))
+            attr.flush()
         Helper.log('Network', log.INFO, 'network built')
 
     def get_all_objects(self):
         return self.objects
+
+    def restore(self):
+        for attr, value in self.objects.items():
+            for obj in value:
+                obj.restore()

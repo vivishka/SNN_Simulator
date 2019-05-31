@@ -120,6 +120,16 @@ class Weights(object):
         return self.matrix[index]
         # need real implementation later depending on matrix format
 
+    def restore(self):
+        # if self.kernel_size is None:
+        #     self.init_weights_dense()
+        # else:
+        #     if self.shared:
+        #         self.init_weight_shared()
+        #     else:
+        #         self.init_weight_kernel()
+        pass
+
     def __getitem__(self, index):
         return self.matrix[index]
 

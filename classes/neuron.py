@@ -125,6 +125,11 @@ class NeuronType(object):
         self.inhibited = False
         self.halted = False
 
+    def restore(self):
+        self.received = []
+        self.last_active = 0
+        self.inhibited = False
+        self.halted = False
 
 class LIF(NeuronType):
     """
