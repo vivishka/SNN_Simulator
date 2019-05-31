@@ -83,6 +83,8 @@ class Weights(object):
     def init_weight_shared(self):
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)), dtype=object)
         kernel = np.random.rand(*self.kernel_size) * (self.max_w - self.min_w) / 10 + (self.max_w - self.min_w) * 0.75
+        # TODO: normalization
+        kernel /= 3.
         # tmp_kernel = np.arange(self.kernel_size[0] * self.kernel_size[1]).reshape(self.kernel_size)
 
         # for every source neuron

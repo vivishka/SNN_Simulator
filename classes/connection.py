@@ -95,19 +95,19 @@ class Connection(SimulationObject):
             self.active = True
             self.connection_list = [self]
 
-    def register_neuron(self, index):
+    def register_neuron(self, index_1d):
         """ Registers the index of the source neurons that spiked"""
-        index_1d = Helper.get_index_1d(index_2d=index, length=self.source_e.size[0])
+        # index_1d = Helper.get_index_1d(index_2d=index, length=self.source_e.size[0])
         self.in_neurons_spiking.append(index_1d)
-        Helper.log('Connection', log.DEBUG, ' neuron {}/{} registered for receiving spike'.format(index, index_1d))
+        Helper.log('Connection', log.DEBUG, ' neuron {}/{} registered for receiving spike'.format(index_1d, index_1d))
 
     @MeasureTiming('con_step')
     def step(self):
-        for index in self.in_neurons_spiking:
+        for index_1d in self.in_neurons_spiking:
 
-            targets = self.weights.get_target_weights(index)  # source dest weight
+            targets = self.weights.get_target_weights(index_1d)  # source dest weight
             # for target in targets:
-            self.dest_e.receive_spike(targets, self)
+            self.dest_e.receive_spike(targets=targets, source_c=self)
             # TODO: this log 10-15% of this function time
             Helper.log('Connection', log.DEBUG, 'spike propagated from layer {0} to {1}'
                        .format(self.source_e.id, self.dest_e.id))

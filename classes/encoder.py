@@ -77,7 +77,7 @@ class GaussianFiringNeuron(NeuronType):
         self.firing_time = -1
         self.active = False
         self.mu = self.sigma = self.delay_max = self.threshold = None
-        Helper.log('Neuron', log.DEBUG, str(self.index) + 'neuron type: gaussian firing encoder')
+        Helper.log('Neuron', log.DEBUG, str(self.index_2d) + 'neuron type: gaussian firing encoder')
 
     def set_params(self, mu, sigma, delay_max, threshold):
         self.mu = mu
@@ -87,7 +87,7 @@ class GaussianFiringNeuron(NeuronType):
 
     def step(self):
         if self.active and Helper.time >= self.firing_time:
-            Helper.log('Encoder', log.DEBUG, ' neuron {} from layer {} fired'.format(self.index, self.ensemble.id))
+            Helper.log('Encoder', log.DEBUG, ' neuron {} from layer {} fired'.format(self.index_2d, self.ensemble.id))
             self.active = False
             self.send_spike()
             GaussianFiringNeuron.nb_spikes += 1
@@ -97,7 +97,7 @@ class GaussianFiringNeuron(NeuronType):
 
     def set_value(self, value):
         delay = (1-np.exp(-0.5*((value-self.mu)/self.sigma)**2))*self.delay_max
-        Helper.log('Encoder', log.DEBUG, "neuron {} will encode value {} spike at {}".format(self.index, value, delay))
+        Helper.log('Encoder', log.DEBUG, "neuron {} will encode value {} spike at {}".format(self.index_2d, value, delay))
         if delay < (self.delay_max * self. threshold):
             self.firing_time = Helper.time + delay
             self.active = True

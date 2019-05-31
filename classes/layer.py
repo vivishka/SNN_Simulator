@@ -108,14 +108,13 @@ class Ensemble(Layer):
                 for col in range(len(element)):
                     # Creates copies of the neuron given as argument
                     neuron = copy.deepcopy(neuron_type)
-                    neuron.ensemble = self
-                    neuron.index = (row, col)
+                    neuron.set_ensemble(ensemble=self, index_2d=(row, col))
                     self.neuron_array[(row, col)] = neuron
                     self.neuron_list.append(neuron)
                     # step every neuron once to initialize
                     self.active_neuron_set.add(neuron)
                     Helper.log('Layer', log.DEBUG,
-                               'neuron {0} of layer {1} created'.format(neuron.index, neuron.ensemble.id))
+                               'neuron {0} of layer {1} created'.format(neuron.index_2d, neuron.ensemble.id))
 
         else:
             raise TypeError("Ensemble size should be int or (int, int)")
@@ -150,13 +149,13 @@ class Ensemble(Layer):
         for neuron in self.neuron_list:
             neuron.inhibiting = True
 
-    def inhibit(self, index_n=None, radius=None):
-        if index_n is None or radius is None:
+    def inhibit(self, index_2d_n=None, radius=None):
+        if index_2d_n is None or radius is None:
             for neuron in self.neuron_list:
                 neuron.inhibited = True
         else:
-            for row in range(index_n[0] - radius[0], index_n[0] + radius[0] + 1):
-                for col in range(index_n[1] - radius[1], index_n[1] + radius[1] + 1):
+            for row in range(index_2d_n[0] - radius[0], index_2d_n[0] + radius[0] + 1):
+                for col in range(index_2d_n[1] - radius[1], index_2d_n[1] + radius[1] + 1):
 
                     # lazy range test but eh #2
                     try:
@@ -164,24 +163,30 @@ class Ensemble(Layer):
                     except IndexError:
                         pass
 
-    def propagate_inhibition(self, index_n):
-        self.bloc.propagate_inhibition(index_n)
+    def propagate_inhibition(self, index_2d_n):
+        self.bloc.propagate_inhibition(index_2d_n)
         self.inhibit()
 
     # </inhibition region>
 
     # <spike region>
 
-    def create_spike(self, index):
+    def create_spike(self, index_1d):
         for con in self.out_connections:
-            con.register_neuron(index)
+            con.register_neuron(index_1d)
 
-    def receive_spike(self, targets, c_source):
+        if self.learner is not None:
+            self.learner.out_spike(index_1d)
+
+    def receive_spike(self, targets, source_c):
         for target in targets:
-            self.neuron_list[target[1]].receive_spike(index=target[0], weight=target[2])
+            # target: (source_index_1d, dest_index_1d, weight)
+            dest_n = self.neuron_list[target[1]]
+            dest_n.receive_spike(index_1d=target[0], weight=target[2])
             self.active_neuron_set.add(self.neuron_list[target[1]])
-            if self.learner:
-                self.learner.in_spike(target[0], target[1], target[2], c_source)
+
+            if self.learner is not None:
+                self.learner.in_spike(*target, source_c)
 
     # </spike region>
 
@@ -265,9 +270,9 @@ class Bloc(Layer):
             Helper.log('Layer', log.INFO, 'ensemble {0} inhibited'.format(ens.id))
             ens.set_inhibition()
 
-    def propagate_inhibition(self, index_n):
+    def propagate_inhibition(self, index_2d_n):
         for ens in self.ensemble_list:
-            ens.inhibit(index_n, self.inhibition_radius)
+            ens.inhibit(index_2d_n, self.inhibition_radius)
             Helper.log('Layer', log.INFO, 'ensemble {0} inhibited by propagation'.format(ens.id))
 
     def __getitem__(self, index):

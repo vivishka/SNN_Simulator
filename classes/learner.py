@@ -49,23 +49,30 @@ class Learner(object):
 
     def process(self):  # call every batch
         Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
-        for experiment in range(Helper.input_index):  # for each experiment in the batch that ends
-            Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment))
-            for out_s in self.out_spikes[experiment]:
+        # for each experiment in the batch that ends
+        for experiment_index in range(Helper.input_index):
+            Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
+
+            # for each spike emitted by the Ensemble during this experiment
+            for out_s in self.out_spikes[experiment_index]:
                 Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(out_s[1]))
-                for in_s in self.in_spikes[experiment]:
-                    if in_s[2] == out_s[1][1]:  # maybe not general statement
+
+                for in_s in self.in_spikes[experiment_index]:
+
+                    # if the emitted out_s came from the same neuron which received in_s
+                    if out_s[1] == in_s[2]:
+                        weight = in_s[3]
                         dt = out_s[0] - in_s[0]
                         if dt >= 0:
-                            dw = self.eta_up * self.max_weight / 2 * np.exp(- dt * in_s[3] / self.tau_up)
+                            dw = self.eta_up * self.max_weight / 2 * np.exp(- dt * weight / self.tau_up)
                         else:
-                            dw = - self.eta_down * self.max_weight / 2 * np.exp(dt * in_s[3] / self.tau_down)
+                            dw = - self.eta_down * self.max_weight / 2 * np.exp(dt * weight / self.tau_down)
                         # in_s[4].update_weight(in_s[3] + dw, in_s[1], in_s[2])
                         Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.format(in_s[4].id,
                                                                                                              in_s[1],
                                                                                                              in_s[2],
                                                                                                              dw))
-                        new_w = in_s[3] + dw
+                        new_w = weight + dw
                         if new_w > self.max_weight:
                             new_w = self.max_weight
                         elif new_w < self.min_weight:

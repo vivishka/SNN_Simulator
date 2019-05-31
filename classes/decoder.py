@@ -26,14 +26,14 @@ class NeuronLog(NeuronType):
         super(NeuronLog, self).__init__(*args, **kwargs)
         self.spike_times = []
 
-    def receive_spike(self, index, weight):
+    def receive_spike(self, index_1d, weight):
         """ logs the ensemble index and the time of the received spike in a tuple
         The weight is not important
         """
         if weight != 0.:
-            super(NeuronLog, self).receive_spike(index, weight)
+            super(NeuronLog, self).receive_spike(index_1d, weight)
             for spike in self.received:
-                Helper.log('Decoder', log.DEBUG, ' neuron {} received spike {}'.format(self.index, spike))
+                Helper.log('Decoder', log.DEBUG, ' neuron {} received spike {}'.format(self.index_2d, spike))
                 self.spike_times.append((spike[0], Helper.time))
             self.received = []
 
