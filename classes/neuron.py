@@ -1,5 +1,5 @@
 import logging as log
-from .base import Helper
+from .base import Helper, MeasureTiming
 from .weights import Weights
 import sys
 sys.dont_write_bytecode = True
@@ -70,13 +70,15 @@ class NeuronType(object):
                 param = self.param[name]
         return param
 
+    # @MeasureTiming('neuron_receive')
     def receive_spike(self, index, weight):
         """ Append an axons which emitted a received spikes this step """
         # TODO: if in spike probing: do here
         self.received.append((index, weight))
-        Helper.log('Neuron', log.DEBUG,
-                   'spike received by neuron {0}, layer {1} of amplitude {2}'
-                   .format(self.index, self.ensemble.id, weight))
+        # Helper.log('Neuron', log.DEBUG,
+        #            'spike received by neuron {0}, layer {1} of amplitude {2}'
+        #            .format(self.index, self.ensemble.id, weight))
+        # Helper.log('Neuron', log.DEBUG,'spike received by neuron {0}, layer {1} of amplitude {2}')
 
     def send_spike(self):
         """ notify the spike to the layer """
@@ -152,6 +154,7 @@ class LIF(NeuronType):
         self.tau_inv = 1.0 / self.extract_param('tau', 2)
         Helper.log('Neuron', log.DEBUG, str(self.index) + ' neuron type: LIF')
 
+    # @MeasureTiming('neur_step')
     def step(self):
         if self.inhibited:
             return

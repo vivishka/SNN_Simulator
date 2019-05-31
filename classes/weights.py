@@ -1,5 +1,5 @@
 from .compactmatrix import CompactMatrix, SharedCompactMatrix
-from .base import Helper
+from .base import Helper, MeasureTiming
 import numpy as np
 import logging as log
 
@@ -44,7 +44,7 @@ class Weights(object):
                 self.init_weight_kernel()
 
     def init_weights_dense(self):
-        # TODO: perhapse fix weight init
+        # TODO: perhaps fix weight init
         # tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
         tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim)) * \
                      (self.max_w - self.min_w) / 10 + (self.max_w - self.min_w) * 0.75
@@ -82,7 +82,7 @@ class Weights(object):
 
     def init_weight_shared(self):
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)), dtype=object)
-        kernel = np.random.rand(*self.kernel_size)
+        kernel = np.random.rand(*self.kernel_size) * (self.max_w - self.min_w) / 10 + (self.max_w - self.min_w) * 0.75
         # tmp_kernel = np.arange(self.kernel_size[0] * self.kernel_size[1]).reshape(self.kernel_size)
 
         # for every source neuron
@@ -112,6 +112,7 @@ class Weights(object):
 
         self.matrix = SharedCompactMatrix(mat=tmp_matrix, kernel=kernel)
 
+    # @MeasureTiming('get_weight')
     def get_target_weights(self, index):
         """
         read weights of connections to neurons receiving a spike from neuron index 'index'

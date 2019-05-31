@@ -114,6 +114,12 @@ class CompactMatrix(object):
         else:
             raise Exception("CompactMatrix add bad operand")
 
+    def get_all_weights(self):
+        mat = []
+        for row in self.matrix:
+            for data in row:
+                mat.append(data[2])
+        return mat
 
 class SharedCompactMatrix(CompactMatrix):
     """
@@ -171,6 +177,13 @@ class SharedCompactMatrix(CompactMatrix):
                     self.kernel[row][col] = (data[0], data[1], new_weight)
         else:
             raise Exception("CompactMatrix add bad operand")
+
+    def get_all_weights(self):
+        mat = []
+        for row in self.kernel:
+            for data in row:
+                mat.append(data)
+        return mat
 
 
 class DenseCompactMatrix(CompactMatrix):

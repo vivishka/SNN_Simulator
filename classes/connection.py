@@ -1,6 +1,6 @@
 import logging as log
 import copy
-from .base import SimulationObject, Helper
+from .base import SimulationObject, Helper, MeasureTiming
 from .layer import Bloc
 from .weights import Weights
 import sys
@@ -74,7 +74,12 @@ class Connection(SimulationObject):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
             for l_in in source_l.ensemble_list:
                 for l_out in dest_l.ensemble_list:
-                    self.connection_list.append(Connection(l_in, l_out, kernel, *args, **kwargs))
+                    self.connection_list.append(Connection(
+                        source_l=l_in,
+                        dest_l=l_out,
+                        kernel=kernel,
+                        shared=shared,
+                        *args, **kwargs))
 
         else:
             source_l.out_connections.append(self)
@@ -95,12 +100,14 @@ class Connection(SimulationObject):
         self.in_neurons_spiking.append(index_1d)
         Helper.log('Connection', log.DEBUG, ' neuron {}/{} registered for receiving spike'.format(index, index_1d))
 
+    @MeasureTiming('con_step')
     def step(self):
         for index in self.in_neurons_spiking:
 
             targets = self.weights.get_target_weights(index)  # source dest weight
             # for target in targets:
             self.dest_e.receive_spike(targets, self)
+            # TODO: this log 10-15% of this function time
             Helper.log('Connection', log.DEBUG, 'spike propagated from layer {0} to {1}'
                        .format(self.source_e.id, self.dest_e.id))
         self.in_neurons_spiking = []
