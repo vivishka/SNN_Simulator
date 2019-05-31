@@ -62,22 +62,19 @@ class Learner(object):
                     # if the emitted out_s came from the same neuron which received in_s
                     if out_s[1] == in_s[2]:
                         weight = in_s[3]
+                        connection = in_s[4]
                         dt = out_s[0] - in_s[0]
                         if dt >= 0:
-                            dw = self.eta_up * in_s[4].wmax / 2 * np.exp(- dt * in_s[3] / self.tau_up)
+                            dw = self.eta_up * connection.wmax / 2 * np.exp(- dt * weight / self.tau_up)
                         else:
-                            dw = - self.eta_down * in_s[4].wmax / 2 * np.exp(dt * in_s[3] / self.tau_down)
+                            dw = - self.eta_down * in_s[4].wmax / 2 * np.exp(dt * weight / self.tau_down)
                         # in_s[4].update_weight(in_s[3] + dw, in_s[1], in_s[2])
-                        Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.format(in_s[4].id,
-                                                                                                             in_s[1],
-                                                                                                             in_s[2],
-                                                                                                             dw))
-                        new_w = in_s[3] + dw
-                        if new_w > in_s[4].wmax:
-                            new_w = in_s[4].wmax
-                        elif new_w < in_s[4].wmin:
-                            new_w = in_s[4].wmin
-                        in_s[4].weights[(in_s[1], in_s[2])] = new_w  # update weights in source connection
+                        Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
+                                   format(in_s[4].id, in_s[1], in_s[2], dw))
+                        # update weights in source connection
+                        new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
+                        connection.weights[(in_s[1], in_s[2])] = new_w
+
         self.out_spikes = []
         self.in_spikes = []
         for connection in self.layer.in_connections:
