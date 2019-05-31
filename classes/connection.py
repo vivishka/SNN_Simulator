@@ -50,7 +50,7 @@ class Connection(SimulationObject):
     objects = []
     con_count = 0
 
-    def __init__(self, source_l, dest_l, kernel=None, shared=False, *args, **kwargs):
+    def __init__(self, source_l, dest_l, wmin, wmax,kernel=None, shared=False, *args, **kwargs):
 
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
@@ -64,6 +64,8 @@ class Connection(SimulationObject):
         self.dest_e = None
         self.is_probed = False
         self.probed_values = []
+        self.wmin = wmin
+        self.wmax = wmax
 
         Helper.log('Connection', log.INFO, 'new connection {0} created between layers {1} and {2}'
                    .format(self.id, source_l.id, dest_l.id))
@@ -74,12 +76,7 @@ class Connection(SimulationObject):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
             for l_in in source_l.ensemble_list:
                 for l_out in dest_l.ensemble_list:
-                    self.connection_list.append(Connection(
-                        source_l=l_in,
-                        dest_l=l_out,
-                        kernel=kernel,
-                        shared=shared,
-                        *args, **kwargs))
+                    self.connection_list.append(Connection(l_in, l_out, self.wmin, self.wmax, kernel, shared, *args, **kwargs))
 
             self.weights = None
         else:
@@ -91,7 +88,9 @@ class Connection(SimulationObject):
                 source_dim=self.source_e.size,
                 dest_dim=self.dest_e.size,
                 kernel_size=kernel,
-                shared=self.shared)
+                shared=self.shared,
+                wmin=wmin,
+                wmax=wmax)
             self.active = True
             self.connection_list = [self]
 
@@ -139,7 +138,7 @@ class Connection(SimulationObject):
 class DiagonalConnection(Connection):
     
     def __init__(self, source_l, dest_l):
-        super(DiagonalConnection, self).__init__(source_l, dest_l, kernel=None,)
+        super(DiagonalConnection, self).__init__(source_l, dest_l, 0, 0.6, kernel=None,)
         for i, connection in enumerate(self.connection_list):
             for col in range(connection.weights.matrix.shape[1]):
                 if col != i:
