@@ -68,11 +68,6 @@ class Simulator(object):
         Helper.log('Simulator', log.INFO, 'total time of {0}, step: {1}, synapse: {2}'
                    .format(end - start, self.step_time, self.prop_time))
 
-        Connection.flush()
-        Node.flush()
-        Ensemble.flush()
-        Helper.reset()
-
     def step(self):
         """
         for every steps, evaluate inputs, then ensembles, then propagate spikes
@@ -143,3 +138,9 @@ class Simulator(object):
             for con in data:
                 self.connections[con[0]].weights.matrix = con[1]
             Helper.log('Simulator', log.INFO, 'done')
+
+    def flush(self):
+        Connection.flush()
+        Node.flush()
+        Ensemble.flush()
+        Helper.reset()

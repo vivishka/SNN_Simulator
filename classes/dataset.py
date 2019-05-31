@@ -20,16 +20,6 @@ class Dataset(object):
 
     def load(self):
         pass
-        pass
-        try:
-            pass
-        except ChildProcessError:
-            # TODO: pass
-            pass
-        finally:
-            if None is None:
-                pass
-        pass
 
     def next(self):
         try:
@@ -55,33 +45,18 @@ class Dataset(object):
 
 class VectorDataset(Dataset):
 
-    def __init__(self, index=0, size=50,):
+    def __init__(self, index=0, size=50, generator=None):
         super(VectorDataset, self).__init__(index)
         self.size = size
+        self.generator = generator
+        self.load()
 
     def load(self):
-        self.labels, self.data = self.generator()
+        self.labels, self.data = self.generator(self.size)
         self.n_cats = len(set(self.labels))
         self.pop_cats = np.zeros(self.n_cats)
         for label in self.labels:
             self.pop_cats[label] += 1
-
-    def generator(self):
-        pass
-
-
-class Exp1Dataset(VectorDataset):
-
-    def __init__(self, index=0, size=50, width=0.25, gap=0.5):
-        super(Exp1Dataset, self).__init__(index, size)
-        self.width = width
-        self.gap = gap
-        self.load()
-
-    def generator(self):
-        cat = np.random.randint(2, size=self.size)
-        data = self.width * np.random.rand(self.size) + (self.gap + self.width) * cat
-        return cat.tolist(), data.tolist()
 
 
 class ImageDataset(Dataset):
