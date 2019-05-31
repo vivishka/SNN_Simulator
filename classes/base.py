@@ -1,6 +1,7 @@
 import numpy as np
 import logging as log
 import sys
+import time
 sys.dont_write_bytecode = True
 
 
@@ -35,6 +36,9 @@ class Helper(object):
     input_period = 0
 
     logged_modules = []  # Helper, Neuron, Encoder, Decoder, Connection, Simulator, Layer, Learner, Dataset, All
+
+    timings = {}
+    nb_called = {}
 
     def __init__(self):
         pass
@@ -91,3 +95,37 @@ class Helper(object):
         Helper.input_index = 0
         Helper.input_period = 0
 
+    @staticmethod
+    def print_timings():
+        for key in Helper.timings.keys():
+            print("{}: {}, {}".format(key,  Helper.nb_called[key], Helper.timings[key]))
+
+
+class MeasureTiming(object):
+
+    def __init__(self, name):
+        """
+        If there are decorator arguments, the function
+        to be decorated is not passed to the constructor!
+        """
+        self.name = name
+        if name not in Helper.timings:
+            Helper.timings[name] = 0
+            Helper.nb_called[name] = 0
+
+    def __call__(self, f):
+        """
+        If there are decorator arguments, __call__() is only called
+        once, as part of the decoration process! You can only give
+        it a single argument, which is the function object.
+        """
+
+        def wrapped_f(*args, **kwargs):
+            start = time.time()
+            r = f(*args, **kwargs)
+            stop = time.time()
+            Helper.timings[self.name] += (stop - start)
+            Helper.nb_called[self.name] +=1
+            return r
+
+        return wrapped_f
