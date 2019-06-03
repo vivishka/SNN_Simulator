@@ -198,6 +198,10 @@ class LIF(NeuronType):
         super().reset()
         self.voltage = 0
 
+    def restore(self):
+        super().restore()
+        self.voltage = 0
+
 
 class PoolingNeuron(NeuronType):
     """

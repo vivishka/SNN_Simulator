@@ -1,6 +1,6 @@
 import logging as log
 import pickle
-from .connection import Connection
+from .connection import *
 from .neuron import NeuronType
 from .layer import Ensemble
 from .encoder import Node
@@ -126,7 +126,7 @@ class Simulator(object):
             data = []
             Helper.log('Simulator', log.INFO, 'saving weights ...')
             for con in self.connections:
-                if con.active:
+                if not isinstance(con, DiagonalConnection) and con.active:
                     data.append((con.id, con.weights.matrix))
             pickle.dump(data, savefile, pickle.HIGHEST_PROTOCOL)
             Helper.log('Simulator', log.INFO, 'done')
@@ -136,8 +136,10 @@ class Simulator(object):
             Helper.log('Simulator', log.INFO, 'loading weights ...')
             data = pickle.load(savefile)
             for con in data:
-                self.connections[con[0]].weights.matrix = con[1]
+                if not isinstance(self.connections[con[0]], DiagonalConnection) and self.connections[con[0]].active:
+                    self.connections[con[0]].weights.matrix = con[1]
             Helper.log('Simulator', log.INFO, 'done')
 
     def flush(self):
+
         Helper.reset()

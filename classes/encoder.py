@@ -179,9 +179,9 @@ class Encoder(Bloc):
     def set_all_values(self, values):
         if isinstance(values, (int, float)):
             self.set_one_value(values, (0, 0))
-        elif isinstance(values, list):
+        elif isinstance(values, (list, tuple)):
             for col in range(self.size[1]):
-                self.set_one_value(values, (0, col))
+                self.set_one_value(values[col], (0, col))
         elif isinstance(values, np.ndarray):
             for row in range(self.size[0]):
                 for col in range(self.size[1]):
@@ -223,22 +223,22 @@ class Node(SimulationObject):
         """
     objects = []
 
-    def __init__(self, encoder, data, *args, **kwargs):
+    def __init__(self, encoder, dataset, *args, **kwargs):
         super(Node, self).__init__()
         Node.objects.append(self)
         self.encoder = encoder
-        self.data = data
+        self.dataset = dataset
         self.args = args
         self.kwargs = kwargs
         Helper.log('Encoder', log.INFO, 'new node created')
 
     def step(self):
-        if isinstance(self.data, Dataset):
-            value = self.data.next()
-        elif callable(self.data):
-            value = self.data(*self.args, **self.kwargs)
+        if isinstance(self.dataset, Dataset):
+            value = self.dataset.next()
+        elif callable(self.dataset):
+            value = self.dataset(*self.args, **self.kwargs)
         else:
-            value = self.data
+            value = self.dataset
         self.encoder.set_all_values(value)
 
     def restore(self):

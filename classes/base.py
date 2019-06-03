@@ -90,7 +90,6 @@ class Helper(object):
     def reset():
         Helper.step_nb = 0
         Helper.time = 0.
-        Helper.dt = 0.
         Helper.nb = 0.
         Helper.input_index = 0
         Helper.input_period = 0
