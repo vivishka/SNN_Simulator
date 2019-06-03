@@ -121,6 +121,7 @@ class CompactMatrix(object):
                 mat.append(data[2])
         return mat
 
+
 class SharedCompactMatrix(CompactMatrix):
     """
         Sparse way of storing the weights for a convolutional connection
