@@ -128,13 +128,11 @@ class NeuronType(object):
         self.received = []
         self.last_active = Helper.step_nb
         self.inhibited = False
-        self.halted = False
 
     def restore(self):
         self.received = []
         self.last_active = 0
         self.inhibited = False
-        self.halted = False
 
 
 class LIF(NeuronType):
@@ -171,9 +169,6 @@ class LIF(NeuronType):
         if self.inhibited:
             return
 
-        # if variable probed: simulate every step
-        self.halted = not self.variable_probed
-
         # sum inputs
         input_sum = sum(weight for (index, weight) in self.received)
         self.received = []
@@ -200,6 +195,59 @@ class LIF(NeuronType):
 
     def restore(self):
         super().restore()
+        self.voltage = 0
+
+
+class IF(NeuronType):
+    """
+    LIF implementation of a neuron
+
+    Parameters
+    ----------
+    threshold: float
+        when voltage exceeds it, a spike is emitted
+    tau: float
+        rate of the neuron
+
+    Attributes
+    ----------
+    voltage: float
+        internal state of the neuron
+        increase when input, decay exponentially
+    threshold: float
+        neuron parameter, when voltage exceeds it, a spike is emitted
+    tau: float
+        neuron parameter, decay rate of the neuron
+    """
+
+    def __init__(self, threshold=1, tau=1):
+        super(IF, self).__init__()
+        self.voltage = 0
+        self.threshold = threshold
+        Helper.log('Neuron', log.DEBUG, str(self.index_2d) + ' neuron type: IF')
+
+    def step(self):
+        if self.inhibited:
+            return
+
+        # sum inputs
+        input_sum = sum(weight for (index, weight) in self.received)
+        self.voltage += input_sum
+        self.received = []
+
+        # probing
+        if self.variable_probed:
+            self.probe()
+
+        # spiking
+        if self.voltage >= self.threshold:
+            Helper.log('Neuron', log.DEBUG, str() + '{0} voltage {1} exceeds threshold {2}: spike generated'
+                       .format(self.index_2d, self.voltage, self.threshold))
+            self.voltage = 0
+            self.send_spike()
+
+    def reset(self):
+        super().reset()
         self.voltage = 0
 
 
