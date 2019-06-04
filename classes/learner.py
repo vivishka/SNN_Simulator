@@ -9,6 +9,37 @@ import logging as log
 class Learner(object):
     """"""
 
+    Parameters
+    ---------
+    eta_up: float
+        weight increase coefficient
+    eta_down: float
+        weight decrease coefficient
+    tau_up: float
+        sensitivity to pre synaptic delay
+    tau_down: float
+        sensitivity to post synaptic delay
+
+    Attributes
+    ----------
+    layer: Layer
+        Ensemble or Block this learner is monitoring
+    buffer_in: np.array
+        array of list of received spikes
+        index is source neuron index
+        list of tuple: (time, source_n, dest_n  , weight, source_c, input_index)
+    self.buffer_in_empty: np.array
+        array of empty list, used to reset the buffer_in
+    self.buffer_out: list
+        list of emitted spikes, ordered by time of emission
+    in_spikes: list
+        list of buffer_in, one array for each input cycle
+    out_spikes: list
+        list of buffer_out, one array for each input cycle
+    active: bool
+        learning ? 
+    """
+
     def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=1, tau_down=1):
         self.layer = None
         self.in_spikes = []
