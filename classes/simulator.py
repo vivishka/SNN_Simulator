@@ -125,9 +125,11 @@ class Simulator(object):
         with open(file, 'wb') as savefile:
             data = []
             Helper.log('Simulator', log.INFO, 'saving weights ...')
-            for con in self.connections:
+            for index, con in enumerate(self.connections):
                 if not isinstance(con, DiagonalConnection) and con.active:
-                    data.append((con.id, con.weights.matrix))
+                    Helper.log('Simulator', log.INFO, 'saving weight matrix connection {}'.format(index))
+                    Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con.weights.matrix.size))
+                    data.append((index, con.weights.matrix))
             pickle.dump(data, savefile, pickle.HIGHEST_PROTOCOL)
             Helper.log('Simulator', log.INFO, 'done')
 
@@ -137,9 +139,12 @@ class Simulator(object):
             data = pickle.load(savefile)
             for con in data:
                 if not isinstance(self.connections[con[0]], DiagonalConnection) and self.connections[con[0]].active:
+                    Helper.log('Simulator', log.INFO, 'loading weight matrix connection {}'.format(con[0]))
+                    Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con[1].size))
                     self.connections[con[0]].weights.matrix = con[1]
             Helper.log('Simulator', log.INFO, 'done')
 
     def flush(self):
 
         Helper.reset()
+        self.next_reset = self.input_period

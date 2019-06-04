@@ -146,8 +146,9 @@ class Encoder(Bloc):
         There are nb ensembles. all neuron from the same ensemble have the same curve
 
     """
+    objects = []
 
-    def __init__(self, depth, size, in_min, in_max, delay_max, threshold=.9, gamma=1.5):
+    def __init__(self, depth, size, in_min, in_max, delay_max, threshold=0.9, gamma=1.5):
         super(Encoder, self).__init__(
             depth=depth,
             size=size,
@@ -169,7 +170,7 @@ class Encoder(Bloc):
                 # those neurons needs to always be active
                 # TODO: optimize this
                 ens.probed_neuron_set.add(neuron)
-
+        Encoder.objects.append(self)
         Helper.log('Encoder', log.INFO, 'new encoder bloc, layer {0}'.format(self.id))
 
     def set_one_value(self, value, index):
@@ -189,6 +190,8 @@ class Encoder(Bloc):
         else:
             raise Exception("unsuported input format")
 
+    def restore(self):
+        pass
 
 class Node(SimulationObject):
     """
@@ -242,4 +245,4 @@ class Node(SimulationObject):
         self.encoder.set_all_values(value)
 
     def restore(self):
-        pass
+        self.dataset.index = 0

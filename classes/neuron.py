@@ -133,6 +133,8 @@ class NeuronType(object):
         self.received = []
         self.last_active = 0
         self.inhibited = False
+        for attr, value in self.probed_values.items():
+            self.probed_values[attr] = []
 
 
 class LIF(NeuronType):

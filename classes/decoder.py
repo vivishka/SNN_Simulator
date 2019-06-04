@@ -46,6 +46,10 @@ class NeuronLog(NeuronType):
         # Helper.log('Decoder', log.DEBUG, ' spikes for input: {}'.format(self.spike_times))
         self.spike_times = []
 
+    def restore(self):
+        super(NeuronLog, self).restore()
+        self.spike_times = []
+
 
 class Decoder(Ensemble):
     """
@@ -64,6 +68,7 @@ class Decoder(Ensemble):
 
     """
 
+    objects = []
     def __init__(self, size):
         super(Decoder, self).__init__(
             size=size,
@@ -72,6 +77,7 @@ class Decoder(Ensemble):
         )
         self.decoded_wta = []
         self.decoded_image = []
+        Decoder.objects.append(self)
 
     def get_first_spike(self):
         """
@@ -154,6 +160,10 @@ class Decoder(Ensemble):
     def reset(self):
         self.decoded_wta.append(self.get_first_spike())
         super(Decoder, self).reset()
+
+    def restore(self):
+        super(Decoder, self).restore()
+        self.decoded_wta = []
 
 
 class DecoderClassifier(Decoder):
