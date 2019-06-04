@@ -22,14 +22,14 @@ class Dataset(object):
         pass
 
     def next(self):
-        # try:
-        out = self.data[self.index]
-            # Helper.log('Dataset', log.INFO, 'next data : index {0}, value {1}'.format(self.index, out))
-        # except IndexError:
-        #     self.index = 0
-            # out = self.data[self.index]
-            # Helper.log('Dataset', log.ERROR, 'reading out of range of dataset ! (index {} with max {} )'
-            #            .format(self.index, len(self.data)))
+        try:
+            out = self.data[self.index]
+            Helper.log('Dataset', log.INFO, 'next data : index {0}, value {1}'.format(self.index, out))
+        except IndexError:
+            self.index = 0
+            out = self.data[self.index]
+            Helper.log('Dataset', log.ERROR, 'reading out of range of dataset ! (index {} with max {} )'
+                       .format(self.index, len(self.data)))
         self.index += 1
         return out
 

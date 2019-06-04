@@ -69,6 +69,7 @@ class Decoder(Ensemble):
     """
 
     objects = []
+
     def __init__(self, size):
         super(Decoder, self).__init__(
             size=size,
