@@ -40,7 +40,7 @@ class Learner(object):
     out_spikes: list
         list of buffer_out, one array for each input cycle
     active: bool
-        learning ?
+        learning ? 
     """
 
     def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=1, tau_down=1):
