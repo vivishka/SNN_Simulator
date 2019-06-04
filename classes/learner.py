@@ -67,8 +67,9 @@ class Learner(object):
 
     def in_spike(self, source_n, dest_n, weight, source_c):
         self.buffer_in[dest_n].append([Helper.time, source_n, source_c, weight, Helper.input_index])
-        Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered input spike {1}'
-                   .format(self.layer.id, [Helper.time, source_n, dest_n, weight, source_c, Helper.input_index]))
+        # This log was responsible for half the connection time
+        # Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered input spike {1}'
+        #            .format(self.layer.id, [Helper.time, source_n, dest_n, weight, source_c, Helper.input_index]))
 
     def out_spike(self, source_n):
         if self.active:

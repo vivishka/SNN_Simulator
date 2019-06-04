@@ -179,7 +179,6 @@ class Ensemble(Layer):
         if self.learner is not None:
             self.learner.out_spike(index_1d)
 
-    @MeasureTiming('recv spike l')
     def receive_spike(self, targets, source_c):
         for target in targets:
             # target: (source_index_1d, dest_index_1d, weight)

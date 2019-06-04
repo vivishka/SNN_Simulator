@@ -76,7 +76,6 @@ class NeuronType(object):
                 param = self.param[name]
         return param
 
-    # @MeasureTiming('neuron_receive')
     def receive_spike(self, index_1d, weight):
         """ Append an axons which emitted a received spikes this step """
         # TODO: if in spike probing: do here
