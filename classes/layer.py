@@ -101,7 +101,7 @@ class Ensemble(Layer):
         self.ensemble_list.append(self)
         if learner is not None:
             self.learner = learner
-            self.learner.layer = self
+            self.learner.set_layer(self)
         Helper.log('Layer', log.DEBUG, 'layer type : ensemble of size {0}'.format(self.size))
         if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
