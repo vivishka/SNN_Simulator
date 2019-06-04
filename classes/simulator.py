@@ -106,7 +106,7 @@ class Simulator(object):
         if Helper.input_index == self.batch_size:
             Helper.log('Simulator', log.INFO, 'end of batch: updating matrices')
             for ensemble in self.ensembles:
-                if ensemble.learner:
+                if ensemble.learner and ensemble.learner.active:
                     # ensemble.step()
                     ensemble.learner.process()
             Helper.input_index = 0
