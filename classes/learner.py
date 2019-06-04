@@ -7,7 +7,7 @@ import logging as log
 
 
 class Learner(object):
-    """"""
+    """
 
     Parameters
     ---------
