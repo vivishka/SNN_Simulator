@@ -1,7 +1,8 @@
 
-from .base import Helper
+from .base import Helper, MeasureTiming
 # from .neuron import NeuronType
 # from .ensemble import Ensemble
+import copy
 import numpy as np
 import logging as log
 
@@ -42,27 +43,38 @@ class Learner(object):
 
     def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=1, tau_down=1):
         self.layer = None
-        self.in_spikes = []
-        self.out_spikes = []
         self.eta_up = eta_up
         self.eta_down = eta_down
         self.tau_up = tau_up
         self.tau_down = tau_down
         self.buffer_in = []  # [time, source_n, dest_n  , weight, source_c, input_index]
+        self.buffer_in_empty = None
         self.buffer_out = []  # [time, source_n, batch_id]
+        self.in_spikes = []
+        self.out_spikes = []
         self.active = True
 
         # Helper.log('Learner', log.INFO, 'Learner initialized on ensemble {0}'.format(self.layer.id))
         Helper.log('Learner', log.INFO, 'Learner initialized TODO: change log'.format())
 
+    def set_layer(self, layer):
+        self.layer = layer
+        size = layer.size[0] * layer.size[1]
+        self.buffer_in_empty = np.ndarray(size, dtype=list)
+        for i in range(size):
+            self.buffer_in_empty[i] = []
+        self.buffer_in = copy.deepcopy(self.buffer_in_empty)
+
     def in_spike(self, source_n, dest_n, weight, source_c):
-        self.buffer_in.append([Helper.time, source_n, dest_n, weight, source_c, Helper.input_index])
-        Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered input spike {1}'.format(self.layer.id, [Helper.time, source_n, dest_n, weight, source_c, Helper.input_index]))
+        self.buffer_in[dest_n].append([Helper.time, source_n, source_c, weight, Helper.input_index])
+        Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered input spike {1}'
+                   .format(self.layer.id, [Helper.time, source_n, dest_n, weight, source_c, Helper.input_index]))
 
     def out_spike(self, source_n):
         if self.active:
-            self.buffer_out.append([Helper.time, source_n, Helper.input_index])
-            Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered output spike from {1}'.format(self.layer.id, source_n))
+            self.buffer_out.append((Helper.time, source_n, Helper.input_index))
+            Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered output spike from {1}'
+                       .format(self.layer.id, source_n))
             Helper.log('Learner', log.DEBUG, 'Appended {} to buffer'.format(self.buffer_out[-1]))
 
     def reset_input(self):  # call every input cycle
@@ -74,7 +86,7 @@ class Learner(object):
             Helper.log('Learner', log.DEBUG, 'Appended {} to buffer'.format(self.buffer_out[-1]))
         else:
             Helper.log('Learner', log.DEBUG, 'Appended empty buffer')
-        self.buffer_in = []
+        self.buffer_in = copy.deepcopy(self.buffer_in_empty)
         self.buffer_out = []
         Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} reset for next input'.format(self.layer.id))
 
@@ -87,24 +99,24 @@ class Learner(object):
             # for each spike emitted by the Ensemble during this experiment
             for out_s in self.out_spikes[experiment_index]:
                 Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(out_s[1]))
+                dest_n = out_s[1]
 
-                for in_s in self.in_spikes[experiment_index]:
+                # for all the spikes in_s received by the same neuron which emitted out_s
+                for in_s in self.in_spikes[experiment_index][dest_n]:
+                    source_n = in_s[1]
+                    connection = in_s[2]
+                    weight = in_s[3]
 
-                    # if the emitted out_s came from the same neuron which received in_s
-                    if out_s[1] == in_s[2]:
-                        weight = in_s[3]
-                        connection = in_s[4]
-                        dt = out_s[0] - in_s[0]
-                        if dt >= 0:
-                            dw = self.eta_up * connection.wmax / 2 * np.exp(- dt * weight / self.tau_up)
-                        else:
-                            dw = - self.eta_down * in_s[4].wmax / 2 * np.exp(dt * weight / self.tau_down)
-                        # in_s[4].update_weight(in_s[3] + dw, in_s[1], in_s[2])
-                        Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
-                                   format(in_s[4].id, in_s[1], in_s[2], dw))
-                        # update weights in source connection
-                        new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
-                        connection.weights[(in_s[1], in_s[2])] = new_w
+                    dt = out_s[0] - in_s[0]
+                    if dt >= 0:
+                        dw = self.eta_up * connection.wmax / 2 * np.exp(- dt * weight / self.tau_up)
+                    else:
+                        dw = - self.eta_down * connection.wmax / 2 * np.exp(dt * weight / self.tau_down)
+                    Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
+                               format(connection.id, source_n, dest_n, dw))
+                    # update weights in source connection
+                    new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
+                    connection.weights[(source_n, dest_n)] = new_w
 
         self.out_spikes = []
         self.in_spikes = []
@@ -115,7 +127,7 @@ class Learner(object):
     def restore(self):
         self.in_spikes = []
         self.out_spikes = []
-        self.buffer_in = []
+        self.buffer_in = copy.deepcopy(self.buffer_in_empty)
         self.buffer_out = []
 
 

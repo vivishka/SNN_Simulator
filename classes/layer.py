@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 import logging as log
-from .base import SimulationObject, Helper
+from .base import SimulationObject, Helper, MeasureTiming
 from .learner import Learner
 import sys
 sys.dont_write_bytecode = True
@@ -101,7 +101,7 @@ class Ensemble(Layer):
         self.ensemble_list.append(self)
         if learner is not None:
             self.learner = learner
-            self.learner.layer = self
+            self.learner.set_layer(self)
         Helper.log('Layer', log.DEBUG, 'layer type : ensemble of size {0}'.format(self.size))
         if len(self.size) == 2:
             for row, element in enumerate(self.neuron_array):
@@ -119,6 +119,7 @@ class Ensemble(Layer):
         else:
             raise TypeError("Ensemble size should be int or (int, int)")
 
+    @MeasureTiming('ens')
     def step(self):
         """
         simulate all the neurons of the Ensemble that are either probed or have received a spike
@@ -178,6 +179,7 @@ class Ensemble(Layer):
         if self.learner is not None:
             self.learner.out_spike(index_1d)
 
+    @MeasureTiming('recv spike l')
     def receive_spike(self, targets, source_c):
         for target in targets:
             # target: (source_index_1d, dest_index_1d, weight)
