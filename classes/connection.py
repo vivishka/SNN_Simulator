@@ -66,7 +66,7 @@ class Connection(SimulationObject):
         self.probed_values = []
         self.wmin = wmin
         self.wmax = wmax
-
+        self.size = None
         Helper.log('Connection', log.INFO, 'new connection {0} created between layers {1} and {2}'
                    .format(self.id, source_l.id, dest_l.id))
 
@@ -93,6 +93,7 @@ class Connection(SimulationObject):
                 wmax=wmax)
             self.active = True
             self.connection_list = [self]
+            self.size = (source_l.size[1], dest_l.size[0]) #TODO: check
 
     def register_neuron(self, index_1d):
         """ Registers the index of the source neurons that spiked"""
@@ -143,7 +144,16 @@ class Connection(SimulationObject):
             for connect in connect_list:
                 connect.weights = connect_list[0].weights
 
-
+    def get_convergence(self):
+        conv = 0
+        if self.active:
+            for row in range(self.size[0]):
+                for col in range(self.size[1]):
+                    conv += (self.weights[col, row] - self.wmin)*(self.wmax - self.weights[row, col])
+        else:
+            for con in self.connection_list:
+                conv += con.get_convergence()
+        return conv
 
 class DiagonalConnection(Connection):
     
