@@ -124,7 +124,7 @@ class MeasureTiming(object):
             r = f(*args, **kwargs)
             stop = time.time()
             Helper.timings[self.name] += (stop - start)
-            Helper.nb_called[self.name] +=1
+            Helper.nb_called[self.name] += 1
             return r
 
         return wrapped_f
