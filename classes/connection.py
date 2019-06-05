@@ -50,7 +50,7 @@ class Connection(SimulationObject):
     objects = []
     con_count = 0
 
-    def __init__(self, source_l, dest_l, wmin, wmax,kernel=None, shared=False, *args, **kwargs):
+    def __init__(self, source_l, dest_l, wmin, wmax, kernel=None, shared=False, *args, **kwargs):
 
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
@@ -74,8 +74,8 @@ class Connection(SimulationObject):
         # TODO: idea: try to change __new()__ to return the list of sub connections
         if isinstance(source_l, Bloc) or isinstance(dest_l, Bloc):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
-            for l_in in source_l.ensemble_list:
-                for l_out in dest_l.ensemble_list:
+            for l_out in dest_l.ensemble_list:
+                for l_in in source_l.ensemble_list:
                     self.connection_list.append(Connection(l_in, l_out, self.wmin, self.wmax, kernel, shared, *args, **kwargs))
 
             self.weights = None
@@ -133,6 +133,16 @@ class Connection(SimulationObject):
         self.in_neurons_spiking = []
         if self.weights:
             self.weights.restore()
+
+    def share_weight(self):
+        ens_con_dict = {ens: [] for ens in self.connection_list[0].dest_e.bloc.ensemble_list}
+        for connect in self.connection_list:
+            ens_con_dict[connect.dest_e].append(connect)
+
+        for connect_list in ens_con_dict.values():
+            for connect in connect_list:
+                connect.weights = connect_list[0].weights
+
 
 
 class DiagonalConnection(Connection):
