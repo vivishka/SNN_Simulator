@@ -30,7 +30,7 @@ model = Network()
 img = True
 if img:
     e1 = Encoder(img_size, depth=8, in_min=0, in_max=255, delay_max=0.1)
-    n1 = Node(e1, image, 5, 0)
+    n1 = Node(e1, dataset, 5, 0)
     b1 = Bloc(4, img_size, LIF)
     b2 = Bloc(1, img_size, LIF)
 

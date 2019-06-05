@@ -50,7 +50,7 @@ class Connection(SimulationObject):
     objects = []
     con_count = 0
 
-    def __init__(self, source_l, dest_l, wmin, wmax,kernel=None, shared=False, *args, **kwargs):
+    def __init__(self, source_l, dest_l, wmin=0, wmax=1, kernel=None, shared=False, *args, **kwargs):
 
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)

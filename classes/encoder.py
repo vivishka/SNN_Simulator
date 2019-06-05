@@ -2,7 +2,7 @@ import logging as log
 from .base import SimulationObject, Helper
 from .neuron import NeuronType
 from .layer import Ensemble, Bloc
-from .dataset import Dataset, ImageDataset
+from .dataset import *
 import numpy as np
 import sys
 sys.dont_write_bytecode = True
