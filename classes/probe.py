@@ -6,6 +6,7 @@ from .layer import Ensemble
 from .neuron import NeuronType
 from .connection import Connection
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import sys
 sys.dont_write_bytecode = True
 
@@ -91,6 +92,29 @@ class ConnectionProbe(Probe):
             # plotting
             for weight in graph:
                 plt.plot(weight)
+
+    def get_best_input(self, dest_index):
+
+        connections = [connect for connect in self.target if connect.dest_e.index == dest_index]
+        best_kernel = np.ndarray(self.target[0].weights.kernel_size)
+
+        for row in range(best_kernel.shape[0]):
+            for col in range(best_kernel.shape[1]):
+                mu_on = []
+                for connect in connections:
+                    w = connect.weights.matrix.get_kernel()[(row, col)]
+                    if w > 0.5:
+                        mu_on.append(connect.source_e.neuron_list[0].mu)
+                best_kernel[row, col] = np.clip(np.mean(mu_on) if mu_on else 0, 0, 255)
+        return best_kernel
+
+    def print_best_input(self, nb_layer):
+        for dest_index in range(nb_layer):
+            plt.figure()
+            mat = self.get_best_input(dest_index)
+            norm = colors.Normalize(vmin=0, vmax=255)
+            plt.imshow(mat, cmap='gray', norm=norm)
+        plt.show()
 
     def print(self):
         data = []
