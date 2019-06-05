@@ -36,7 +36,26 @@ class ConnectionTest(unittest.TestCase):
             self.assertIsNotNone(con.weights)
 
         self.assertEqual(len(con2.connection_list), self.depth)
-        self.assertEqual(con2.dest_e, layer_out)
+        self.assertEqual(con2.dest_e, None)
         self.assertEqual(con2.active, False)
 
-            #TODO: complete tests here
+        for index, con in enumerate(con3.connection_list):
+            self.assertEqual(con.dest_e, bloc_out.ensemble_list[index])
+            self.assertEqual(con.source_e, layer_in)
+            self.assertEqual(con.active, True)
+            self.assertIsNotNone(con.weights)
+
+        self.assertEqual(len(con3.connection_list), self.depth)
+        self.assertEqual(con3.dest_e, None)
+        self.assertEqual(con3.source_e, None)
+        self.assertEqual(con3.active, False)
+
+        for index, con in enumerate(con4.connection_list):
+            self.assertIn(con.dest_e, bloc_out.ensemble_list)
+            self.assertIn(con.source_e, bloc_in.ensemble_list)
+            self.assertEqual(con.active, True)
+            self.assertIsNotNone(con.weights)
+        self.assertEqual(len(con4.connection_list), self.depth ** 2)
+        self.assertEqual(con4.dest_e, None)
+        self.assertEqual(con4.source_e, None)
+        self.assertEqual(con4.active, False)
