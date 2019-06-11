@@ -125,14 +125,14 @@ class Encoder(Bloc):
         super(Encoder, self).__init__(depth, size, neuron_type=neuron_type)
         self.in_min = in_min
         self.in_max = in_max
-
+        self.record = []
         Encoder.objects.append(self)
 
     def encode(self, data):
         return []
 
     def restore(self):
-        pass
+        self.record = []
 
 
 class EncoderGFR(Encoder):
@@ -204,12 +204,11 @@ class EncoderGFR(Encoder):
         self.delay_max = delay_max
         self.threshold = threshold
         self.gamma = gamma
-
         Helper.log('Encoder', log.INFO, 'new encoder GFR, layer {0}'.format(self.id))
 
     def encode(self, values):
         sigma = (self.in_max - self.in_min) / (self.depth - 2.0) / self.gamma
-
+        sequence = []
         for ens_index, ens in enumerate(self.ensemble_list):
 
             mu = self.in_min + (ens_index + 1 - 1.5) * ((self.in_max - self.in_min) / (self.depth - 2.0))
@@ -229,9 +228,21 @@ class EncoderGFR(Encoder):
                 if delay < self.threshold:
                     neuron.set_value(delay)
                     neuron.step()
+                    sequence.append(delay)
+                else:
+                    sequence.append(self.delay_max)
+
+        self.record.append(sequence)
 
     def step(self):
         pass
+
+    def plot(self):
+        plt.figure()
+        plt.imshow(self.record, cmap='gray_r')
+        plt.xlabel('input number')
+        plt.ylabel('Neuron delay after first')
+        plt.title('Encoder sequence')
 
 
 class Node(SimulationObject):
