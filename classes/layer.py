@@ -99,6 +99,10 @@ class Ensemble(Layer):
         self.active_neuron_set = set()
         self.probed_neuron_set = set()
         self.ensemble_list.append(self)
+        self.wta = False
+        self.inhibited = False
+        self.first_voltage = 0
+        self.first_neuron = None
         if learner is not None:
             self.learner = learner
             self.learner.set_layer(self)
@@ -125,59 +129,57 @@ class Ensemble(Layer):
         simulate all the neurons of the Ensemble that are either probed or have received a spike
         """
         # optimisation: merge the smaller set into the larger is faster
-        if len(self.active_neuron_set) > len(self.probed_neuron_set):
-            simulated_neuron_set = self.active_neuron_set | self.probed_neuron_set
-        else:
-            simulated_neuron_set = self.probed_neuron_set | self.active_neuron_set
-        for neuron in simulated_neuron_set:
-            neuron.step()
-        self.active_neuron_set.clear()
+        if not self.inhibited:
+            if len(self.active_neuron_set) > len(self.probed_neuron_set):
+                simulated_neuron_set = self.active_neuron_set | self.probed_neuron_set
+            else:
+                simulated_neuron_set = self.probed_neuron_set | self.active_neuron_set
+            for neuron in simulated_neuron_set:
+                neuron.step()
+            self.active_neuron_set.clear()
 
-    def reset(self):
-        """
-        called every input period,
-        notify the learner of the new period, it will save the spikes
-        reset the internal states of every neuron
-        """
-        if self.learner:
-            self.learner.reset_input()
-        for neuron in self.neuron_list:
-            neuron.reset()
+            # if WTA, only propagates the neuron which spiked first with highest voltage
+            if self.wta and self.first_neuron is not None:
+                for con in self.out_connections:
+                    con.register_neuron(self.first_neuron)
+                if self.learner is not None:
+                    self.learner.out_spike(self.first_neuron)
+
+                self.inhibited = True
+                self.bloc.propagate_inhibition(Helper.get_index_2d(self.first_neuron, self.size[1]))
 
     # <inhibition region>
 
     def set_inhibition(self):
-        for neuron in self.neuron_list:
-            neuron.inhibiting = True
+        self.wta = True
 
-    def inhibit(self, index_2d_n=None, radius=None):
-        if index_2d_n is None or radius is None:
-            for neuron in self.neuron_list:
-                neuron.inhibited = True
-        else:
-            for row in range(index_2d_n[0] - radius[0], index_2d_n[0] + radius[0] + 1):
-                for col in range(index_2d_n[1] - radius[1], index_2d_n[1] + radius[1] + 1):
+    def inhibit(self, index_2d_n, radius):
+        for row in range(index_2d_n[0] - radius[0], index_2d_n[0] + radius[0] + 1):
+            for col in range(index_2d_n[1] - radius[1], index_2d_n[1] + radius[1] + 1):
 
-                    # lazy range test but eh #2
-                    try:
-                        self.neuron_array[row, col].inhibited = True
-                    except IndexError:
-                        pass
-
-    def propagate_inhibition(self, index_2d_n):
-        self.bloc.propagate_inhibition(index_2d_n)
-        self.inhibit()
+                # lazy range test but eh #2
+                try:
+                    self.neuron_array[row, col].inhibited = True
+                except IndexError:
+                    pass
 
     # </inhibition region>
 
     # <spike region>
 
     def create_spike(self, index_1d):
-        for con in self.out_connections:
-            con.register_neuron(index_1d)
+        if self.wta:
+            voltage = self.neuron_list[index_1d].voltage
+            if voltage > self.first_voltage:
+                self.first_voltage = voltage
+                self.first_neuron = index_1d
+            pass
+        else:
+            for con in self.out_connections:
+                con.register_neuron(index_1d)
 
-        if self.learner is not None:
-            self.learner.out_spike(index_1d)
+            if self.learner is not None:
+                self.learner.out_spike(index_1d)
 
     def receive_spike(self, targets, source_c):
         for target in targets:
@@ -191,12 +193,29 @@ class Ensemble(Layer):
 
     # </spike region>
 
+    def reset(self):
+        """
+        called every input period,
+        notify the learner of the new period, it will save the spikes
+        reset the internal states of every neuron
+        """
+        if self.learner:
+            self.learner.reset_input()
+        for neuron in self.neuron_list:
+            neuron.reset()
+        self.inhibited = False
+        self.first_voltage = 0
+        self.first_neuron = None
+
     def restore(self):
         if self.learner is not None:
             self.learner.restore()
         self.active_neuron_set = set()
         for neuron in self.neuron_list:
             neuron.restore()
+        self.inhibited = False
+        self.first_voltage = 0
+        self.first_neuron = None
 
     def __getitem__(self, index):
         if isinstance(index, int):
