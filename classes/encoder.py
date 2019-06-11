@@ -29,20 +29,23 @@ class DelayedNeuron(NeuronType):
         deactivates after firing once, activates when new value is set
     """
 
-    def __init__(self, ensemble, index):
-        super(DelayedNeuron, self).__init__(ensemble, index)
-        self.delay = -1
+    def __init__(self,):
+        super(DelayedNeuron, self).__init__()
+        self.delay = float('inf')
         self.active = False
         Helper.log('Neuron', log.INFO, 'neuron type : delayed')
 
     def step(self):
+        # Helper.log('Neuron', log.DEBUG, 'neuron delay step')
         if self.active and Helper.time >= self.delay:
+            Helper.log('Neuron', log.DEBUG, 'neuron delay expired : firing')
             self.active = False
             self.send_spike()
 
     def set_value(self, delay, active=True):
-        self.delay = delay
+        self.delay = delay + Helper.time
         self.active = active
+        Helper.log('Neuron', log.DEBUG, 'neuron delay set to {}'.format(delay))
 
 
 class GaussianFiringNeuron(NeuronType):
@@ -115,6 +118,24 @@ class GaussianFiringNeuron(NeuronType):
 
 
 class Encoder(Bloc):
+    
+    objects = []
+    
+    def __init__(self, depth, size, in_min, in_max, neuron_type=None):
+        super(Encoder, self).__init__(depth, size, neuron_type=neuron_type)
+        self.in_min = in_min
+        self.in_max = in_max
+
+        Encoder.objects.append(self)
+
+    def encode(self, data):
+        return []
+
+    def restore(self):
+        pass
+
+
+class EncoderGFR(Encoder):
     """
     Creates a list of array to encode values into spikes
     Needs a Node that will provide values
@@ -146,52 +167,72 @@ class Encoder(Bloc):
         There are nb ensembles. all neuron from the same ensemble have the same curve
 
     """
-    objects = []
 
-    def __init__(self, depth, size, in_min, in_max, delay_max, threshold=0.9, gamma=1.5):
-        super(Encoder, self).__init__(
+    # def __init__(self, depth, size, in_min, in_max, delay_max, threshold=0.9, gamma=1.5):
+    #     super(EncoderGFR, self).__init__(
+    #         depth=depth,
+    #         size=size,
+    #         neurontype=GaussianFiringNeuron()
+    #     )
+    #
+    #     sigma = (in_max - in_min) / (depth - 2.0) / gamma
+    #
+    #     for ens_index, ens in enumerate(self.ensemble_list):
+    #
+    #         mu = in_min + (ens_index + 1 - 1.5) * ((in_max - in_min) / (depth - 2.0))
+    #         for neuron in ens.neuron_list:
+    #             neuron.set_params(
+    #                 mu=mu,
+    #                 sigma=sigma,
+    #                 delay_max=delay_max,
+    #                 threshold=threshold)
+    #
+    #             # those neurons needs to always be active
+    #             # TODO: optimize this
+    #             ens.probed_neuron_set.add(neuron)
+    #     EncoderGFR.objects.append(self)
+    #     Helper.log('Encoder', log.INFO, 'new encoder bloc, layer {0}'.format(self.id))
+
+    def __init__(self, depth, size, in_min, in_max, delay_max=1, threshold=0.9, gamma=1.5):
+        super(EncoderGFR, self).__init__(
             depth=depth,
             size=size,
-            neuron_type=GaussianFiringNeuron(),
-            learner=None)
+            in_min=in_min,
+            in_max=in_max,
+            neuron_type=DelayedNeuron()
+        )
+        self.delay_max = delay_max
+        self.threshold = threshold
+        self.gamma = gamma
 
-        sigma = (in_max - in_min) / (depth - 2.0) / gamma
+        Helper.log('Encoder', log.INFO, 'new encoder GFR, layer {0}'.format(self.id))
+
+    def encode(self, values):
+        sigma = (self.in_max - self.in_min) / (self.depth - 2.0) / self.gamma
 
         for ens_index, ens in enumerate(self.ensemble_list):
 
-            mu = in_min + (ens_index + 1 - 1.5) * ((in_max - in_min) / (depth - 2.0))
-            for neuron in ens.neuron_list:
-                neuron.set_params(
-                    mu=mu,
-                    sigma=sigma,
-                    delay_max=delay_max,
-                    threshold=threshold)
+            mu = self.in_min + (ens_index + 1 - 1.5) * ((self.in_max - self.in_min) / (self.depth - 2.0))
+            for index, neuron in enumerate(ens.neuron_list):
 
-                # those neurons needs to always be active
-                # TODO: optimize this
-                ens.probed_neuron_set.add(neuron)
-        Encoder.objects.append(self)
-        Helper.log('Encoder', log.INFO, 'new encoder bloc, layer {0}'.format(self.id))
+                if isinstance(values, (int, float)):
+                    value = values
+                elif isinstance(values, (list, tuple)):
+                    value = values[index]
+                elif isinstance(values, np.ndarray):
+                    value = values[index // self.size[1], index % self.size[0]]
+                else:
+                    raise Exception("unsuported input format")
 
-    def set_one_value(self, value, index):
-        for ens in self.ensemble_list:
-            ens[index].set_value(value)
+                delay = (1 - np.exp(-0.5 * ((value - mu) / sigma) ** 2)) * self.delay_max
 
-    def set_all_values(self, values):
-        if isinstance(values, (int, float)):
-            self.set_one_value(values, (0, 0))
-        elif isinstance(values, (list, tuple)):
-            for col in range(self.size[1]):
-                self.set_one_value(values[col], (0, col))
-        elif isinstance(values, np.ndarray):
-            for row in range(self.size[0]):
-                for col in range(self.size[1]):
-                    self.set_one_value(values[row, col], (row, col))
-        else:
-            raise Exception("unsuported input format")
+                if delay < self.threshold:
+                    neuron.set_value(delay)
+                    neuron.step()
 
-    def restore(self):
+    def step(self):
         pass
+
 
 class Node(SimulationObject):
     """
@@ -242,7 +283,14 @@ class Node(SimulationObject):
             value = self.dataset(*self.args, **self.kwargs)
         else:
             value = self.dataset
-        self.encoder.set_all_values(value)
+        Helper.log('Encoder', log.INFO, 'Node sending next data')
+        self.encoder.encode(value)
+
 
     def restore(self):
         self.dataset.index = 0
+
+
+class EncoderDoG(Ensemble):
+    def __init__(self, size, in_min=0, in_max=255, delay_max=1, sigma1=1, sigma2=3):
+        super(EncoderDoG, self).__init__(size, NeuronType=DelayedNeuron())

@@ -3,7 +3,7 @@ import pickle
 from .connection import *
 from .neuron import NeuronType
 from .layer import Ensemble
-from .encoder import Node
+from .encoder import Node, Encoder
 from .base import Helper
 import sys
 import time
@@ -89,6 +89,10 @@ class Simulator(object):
         start_ens = time.time()
         for ens in self.ensembles:
             ens.step()
+            if isinstance(ens.bloc, Encoder):
+                for neuron in ens.neuron_list:
+                    if neuron.active:
+                        ens.active_neuron_set.update(ens.neuron_list)
         end_ens = time.time()
         Helper.log('Simulator', log.DEBUG, 'all ensembles simulated')
 
