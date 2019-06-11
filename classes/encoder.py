@@ -7,6 +7,7 @@ import numpy as np
 import sys
 sys.dont_write_bytecode = True
 
+import skimage.filters as flt
 
 class DelayedNeuron(NeuronType):
     """
@@ -46,75 +47,6 @@ class DelayedNeuron(NeuronType):
         self.delay = delay + Helper.time
         self.active = active
         Helper.log('Neuron', log.DEBUG, 'neuron delay set to {}'.format(delay))
-
-
-class GaussianFiringNeuron(NeuronType):
-    """
-    Neuron used as a in a node
-    Fires after the specified set delay
-
-    Parameters
-    ---------
-    ensemble: Node
-        The Node this neuron belongs to
-    index: int
-        The index (in 1D or 2D) of the neuron in the ensemble
-
-    Attributes
-    ----------
-    firing_time : float
-        the next time the neuron should fire
-    active: bool
-        Defines if the neuron is ready to fire
-        deactivates after firing once, activates when new value is set
-    mu: float
-        gaussian parameter of the mean
-    sigma: float
-        gaussian parameter of the std dev
-    """
-
-    nb_spikes = 0
-
-    def __init__(self,):
-        super(GaussianFiringNeuron, self).__init__()
-        self.firing_time = -1
-        self.active = False
-        self.mu = self.sigma = self.delay_max = self.threshold = None
-        Helper.log('Neuron', log.DEBUG, str(self.index_2d) + 'neuron type: gaussian firing encoder')
-
-    def set_params(self, mu, sigma, delay_max, threshold):
-        self.mu = mu
-        self.sigma = sigma
-        self.delay_max = delay_max
-        self.threshold = threshold
-
-    def step(self):
-        if self.active and Helper.time >= self.firing_time:
-            Helper.log('Encoder', log.DEBUG, ' neuron {} from layer {} fired'.format(self.index_2d, self.ensemble.id))
-            self.active = False
-            self.send_spike()
-            GaussianFiringNeuron.nb_spikes += 1
-        else:
-            pass
-            # self.ensemble.active_neuron_list.append(self)
-
-    def set_value(self, value):
-        delay = (1-np.exp(-0.5*((value-self.mu)/self.sigma)**2))*self.delay_max
-        Helper.log('Encoder', log.DEBUG, "neuron {} will encode value {} spike at {}".format(self.index_2d, value, delay))
-        if delay < (self.delay_max * self. threshold):
-            self.firing_time = Helper.time + delay
-            self.active = True
-
-
-# class EncoderEnsemble(Ensemble):
-#
-#     def __init__(self, size, neuron_type, label='', **kwargs):
-#         super(EncoderEnsemble, self).__init__(size, neuron_type, label, **kwargs)
-#         Helper.log('Encoder', log.INFO, 'new encoder ensemble, layer {0}'.format(self.id))
-#
-#     def step(self):
-#         for neuron in self.neuron_list:
-#             neuron.step()
 
 
 class Encoder(Bloc):
@@ -168,31 +100,6 @@ class EncoderGFR(Encoder):
 
     """
 
-    # def __init__(self, depth, size, in_min, in_max, delay_max, threshold=0.9, gamma=1.5):
-    #     super(EncoderGFR, self).__init__(
-    #         depth=depth,
-    #         size=size,
-    #         neurontype=GaussianFiringNeuron()
-    #     )
-    #
-    #     sigma = (in_max - in_min) / (depth - 2.0) / gamma
-    #
-    #     for ens_index, ens in enumerate(self.ensemble_list):
-    #
-    #         mu = in_min + (ens_index + 1 - 1.5) * ((in_max - in_min) / (depth - 2.0))
-    #         for neuron in ens.neuron_list:
-    #             neuron.set_params(
-    #                 mu=mu,
-    #                 sigma=sigma,
-    #                 delay_max=delay_max,
-    #                 threshold=threshold)
-    #
-    #             # those neurons needs to always be active
-    #             # TODO: optimize this
-    #             ens.probed_neuron_set.add(neuron)
-    #     EncoderGFR.objects.append(self)
-    #     Helper.log('Encoder', log.INFO, 'new encoder bloc, layer {0}'.format(self.id))
-
     def __init__(self, depth, size, in_min, in_max, delay_max=1, threshold=0.9, gamma=1.5):
         super(EncoderGFR, self).__init__(
             depth=depth,
@@ -243,6 +150,55 @@ class EncoderGFR(Encoder):
         plt.xlabel('input number')
         plt.ylabel('Neuron delay after first')
         plt.title('Encoder sequence')
+
+
+class EncoderDoG(Encoder):
+    def __init__(self, depth, size, in_min, in_max, sigma=(0.3, 1), delay_max=1, threshold=0.6):
+        super(EncoderDoG, self).__init__(
+            depth=depth,
+            size=size,
+            in_min=in_min,
+            in_max=in_max,
+            neuron_type=DelayedNeuron()
+        )
+        self.sigma = sigma
+        self.threshold = threshold
+        self.delay_max = delay_max
+
+    def encode(self, data):
+        # data = np.reshape(data, self.size)
+        data_p = flt.gaussian(data, self.sigma[0])
+        # plt.figure()
+        # plt.imshow(data_p, cmap='gray')
+        # plt.title('data_p')
+        data_n = flt.gaussian(data, self.sigma[1])
+        # plt.figure()
+        # plt.imshow(data_n, cmap='gray')
+        # plt.title('data_n')
+        data_f = data_p - data_n
+        # plt.figure()
+        # plt.imshow(data_f, cmap='gray')
+        # plt.title('data_f')
+        delays = np.ndarray(self.size)
+        i_min = data_f.min()
+        i_max = data_f.max()
+        data_t = (data_f - i_min) / (i_max - i_min)
+        # plt.figure()
+        # plt.imshow(data_t, cmap='gray')
+        # plt.title('data_t')
+        for row in range(self.size[0]):
+            for col in range(self.size[1]):
+                if data_t[row, col] < self.threshold:
+                    data_t[row, col] = 0
+                delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
+                self.ensemble_list[0].neuron_array[row, col].set_value(delay)
+                delays[row, col] = delay
+        self.record.append(delays)
+
+    def plot(self, index=-1):
+        plt.figure()
+        plt.imshow(self.record[index], cmap='gray_r')
+        plt.title('Encoder sequence for input {}'.format(index))
 
 
 class Node(SimulationObject):
@@ -300,8 +256,3 @@ class Node(SimulationObject):
 
     def restore(self):
         self.dataset.index = 0
-
-
-class EncoderDoG(Ensemble):
-    def __init__(self, size, in_min=0, in_max=255, delay_max=1, sigma1=1, sigma2=3):
-        super(EncoderDoG, self).__init__(size, NeuronType=DelayedNeuron())
