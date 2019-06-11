@@ -28,8 +28,8 @@ class NeuronType(object):
         Stores the index (in 1D or 2D) of the neuron in the ensemble
     received: [(int, float)]
         List of received spikes containing (index, weight)
-    inhibited = False
-        self.inhibiting = False
+    inhibited: bool
+        is the neurons simulated
         self.learner
     *_probed: bool
         Stores on which type of variable this neuron is being probed
@@ -50,7 +50,6 @@ class NeuronType(object):
         self.last_active = 0
         self.halted = False
         self.inhibited = False
-        self.inhibiting = False
         self.variable_probed = False
         self.spike_out_probed = False
         self.spike_in_probed = False
@@ -80,25 +79,17 @@ class NeuronType(object):
         """ Append an axons which emitted a received spikes this step """
         # TODO: if in spike probing: do here
         self.received.append((index_1d, weight))
-        # Helper.log('Neuron', log.DEBUG,
-        #            'spike received by neuron {0}, layer {1} of amplitude {2}'
-        #            .format(self.index, self.ensemble.id, weight))
-        # Helper.log('Neuron', log.DEBUG,'spike received by neuron {0}, layer {1} of amplitude {2}')
 
     def send_spike(self):
         """ notify the spike to the layer """
         Helper.log('Neuron', log.DEBUG, ' {0} emit spike from layer {1}'.format(self.index_2d, self.ensemble.id))
         self.ensemble.create_spike(self.index_1d)
-        # self.ensemble.create_spike(self.index2d)
 
         if self.spike_out_probed:
             self.probed_values['spike_out'].append((Helper.time, self.index_2d))
             Helper.log('Neuron', log.DEBUG, ' {0} spike notification to probe'.format(self.index_2d))
 
         self.nb_out += 1
-        if self.inhibiting:
-            Helper.log('Neuron', log.DEBUG, ' {0} inhibition propagation'.format(self.index_2d))
-            self.ensemble.propagate_inhibition(index_2d_n=self.index_2d)
 
     def add_probe(self, probe, variable):
         self.probes[variable] = probe  # add probe to the dict of variable names
@@ -187,8 +178,8 @@ class LIF(NeuronType):
         if self.voltage >= self.threshold:
             Helper.log('Neuron', log.DEBUG, str() + '{0} voltage {1} exceeds threshold {2}: spike generated'
                        .format(self.index_2d, self.voltage, self.threshold))
-            self.voltage = 0
             self.send_spike()
+            self.voltage = 0
 
     def reset(self):
         super().reset()
@@ -244,8 +235,8 @@ class IF(NeuronType):
         if self.voltage >= self.threshold:
             Helper.log('Neuron', log.DEBUG, str() + '{0} voltage {1} exceeds threshold {2}: spike generated'
                        .format(self.index_2d, self.voltage, self.threshold))
-            self.voltage = 0
             self.send_spike()
+            self.voltage = 0
 
     def reset(self):
         super().reset()

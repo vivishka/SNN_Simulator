@@ -206,3 +206,44 @@ class SimplifiedSTDP(Learner):
         for connection in self.layer.in_connections:
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
+
+
+class Rstdp(Learner):
+
+    def __init__(self, dataset, eta_up=0.1, eta_down=0.1, anti_eta_up=0.1, anti_eta_down=0.1):
+        super(Rstdp, self).__init__(eta_up=eta_up, eta_down=eta_down,)
+        self.anti_eta_up = anti_eta_up
+        self.anti_eta_down = anti_eta_down
+        self.dataset = dataset
+
+    def process(self):
+        Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
+        # for each experiment in the batch that ends
+        for experiment_index in range(Helper.input_index):
+            Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
+
+            # for each spike emitted by the Ensemble during this experiment
+            for out_s in self.out_spikes[experiment_index]:
+                Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(out_s[1]))
+                dest_n = out_s[1]
+
+                # for all the spikes in_s received by the same neuron which emitted out_s
+                for in_s in self.in_spikes[experiment_index][dest_n]:
+                    source_n = in_s[1]
+                    connection = in_s[2]
+                    weight = in_s[3]
+
+                    dt = out_s[0] - in_s[0]
+                    dw = self.eta_up * (weight - connection.wmin) * (
+                                connection.wmax - weight) if dt >= 0 else self.eta_down * weight * (1 - weight)
+                    Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
+                               format(connection.id, source_n, dest_n, dw))
+                    # update weights in source connection
+                    new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
+                    connection.weights[(source_n, dest_n)] = new_w
+
+        self.out_spikes = []
+        self.in_spikes = []
+        for connection in self.layer.in_connections:
+            connection.probe()
+        Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))

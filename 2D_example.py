@@ -35,7 +35,7 @@ b1 = Bloc(4, img_size, LIF(threshold=1), SimplifiedSTDP(eta_up=0.1, eta_down=0.1
 d1 = Decoder(img_size)
 d2 = Decoder(img_size)
 
-c1 = Connection(e1, b1, kernel=(3, 3))
+c1 = Connection(e1, b1, kernel=(3, 3), shared=True)
 
 DiagonalConnection(e1, d1)
 Connection(b1, d2, kernel=1)
