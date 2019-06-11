@@ -216,7 +216,7 @@ class Rstdp(Learner):
         self.dataset = dataset
 
     def process(self):
-        Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
+        Helper.log('Learner', log.DEBUG, 'Processing rstdp ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
         for experiment_index in range(Helper.input_index):
             Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
