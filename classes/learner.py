@@ -1,5 +1,5 @@
 
-from .base import Helper, MeasureTiming
+from .base import Helper
 # from .neuron import NeuronType
 # from .ensemble import Ensemble
 import copy
@@ -53,23 +53,21 @@ class Learner(object):
         self.in_spikes = []
         self.out_spikes = []
         self.active = True
+        self.size = None
 
         # Helper.log('Learner', log.INFO, 'Learner initialized on ensemble {0}'.format(self.layer.id))
         Helper.log('Learner', log.INFO, 'Learner initialized TODO: change log'.format())
 
     def set_layer(self, layer):
         self.layer = layer
-        size = layer.size[0] * layer.size[1]
-        self.buffer_in_empty = np.ndarray(size, dtype=list)
-        for i in range(size):
+        self.size = layer.size[0] * layer.size[1]
+        self.buffer_in_empty = np.ndarray(self.size, dtype=list)
+        for i in range(self.size):
             self.buffer_in_empty[i] = []
         self.buffer_in = copy.deepcopy(self.buffer_in_empty)
 
     def in_spike(self, source_n, dest_n, weight, source_c):
         self.buffer_in[dest_n].append([Helper.time, source_n, source_c, weight, Helper.input_index])
-        # This log was responsible for half the connection time
-        # Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered input spike {1}'
-        #            .format(self.layer.id, [Helper.time, source_n, dest_n, weight, source_c, Helper.input_index]))
 
     def out_spike(self, source_n):
         if self.active:
@@ -173,8 +171,6 @@ class SimplifiedSTDP(Learner):
 
     def __init__(self, eta_up=0.1, eta_down=0.1):
         super(SimplifiedSTDP, self).__init__(eta_up=eta_up, eta_down=eta_down)
-        if self.eta_down > 0:
-            self.eta_down = -eta_down
 
     def process(self):  # call every batch
         Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
@@ -194,12 +190,15 @@ class SimplifiedSTDP(Learner):
                     weight = in_s[3]
 
                     dt = out_s[0] - in_s[0]
-                    dw = self.eta_up * (weight - connection.wmin) * (connection.wmax - weight) if dt >= 0 else self.eta_down * weight * (1 - weight)
+                    if dt >= 0:
+                        dw = self.eta_up * (weight - connection.wmin) * (connection.wmax - weight)
+                    else:
+                        dw = self.eta_down * (weight - connection.wmin) * (connection.wmax - weight)
                     Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
                                format(connection.id, source_n, dest_n, dw))
                     # update weights in source connection
-                    new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
-                    connection.weights[(source_n, dest_n)] = new_w
+                    # TODO: be careful of weights init above maw: stuck up there
+                    connection.weights[(source_n, dest_n)] = weight + dw
 
         self.out_spikes = []
         self.in_spikes = []
@@ -223,24 +222,40 @@ class Rstdp(Learner):
             Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
 
             # for each spike emitted by the Ensemble during this experiment
+            output = np.zeros(self.size)
             for out_s in self.out_spikes[experiment_index]:
-                Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(out_s[1]))
-                dest_n = out_s[1]
+                output[out_s[1]] = 1
+            if sum(output) == 0:
+                pass
+            elif sum(output) >= 2:
+                pass
+            else:
+                # only one spike emitted
+                output = output.nonzero()[0][0]
+                # TODO: get target value
+                target_value = self.dataset.labels[self.dataset.index]
+                a_p = self.eta_up if output == target_value else self.anti_eta_up
+                a_n = self.eta_down if output == target_value else self.anti_eta_down
 
-                # for all the spikes in_s received by the same neuron which emitted out_s
-                for in_s in self.in_spikes[experiment_index][dest_n]:
-                    source_n = in_s[1]
-                    connection = in_s[2]
-                    weight = in_s[3]
+                for out_s in self.out_spikes[experiment_index]:
+                    Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(out_s[1]))
+                    dest_n = out_s[1]
 
-                    dt = out_s[0] - in_s[0]
-                    dw = self.eta_up * (weight - connection.wmin) * (
-                                connection.wmax - weight) if dt >= 0 else self.eta_down * weight * (1 - weight)
-                    Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
-                               format(connection.id, source_n, dest_n, dw))
-                    # update weights in source connection
-                    new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
-                    connection.weights[(source_n, dest_n)] = new_w
+                    # for all the spikes in_s received by the same neuron which emitted out_s
+                    for in_s in self.in_spikes[experiment_index][dest_n]:
+                        source_n = in_s[1]
+                        connection = in_s[2]
+                        weight = in_s[3]
+
+                        dt = out_s[0] - in_s[0]
+                        if dt >= 0:
+                            dw = a_p * (weight - connection.wmin) * (connection.wmax - weight)
+                        else:
+                            dw = a_n * (weight - connection.wmin) * (connection.wmax - weight)
+                        Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
+                                   format(connection.id, source_n, dest_n, dw))
+                        # update weights in source connection
+                        connection.weights[(source_n, dest_n)] = weight + dw
 
         self.out_spikes = []
         self.in_spikes = []
