@@ -34,9 +34,10 @@ class Simulator(object):
         self.step_time = 0
         self.prop_time = 0
         self.batch_size = batch_size
+
         Helper.log('Simulator', log.INFO, 'new simulator created')
 
-    def run(self, duration):
+    def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
         Helper.log('Simulator', log.INFO, 'simulation start')
         start = time.time()
         self.nb_step = int(duration / Helper.dt)
@@ -47,20 +48,20 @@ class Simulator(object):
         for node in self.nodes:
             node.step()
 
+        converged = False
         # runs for the specified number of steps
-        for i in range(self.nb_step):
-            Helper.log('Simulator', log.DEBUG, 'next step {0}'.format(i+1))
-
-            # every input period, reset and restart
-            if Helper.time >= self.next_reset:
-                Helper.log('Simulator', log.DEBUG, 'end of input cycle: reset of network and next input')
-                self.reset()
-                self.next_reset += self.input_period
-                for node in self.nodes:
-                    node.step()
-
+        while Helper.step_nb < self.nb_step and not converged:
+            Helper.log('Simulator', log.DEBUG, 'next step {0}'.format(self.nb_step))
             self.step()
-        # self.reset()
+            if monitor_connection:
+                conv_coeff = monitor_connection.get_convergence()
+                if conv_coeff < convergence_threshold:
+                    converged = True
+                    Helper.log('Simulator', log.INFO, 'Connection weight converged, ending simulation at step {} '
+                               .format(Helper.step_nb))
+        if monitor_connection and not converged:
+            Helper.log('Simulator', log.WARNING, 'Connection weight did not converged, final convergence {} '
+                       .format(conv_coeff))
         end = time.time()
 
         Helper.log('Simulator', log.INFO, 'simulating ended')
@@ -73,8 +74,16 @@ class Simulator(object):
         for every steps, evaluate inputs, then ensembles, then propagate spikes
         also updates the Helper
         """
+        # every input period, reset and restart
+        if Helper.time >= self.next_reset:
+            Helper.log('Simulator', log.DEBUG, 'end of input cycle: reset of network and next input')
+            self.reset()
+            self.next_reset += self.input_period
+            for node in self.nodes:
+                node.step()
 
         Helper.step()
+
         # Ensembles
         Helper.log('Simulator', log.DEBUG, 'simulating ensembles')
         start_ens = time.time()

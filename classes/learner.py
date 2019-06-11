@@ -194,7 +194,7 @@ class SimplifiedSTDP(Learner):
                     weight = in_s[3]
 
                     dt = out_s[0] - in_s[0]
-                    dw = self.eta_up * weight * (1 - weight) if dt >= 0 else self.eta_down * weight * (1 - weight)
+                    dw = self.eta_up * (weight - connection.wmin) * (connection.wmax - weight) if dt >= 0 else self.eta_down * weight * (1 - weight)
                     Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
                                format(connection.id, source_n, dest_n, dw))
                     # update weights in source connection
