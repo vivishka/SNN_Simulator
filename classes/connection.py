@@ -155,6 +155,14 @@ class Connection(SimulationObject):
                 conv += con.get_convergence()
         return conv
 
+    def plot(self):
+        if self.active:
+            self.weights.plot()
+        else:
+            for con in self.connection_list:
+                con.plot()
+
+
 class DiagonalConnection(Connection):
     
     def __init__(self, source_l, dest_l):

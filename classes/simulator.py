@@ -85,10 +85,12 @@ class Simulator(object):
             self.next_reset += self.input_period
             for node in self.nodes:
                 node.step()
-            print('Time {} / {}, end estimated {} minutes'
+            time_left = int(self.duration - Helper.time) * (time.time() - self.last_time)
+            print('Time {} / {}, end estimated {} hour(s) {} minute(s)'
                   .format(int(Helper.time),
                           self.duration,
-                          int((self.duration - Helper.time) * (time.time() - self.last_time)/60)))
+                          time_left % 3600,
+                          time_left % 60))
             self.last_time = time.time()
 
 

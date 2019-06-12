@@ -2,6 +2,7 @@ from .compactmatrix import CompactMatrix, SharedCompactMatrix
 from .base import Helper, MeasureTiming
 import numpy as np
 import logging as log
+import matplotlib.pyplot as plt
 
 
 class Weights(object):
@@ -131,6 +132,11 @@ class Weights(object):
         #     else:
         #         self.init_weight_kernel()
         pass
+
+    def plot(self):
+        plt.figure()
+        kernel = self.matrix.get_kernel()
+        plt.imshow(np.array(kernel), cmap="gray")
 
     def __getitem__(self, index):
         return self.matrix[index]

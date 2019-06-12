@@ -32,7 +32,7 @@ mpl_logger.setLevel(log.WARNING)
 filename = 'datasets/fashionmnist/fashion-mnist_train.csv'
 img_size = (28, 28)
 first_image = 1
-image_dataset = FileDataset(filename, first_image, size=img_size, length=-1)
+image_dataset = FileDataset(filename, first_image, size=img_size, length=3)
 
 model = Network()
 e1 = EncoderDoG(sigma=[(3/9, 6/9), (7/9, 14/9), (13/6, 26/9)],
@@ -46,13 +46,14 @@ b1.set_dataset(image_dataset)
 
 d1 = Decoder(img_size)
 
-c1 = Connection(e1, b1, kernel=(1, 1))
+c1 = Connection(e1, b1, kernel=(3, 3), shared=True)
 
 c2 = Connection(b1, d1, kernel=1)
 
 
 sim = Simulator(model, 0.02, input_period=1, batch_size=1)
 sim.run(len(image_dataset.data))
+c1.plot()
 sim.save('tests.w')
 
 # for index in range(image_dataset.length):
