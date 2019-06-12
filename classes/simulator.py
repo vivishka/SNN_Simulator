@@ -84,8 +84,8 @@ class Simulator(object):
             self.next_reset += self.input_period
             for node in self.nodes:
                 node.step()
-            print('Image {} / {}'.format(Helper.input_index, self.duration))
-            Helper.input_index += 1
+            print('Time {} / {}'.format(Helper.time, self.duration))
+
 
         Helper.step()
 
