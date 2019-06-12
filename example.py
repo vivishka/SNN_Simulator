@@ -15,11 +15,12 @@ from classes.encoder import *
 from classes.dataset import *
 from classes.learner import *
 
-from sklearn import datasets as ds
-from skimage import filters as flt
-from pandas import DataFrame
+# from sklearn import datasets as ds
+# from skimage import filters as flt
+# from pandas import DataFrame
 
 import sys
+
 sys.dont_write_bytecode = True
 
 mpl_logger = log.getLogger('matplotlib')
@@ -44,25 +45,25 @@ def exp2generator(size, gap=0.5, width=0.25):
     return cat.tolist(), data
 
 
-def exp3generator(size):
-    data, labels = ds.make_blobs(n_samples=size, n_features=2, centers=2, cluster_std=0.04, center_box=(0, 1),
-                           shuffle=True, random_state=None)
-
-    # scatter plot, dots colored by class value
-    df = DataFrame(dict(x=data[:, 0], y=data[:, 1], label=labels))
-    colors = {0: 'red', 1: 'blue'}
-    fig, ax = plt.subplots()
-    grouped = df.groupby('label')
-    for key, group in grouped:
-        group.plot(ax=ax, kind='scatter', x='x', y='y', label=key, color=colors[key])
-    return labels.tolist(), data.tolist()
+# def exp3generator(size):
+#     data, labels = ds.make_blobs(n_samples=size, n_features=2, centers=2, cluster_std=0.04, center_box=(0, 1),
+#                            shuffle=True, random_state=None)
+#
+#     # scatter plot, dots colored by class value
+#     df = DataFrame(dict(x=data[:, 0], y=data[:, 1], label=labels))
+#     colors = {0: 'red', 1: 'blue'}
+#     fig, ax = plt.subplots()
+#     grouped = df.groupby('label')
+#     for key, group in grouped:
+#         group.plot(ax=ax, kind='scatter', x='x', y='y', label=key, color=colors[key])
+#     return labels.tolist(), data.tolist()
 
 
 Helper.init_logging('main.log', log.INFO, ['Simulator'])
 
 for i in range(1):
     model = Network()
-    n_nodes = 5
+    n_nodes = 4
     n_int = 10
     n_out = 2
     dataset = VectorDataset(size=2000, generator=exp1generator)
@@ -81,26 +82,27 @@ for i in range(1):
     #          tau_down=0.1,
     #          )
     #           )
-    b1 = Bloc(1, n_out, IF(threshold=0.94),
-             learner=
-             Rstdp(
-             dataset=dataset,
-             eta_up=0.015,
-             eta_down=-0.045,
-             anti_eta_up=-0.03,
-             anti_eta_down=0.03,
-             )
+    b1 = Bloc(1, n_out, IF(threshold=1),
+              learner=Rstdp(
+                  eta_up=0.03,
+                  eta_down=-0.03,
+                  anti_eta_up=-0.03,
+                  anti_eta_down=0.01,
+                  wta=False
               )
+              )
+    # b1.set_inhibition(0)
+    b1.set_dataset(dataset)
     d1 = Decoder(n_nodes)
     d2 = DecoderClassifier(n_out, dataset)
-    c1 = Connection(e1, b1, wmin=0, wmax=0.6)
+    c1 = Connection(e1, b1, wmin=0, wmax=0.8)
     c2 = DiagonalConnection(e1, d1)
-    c3 = Connection(b1, d2, 0, 0.4, kernel=1)
+    c3 = Connection(b1, d2, wmin=0, wmax=0.4, kernel=1)
 
     np1 = NeuronProbe(b1[0], 'voltage')
     cp1 = ConnectionProbe(c1)
 
-    sim = Simulator(model, 0.02, input_period=1, batch_size=1)
+    sim = Simulator(model, 0.02, input_period=1, batch_size=2)
     sim.run(1800, monitor_connection=c1, convergence_threshold=0.0005)
     np1.plot('voltage')
     # Helper.init_logging('main2.log', log.DEBUG, ['All'])
@@ -109,12 +111,12 @@ for i in range(1):
     model.restore()
     sim.load('main_trained.w')
     b1[0].learner.active = False
+    b1.set_inhibition(0)
 
     # dataset_test = VectorDataset(size=200, generator=exp3generator)
     # d2.dataset = dataset_test
     # n1.dataset = dataset_test
     sim.run(200)
-
 
     cp1.plot()
     # cp2.plot()
@@ -129,9 +131,8 @@ for i in range(1):
     # sim.save("main.w")
     # exp1_dataset.plot('Data')
     # exp1_dataset.plot('Labels')
-    d1.plot()
+    # d1.plot()
     # d2.plot("first_spike")
-
 
 plt.show()
 # print(e2[1][5].label)

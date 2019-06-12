@@ -26,6 +26,7 @@ class Simulator(object):
         Helper.dt = dt
         Helper.time = 0
         Helper.input_period = input_period
+        Helper.batch_size = batch_size
         model.build()
         self.objects = model.get_all_objects()
         self.ensembles = self.objects[Ensemble]
@@ -116,7 +117,7 @@ class Simulator(object):
         Helper.log('Simulator', log.DEBUG, 'all ensembles reset')
 
         # apply learner if present
-        if Helper.input_index == self.batch_size:
+        if Helper.input_index + 1 >= self.batch_size:
             Helper.log('Simulator', log.INFO, 'end of batch: updating matrices')
             for ensemble in self.ensembles:
                 if ensemble.learner and ensemble.learner.active:

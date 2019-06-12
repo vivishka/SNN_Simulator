@@ -175,7 +175,7 @@ class SimplifiedSTDP(Learner):
     def process(self):  # call every batch
         Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
-        for experiment_index in range(Helper.input_index):
+        for experiment_index in range(Helper.batch_size):
             Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
 
             # for each spike emitted by the Ensemble during this experiment
@@ -209,53 +209,53 @@ class SimplifiedSTDP(Learner):
 
 class Rstdp(Learner):
 
-    def __init__(self, dataset, eta_up=0.1, eta_down=0.1, anti_eta_up=0.1, anti_eta_down=0.1):
+    def __init__(self, eta_up=0.1, eta_down=0.1, anti_eta_up=0.1, anti_eta_down=0.1, wta=True):
         super(Rstdp, self).__init__(eta_up=eta_up, eta_down=eta_down,)
         self.anti_eta_up = anti_eta_up
         self.anti_eta_down = anti_eta_down
-        self.dataset = dataset
+        self.dataset = None
+        self.wta = wta
 
     def process(self):
         Helper.log('Learner', log.DEBUG, 'Processing rstdp ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
-        for experiment_index in range(Helper.input_index):
+        for experiment_index in range(Helper.batch_size):
             Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
 
-            # for each spike emitted by the Ensemble during this experiment
-            output = np.zeros(self.size)
-            for out_s in self.out_spikes[experiment_index]:
-                output[out_s[1]] = 1
-            if sum(output) == 0:
-                pass
-            elif sum(output) >= 2:
-                pass
-            else:
-                # only one spike emitted
-                output = output.nonzero()[0][0]
-                # TODO: get target value
-                target_value = self.dataset.labels[self.dataset.index]
-                a_p = self.eta_up if output == target_value else self.anti_eta_up
-                a_n = self.eta_down if output == target_value else self.anti_eta_down
+            if not self.out_spikes[experiment_index]:
+                # if no spikes for this experience
+                # TODO: do something
+                continue
 
-                for out_s in self.out_spikes[experiment_index]:
-                    Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(out_s[1]))
-                    dest_n = out_s[1]
+            output_value = self.out_spikes[experiment_index][0][1]
+            target_value = self.dataset.labels[self.dataset.index]
+            print(output_value, target_value)
+            a_p = self.eta_up if output_value == target_value else self.anti_eta_up
+            a_n = self.eta_down if output_value == target_value else self.anti_eta_down
 
-                    # for all the spikes in_s received by the same neuron which emitted out_s
-                    for in_s in self.in_spikes[experiment_index][dest_n]:
-                        source_n = in_s[1]
-                        connection = in_s[2]
-                        weight = in_s[3]
+            # if wta: only the first spike leads to learning
+            # else, each spike received leads to learning
+            out_s_list = self.out_spikes[experiment_index][:1] if self.wta else self.out_spikes[experiment_index]
+            for out_s in out_s_list:
 
-                        dt = out_s[0] - in_s[0]
-                        if dt >= 0:
-                            dw = a_p * (weight - connection.wmin) * (connection.wmax - weight)
-                        else:
-                            dw = a_n * (weight - connection.wmin) * (connection.wmax - weight)
-                        Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
-                                   format(connection.id, source_n, dest_n, dw))
-                        # update weights in source connection
-                        connection.weights[(source_n, dest_n)] = weight + dw
+                dest_n = out_s[1]
+                Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(dest_n))
+
+                # for all the spikes in_s received by the same neuron which emitted out_s
+                for in_s in self.in_spikes[experiment_index][dest_n]:
+                    source_n = in_s[1]
+                    connection = in_s[2]
+                    weight = in_s[3]
+
+                    dt = out_s[0] - in_s[0]
+                    if dt >= 0:
+                        dw = a_p * (weight - connection.wmin) * (connection.wmax - weight)
+                    else:
+                        dw = a_n * (weight - connection.wmin) * (connection.wmax - weight)
+                    Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
+                               format(connection.id, source_n, dest_n, dw))
+                    # update weights in source connection
+                    connection.weights[(source_n, dest_n)] = weight + dw
 
         self.out_spikes = []
         self.in_spikes = []

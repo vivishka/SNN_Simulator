@@ -268,7 +268,7 @@ class Bloc(Layer):
         Bloc.index += 1
         self.depth = depth
         self.size = (1, size) if isinstance(size, int) else size
-        self.inhibition_radius = (1, 1)
+        self.inhibition_radius = (0, 0)
 
         # Ensemble creation
         for i in range(depth):
@@ -282,6 +282,10 @@ class Bloc(Layer):
             self.ensemble_list.append(ens)
         Helper.log('Layer', log.INFO, 'layer type : bloc of size {0}'.format(depth))
 
+    def set_dataset(self, dataset):
+        for ens in self.ensemble_list:
+            ens.learner.dataset = dataset
+
     def set_inhibition(self, radius=None):
         if radius is not None:
             self.inhibition_radius = radius
@@ -291,9 +295,10 @@ class Bloc(Layer):
             ens.set_inhibition()
 
     def propagate_inhibition(self, index_2d_n):
-        for ens in self.ensemble_list:
-            ens.inhibit(index_2d_n, self.inhibition_radius)
-            Helper.log('Layer', log.INFO, 'ensemble {0} inhibited by propagation'.format(ens.id))
+        if sum(self.inhibition_radius) > 0:
+            for ens in self.ensemble_list:
+                ens.inhibit(index_2d_n, self.inhibition_radius)
+                Helper.log('Layer', log.INFO, 'ensemble {0} inhibited by propagation'.format(ens.id))
 
     def __getitem__(self, index):
         return self.ensemble_list[index]

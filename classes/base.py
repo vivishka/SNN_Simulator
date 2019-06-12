@@ -33,6 +33,7 @@ class Helper(object):
     dt = 0.
     nb = 0.
     input_index = 0
+    batch_size = 0
     input_period = 0
 
     logged_modules = []  # Helper, Neuron, Encoder, Decoder, Connection, Simulator, Layer, Learner, Dataset, All
