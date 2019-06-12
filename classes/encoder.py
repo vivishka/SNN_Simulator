@@ -1,5 +1,5 @@
 import logging as log
-from .base import SimulationObject, Helper
+from .base import SimulationObject, Helper, MeasureTiming
 from .neuron import NeuronType
 from .layer import Ensemble, Bloc
 from .dataset import *
@@ -153,7 +153,8 @@ class EncoderGFR(Encoder):
 
 
 class EncoderDoG(Encoder):
-    def __init__(self, depth, size, in_min, in_max, sigma=(0.3, 1), delay_max=1, threshold=0.6):
+    def __init__(self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1, threshold=0.5):
+        depth = len(sigma) * 2
         super(EncoderDoG, self).__init__(
             depth=depth,
             size=size,
@@ -161,44 +162,82 @@ class EncoderDoG(Encoder):
             in_max=in_max,
             neuron_type=DelayedNeuron()
         )
-        self.sigma = sigma
+        self.sigma = sigma  # [(s1,s2), (s3,s4) ...]
+        self.kernel_sizes = kernel_sizes  # [5,7...]
         self.threshold = threshold
         self.delay_max = delay_max
 
+    @MeasureTiming('enc_dog')
     def encode(self, data):
-        # data = np.reshape(data, self.size)
-        data_p = flt.gaussian(data, self.sigma[0])
-        # plt.figure()
-        # plt.imshow(data_p, cmap='gray')
-        # plt.title('data_p')
-        data_n = flt.gaussian(data, self.sigma[1])
-        # plt.figure()
-        # plt.imshow(data_n, cmap='gray')
-        # plt.title('data_n')
-        data_f = data_p - data_n
-        # plt.figure()
-        # plt.imshow(data_f, cmap='gray')
-        # plt.title('data_f')
-        delays = np.ndarray(self.size)
-        i_min = data_f.min()
-        i_max = data_f.max()
-        data_t = (data_f - i_min) / (i_max - i_min)
-        # plt.figure()
-        # plt.imshow(data_t, cmap='gray')
-        # plt.title('data_t')
-        for row in range(self.size[0]):
-            for col in range(self.size[1]):
-                if data_t[row, col] < self.threshold:
-                    data_t[row, col] = 0
-                delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
-                self.ensemble_list[0].neuron_array[row, col].set_value(delay)
-                delays[row, col] = delay
-        self.record.append(delays)
+        delays = np.ndarray((self.size[0], self.size[1], self.depth))
+        for index, sigmas in enumerate(self.sigma):
+            # fact = self.sigma[index][1]/self.sigma[index][0]
+            # data = np.reshape(data, self.size)
+            # data_p = flt.gaussian(data, self.sigma[index][0])
+            # plt.figure()
+            # plt.imshow(data_p, cmap='gray')
+            # plt.title('data_p layer ' + str(index)')
+            # data_n = flt.gaussian(data, self.sigma[index][1])
+            # plt.figure()
+            # plt.imshow(data_n, cmap='gray')
+            # plt.title('data_n layer ' + str(index))
+            data_f = (self.filter(data, sigmas[0], sigmas[1], self.kernel_sizes[index]),
+                      self.filter(data, sigmas[1], sigmas[0], self.kernel_sizes[index]))
+            # data_f = (data_p-data_n, data_n-data_p)
+            # plt.figure()
+            # plt.imshow(data_f, cmap='gray')
+            # plt.title('data_f layer ' + str(index))
+            for k in range(2):
+                i_min = data_f[k].min()
+                i_max = data_f[k].max()
+                data_t = (data_f[k] - i_min) / (i_max - i_min)
+                # plt.figure()
+                # plt.imshow(data_t, cmap='gray')
+                # plt.title('data_t layer ' + str(2 * index + k))
+                self.threshold = np.mean(data_t)*1.1
+                for row in range(self.size[0]):
+                    for col in range(self.size[1]):
+                        delay = self.delay_max
+                        if data_t[row, col] < self.threshold:# * (1-k) + (1 - self.threshold) * k:
+                            data_t[row, col] = 0
+                        else:
+                            delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
+                            self.ensemble_list[2 * index + k].neuron_array[row, col].set_value(delay)
+                        delays[row, col, 2 * index + k] = delay
+            self.record.append(delays)
 
-    def plot(self, index=-1):
+    def plot(self, index=-1, layer=0):
         plt.figure()
-        plt.imshow(self.record[index], cmap='gray_r')
-        plt.title('Encoder sequence for input {}'.format(index))
+        plt.imshow(self.record[index][:, :, layer], cmap='gray_r')
+        plt.title('Encoder sequence for input {} layer {}'.format(index, layer))
+
+    def filter(self, image, sigma1, sigma2, size=7):
+        # create kernel (code from spyketorch)
+        w = size // 2
+        x, y = np.mgrid[-w:w + 1:1, -w:w + 1:1]
+        a = 1.0 / (2 * np.pi)
+        prod = x * x + y * y
+        f1 = (1 / (sigma1 * sigma1)) * np.exp(-0.5 * (1 / (sigma1 * sigma1)) * (prod))
+        f2 = (1 / (sigma2 * sigma2)) * np.exp(-0.5 * (1 / (sigma2 * sigma2)) * (prod))
+        dog = a * (f1 - f2)
+        dog_mean = np.mean(dog)
+        dog = dog - dog_mean
+        dog_max = np.max(dog)
+        dog = dog / dog_max
+
+        # Apply kernel to image
+        img_padded = np.zeros((image.shape[0] + 2 * w, image.shape[1] + 2 * w))
+        img_padded[w:image.shape[0]+w, w:image.shape[1]+w] = image
+        img_filtered = np.zeros(image.shape)
+        for row in range(image.shape[0]):
+            for col in range(image.shape[1]):
+                px = 0
+                for k_row in range(-w, w+1):
+                    for k_col in range(-w, w+1):
+                        px += img_padded[row + k_row, col + k_col] * dog[k_row, k_col]
+                img_filtered[row, col] = px
+        return img_filtered
+
 
 
 class Node(SimulationObject):

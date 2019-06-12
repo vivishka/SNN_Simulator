@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import logging as log
-from .base import Helper
+from .base import Helper, MeasureTiming
 import sys
 sys.dont_write_bytecode = True
 
@@ -65,22 +65,35 @@ class VectorDataset(Dataset):
 
 class FileDataset(Dataset):
 
-    def __init__(self, path, index=0, size=(28, 28)):
+    def __init__(self, path, index=0, size=(28, 28), length=-1):
         super(FileDataset, self).__init__(index)
         self.size = size
         self.path = path
+        self.length = length
         self.load()
 
+    @MeasureTiming('file_load')
     def load(self):
         Helper.log('Dataset', log.INFO, 'reading file')
         self.file = open(self.path, 'r')
-        self.file.__next__()
-        temp = self.file.readlines()
-        for string in temp:
-            self.data.append(np.array(string[2:].split(',')).astype(np.uint8).reshape(self.size))
-            self.labels.append(np.array(string[0]).astype(np.uint8))
+        self.file.__next__()  # skip first line
+        if self.length < 0:
+            temp = self.file.readlines()
+            for string in temp:
+                self.data.append(np.array(string[2:].split(',')).astype(np.uint8).reshape(self.size))
+                self.labels.append(np.array(string[0]).astype(np.uint8))
+        else:
+            for line in range(self.length):
+                string = self.file.readline()
+                self.data.append(np.array(string[2:].split(',')).astype(np.uint8).reshape(self.size))
+                self.labels.append(np.array(string[0]).astype(np.uint8))
+
         self.file.close()
         Helper.log('Dataset', log.INFO, 'reading file done')
+
+    def plot(self, index=-1):
+        plt.figure()
+        plt.imshow(self.data[index], cmap='gray')
 
 
 class PatternGeneratorDataset(Dataset):

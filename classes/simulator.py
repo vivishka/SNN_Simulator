@@ -37,7 +37,7 @@ class Simulator(object):
         self.batch_size = batch_size
 
         Helper.log('Simulator', log.INFO, 'new simulator created')
-
+    @MeasureTiming('sim_run')
     def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
         Helper.log('Simulator', log.INFO, 'simulation start')
         start = time.time()
