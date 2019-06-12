@@ -35,10 +35,12 @@ class Simulator(object):
         self.step_time = 0
         self.prop_time = 0
         self.batch_size = batch_size
+        self.duration = -1
 
         Helper.log('Simulator', log.INFO, 'new simulator created')
     @MeasureTiming('sim_run')
     def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
+        self.duration = duration
         Helper.log('Simulator', log.INFO, 'simulation start')
         start = time.time()
         self.nb_step = int(duration / Helper.dt)
@@ -82,6 +84,8 @@ class Simulator(object):
             self.next_reset += self.input_period
             for node in self.nodes:
                 node.step()
+            print('Image {} / {}'.format(Helper.input_index, self.duration))
+            Helper.input_index += 1
 
         Helper.step()
 

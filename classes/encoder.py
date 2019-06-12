@@ -169,7 +169,7 @@ class EncoderDoG(Encoder):
 
     @MeasureTiming('enc_dog')
     def encode(self, data):
-        delays = np.ndarray((self.size[0], self.size[1], self.depth))
+        delays = np.zeros((self.size[0], self.size[1], self.depth))
         for index, sigmas in enumerate(self.sigma):
             # fact = self.sigma[index][1]/self.sigma[index][0]
             # data = np.reshape(data, self.size)
@@ -204,7 +204,7 @@ class EncoderDoG(Encoder):
                             delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
                             self.ensemble_list[2 * index + k].neuron_array[row, col].set_value(delay)
                         delays[row, col, 2 * index + k] = delay
-            self.record.append(delays)
+        self.record.append(delays)
 
     def plot(self, index=-1, layer=0):
         plt.figure()

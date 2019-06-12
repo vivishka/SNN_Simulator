@@ -1,5 +1,5 @@
 
-from .base import Helper
+from .base import Helper, MeasureTiming
 # from .neuron import NeuronType
 # from .ensemble import Ensemble
 import copy
@@ -216,6 +216,7 @@ class Rstdp(Learner):
         self.dataset = None
         self.wta = wta
 
+    @MeasureTiming('Learning')
     def process(self):
         Helper.log('Learner', log.DEBUG, 'Processing rstdp ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
@@ -229,7 +230,7 @@ class Rstdp(Learner):
 
             output_value = self.out_spikes[experiment_index][0][1]
             target_value = self.dataset.labels[self.dataset.index]
-            print(output_value, target_value)
+            # print(output_value, target_value)
             a_p = self.eta_up if output_value == target_value else self.anti_eta_up
             a_n = self.eta_down if output_value == target_value else self.anti_eta_down
 
