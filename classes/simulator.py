@@ -36,6 +36,7 @@ class Simulator(object):
         self.prop_time = 0
         self.batch_size = batch_size
         self.duration = -1
+        self.last_time = 0
 
         Helper.log('Simulator', log.INFO, 'new simulator created')
     @MeasureTiming('sim_run')
@@ -84,7 +85,11 @@ class Simulator(object):
             self.next_reset += self.input_period
             for node in self.nodes:
                 node.step()
-            print('Time {} / {}'.format(Helper.time, self.duration))
+            print('Time {} / {}, end estimated {} minutes'
+                  .format(int(Helper.time),
+                          self.duration,
+                          int((self.duration - Helper.time) * (time.time() - self.last_time)/60)))
+            self.last_time = time.time()
 
 
         Helper.step()
