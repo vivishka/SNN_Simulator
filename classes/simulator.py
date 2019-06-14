@@ -72,7 +72,7 @@ class Simulator(object):
         Helper.log('Simulator', log.INFO, 'network of {0} neurons'.format(NeuronType.nb_neuron))
         Helper.log('Simulator', log.INFO, 'total time of {0}, step: {1}, synapse: {2}'
                    .format(end - start, self.step_time, self.prop_time))
-
+    @MeasureTiming('sim_step')
     def step(self):
         """
         for every steps, evaluate inputs, then ensembles, then propagate spikes
@@ -86,11 +86,12 @@ class Simulator(object):
             for node in self.nodes:
                 node.step()
             time_left = int(self.duration - Helper.time) * (time.time() - self.last_time)
-            print('Time {} / {}, end estimated {} hour(s) {} minute(s)'
+            print('Time {} / {}, end estimated {} hours {} minutes {} seconds'
                   .format(int(Helper.time),
                           self.duration,
-                          time_left % 3600,
-                          time_left % 60))
+                          int(time_left // 3600),
+                          int(time_left // 60),
+                          int(time_left % 60)))
             self.last_time = time.time()
 
 
