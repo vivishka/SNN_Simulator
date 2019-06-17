@@ -106,8 +106,8 @@ class PatternGeneratorDataset(Dataset):
         self.load()
 
     def load(self):
-        k1 = np.array([[1], [1], [1]], dtype=int)
-        k2 = np.array([[1, 1, 1]], dtype=int)
+        # k1 = np.array([[1], [1], [1]], dtype=int)
+        # k2 = np.array([[1, 1, 1]], dtype=int)
         k3 = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=int)
         k4 = np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]], dtype=int)
 
@@ -122,7 +122,8 @@ class PatternGeneratorDataset(Dataset):
         if self.nb_images == 1:
             plt.show()
 
-    def pattern_image_generator(self, size, pattern_list, nb_features):
+    @staticmethod
+    def pattern_image_generator(size, pattern_list, nb_features):
         mat = np.zeros(size, dtype=float)
         nb_div = int(np.ceil(np.sqrt(nb_features)))
         x_div = size[0] // nb_div
@@ -150,4 +151,3 @@ class PatternGeneratorDataset(Dataset):
 
         mat = np.clip(mat, 0, 1) * 255
         return mat.astype('uint8')
-
