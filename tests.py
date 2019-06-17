@@ -30,20 +30,22 @@ mpl_logger.setLevel(log.WARNING)
 
 
 filename = 'datasets/fashionmnist/fashion-mnist_train.csv'
-img_size = (28, 28)
-first_image = 1
-image_dataset = FileDataset(filename, first_image, size=img_size, length=1)
-
+# img_size = (28, 28)
+img_size = (12, 12)
+first_image = np.random.randint(0, 59999)
+print("init dataset image {}".format(first_image))
+image_dataset = FileDataset(filename, first_image, size=img_size, length=500)
+# image_dataset = PatternGeneratorDataset(index=0, size=img_size, nb_images=300, nb_features=9)
 model = Network()
-e1 = EncoderDoG(sigma=[(3/9, 6/9), (7/9, 14/9), (13/6, 26/9)],
-                kernel_sizes=[3, 7, 13], size=img_size, in_min=0, in_max=255, delay_max=1, threshold=0.8)
+e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
+                kernel_sizes=[3], size=img_size, in_min=0, in_max=255, delay_max=1)
 n1 = Node(e1, image_dataset, 1, 0)
-b1 = Bloc(4, img_size, IF(threshold=5), SimplifiedSTDP(
-    eta_up=0.03,
-    eta_down=-0.09,
+b1 = Bloc(8, img_size, IF(threshold=2), SimplifiedSTDP(
+    eta_up=0.05,
+    eta_down=-0.05,
 ))
 b1.set_dataset(image_dataset)
-
+b1.set_inhibition(1)
 d1 = Decoder(img_size)
 
 c1 = Connection(e1, b1, kernel=(3, 3), shared=True)
@@ -54,19 +56,18 @@ for con in c1:
 c2 = Connection(b1, d1, kernel=1)
 
 
-sim = Simulator(model, 0.02, input_period=1, batch_size=1)
+sim = Simulator(model, 1/15, input_period=1, batch_size=1)
 sim.run(len(image_dataset.data)+0.02)
-image_dataset.plot(0)
-e1.plot(layer=4)
-# c1.plot()
-# for cp in cps:
-#     cp.plot()
+# image_dataset.plot(-1)
+# e1.plot(layer=4)
+c1.plot()
+for cp in cps:
+    cp.plot()
 sim.save('tests.w')
 
 # for index in range(image_dataset.length):
 #     image_dataset.plot(index)
-#     for ens in range(6):
-#         e1.plot(index, ens)
+#     e1.plot(index, 1)
 
 
 Helper.print_timings()

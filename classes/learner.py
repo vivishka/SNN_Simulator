@@ -172,6 +172,7 @@ class SimplifiedSTDP(Learner):
     def __init__(self, eta_up=0.1, eta_down=0.1):
         super(SimplifiedSTDP, self).__init__(eta_up=eta_up, eta_down=eta_down)
 
+    @MeasureTiming('Learning')
     def process(self):  # call every batch
         Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
@@ -192,12 +193,18 @@ class SimplifiedSTDP(Learner):
                     dt = out_s[0] - in_s[0]
                     if dt >= 0:
                         dw = self.eta_up * (weight - connection.wmin) * (connection.wmax - weight)
+                        # dw = self.eta_up
                     else:
                         dw = self.eta_down * (weight - connection.wmin) * (connection.wmax - weight)
+                        # dw = self.eta_down
                     Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
                                format(connection.id, source_n, dest_n, dw))
                     # update weights in source connection
                     # TODO: be careful of weights init above maw: stuck up there
+                    if connection.wmin > weight + dw:
+                        dw = weight - connection.wmin
+                    elif connection.wmax < weight + dw:
+                        dw = weight - connection.wmax
                     connection.weights[(source_n, dest_n)] = weight + dw
 
         self.out_spikes = []

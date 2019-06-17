@@ -153,7 +153,7 @@ class EncoderGFR(Encoder):
 
 
 class EncoderDoG(Encoder):
-    def __init__(self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1, threshold=0.5):
+    def __init__(self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1, threshold=0.76):
         depth = len(sigma) * 2
         super(EncoderDoG, self).__init__(
             depth=depth,
@@ -194,7 +194,7 @@ class EncoderDoG(Encoder):
                 # plt.figure()
                 # plt.imshow(data_t, cmap='gray')
                 # plt.title('data_t layer ' + str(2 * index + k))
-                self.threshold = np.mean(data_t)*1.1
+                self.threshold = np.mean(data_t) * 1.05
                 for row in range(self.size[0]):
                     for col in range(self.size[1]):
                         delay = self.delay_max
@@ -224,6 +224,9 @@ class EncoderDoG(Encoder):
         dog = dog - dog_mean
         dog_max = np.max(dog)
         dog = dog / dog_max
+
+        # plt.figure()
+        # plt.imshow(dog, cmap='gray')
 
         # Apply kernel to image
         img_padded = np.zeros((image.shape[0] + 2 * w, image.shape[1] + 2 * w))

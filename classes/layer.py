@@ -123,7 +123,7 @@ class Ensemble(Layer):
         else:
             raise TypeError("Ensemble size should be int or (int, int)")
 
-    @MeasureTiming('ens')
+    @MeasureTiming('ens_step')
     def step(self):
         """
         simulate all the neurons of the Ensemble that are either probed or have received a spike
