@@ -85,7 +85,12 @@ class FileDataset(Dataset):
         else:
             # self.file.seek(2 * (self.size[0]*self.size[1] - 1), 1)
             for _ in range(self.index):
-                self.file.__next__()
+                try:
+                    self.file.__next__()
+                except ValueError:
+                    self.index = 0
+                    self.file.seek(0, 0)
+                    self.file.__next__()
             for line in range(self.length):
                 string = self.file.readline()
                 self.data.append(np.array(string[2:].split(',')).astype(np.uint8).reshape(self.size))

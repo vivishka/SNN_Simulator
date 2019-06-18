@@ -30,9 +30,9 @@ mpl_logger.setLevel(log.WARNING)
 
 
 filename = 'datasets/fashionmnist/fashion-mnist_train.csv'
-# img_size = (28, 28)
-img_size = (12, 12)
-first_image = np.random.randint(0, 59999)
+img_size = (28, 28)
+# img_size = (12, 12)
+first_image = np.random.randint(0, 59999-20000)
 print("init dataset image {}".format(first_image))
 image_dataset = FileDataset(filename, first_image, size=img_size, length=500)
 # image_dataset = PatternGeneratorDataset(index=0, size=img_size, nb_images=300, nb_features=9)
@@ -42,7 +42,7 @@ e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
 n1 = Node(e1, image_dataset, 1, 0)
 b1 = Bloc(8, img_size, IF(threshold=2), SimplifiedSTDP(
     eta_up=0.05,
-    eta_down=-0.05,
+    eta_down=-0.1,
 ))
 b1.set_dataset(image_dataset)
 b1.set_inhibition(1)
@@ -56,13 +56,15 @@ for con in c1:
 c2 = Connection(b1, d1, kernel=1)
 
 
-sim = Simulator(model, 1/15, input_period=1, batch_size=1)
+sim = Simulator(model, 1/15, input_period=1, batch_size=3)
 sim.run(len(image_dataset.data)+0.02)
 # image_dataset.plot(-1)
 # e1.plot(layer=4)
+# plot final kernels
 c1.plot()
-for cp in cps:
-    cp.plot()
+#  plot weight history
+# for cp in cps:
+#     cp.plot()
 sim.save('tests.w')
 
 # for index in range(image_dataset.length):

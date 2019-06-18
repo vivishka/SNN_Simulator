@@ -174,3 +174,10 @@ class Simulator(object):
 
         Helper.reset()
         self.next_reset = self.input_period
+
+
+# class SimulatorMp(Simulator):
+#     def __init__(self, model, dt=0.001, batch_size=1, input_period=float('inf'), processes=1):
+#         super(SimulatorMp, self).__init__(model, dt, batch_size, input_period)
+#         self.processes = processes
+#
