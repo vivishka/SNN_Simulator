@@ -83,6 +83,9 @@ class FileDataset(Dataset):
                 self.data.append(np.array(string[2:].split(',')).astype(np.uint8).reshape(self.size))
                 self.labels.append(np.array(string[0]).astype(np.uint8))
         else:
+            # self.file.seek(2 * (self.size[0]*self.size[1] - 1), 1)
+            for _ in range(self.index):
+                self.file.__next__()
             for line in range(self.length):
                 string = self.file.readline()
                 self.data.append(np.array(string[2:].split(',')).astype(np.uint8).reshape(self.size))
@@ -94,6 +97,7 @@ class FileDataset(Dataset):
     def plot(self, index=-1):
         plt.figure()
         plt.imshow(self.data[index], cmap='gray')
+        plt.title('Source image input '+str(index))
 
 
 class PatternGeneratorDataset(Dataset):

@@ -93,7 +93,7 @@ class Simulator(object):
                   .format(int(Helper.time),
                           self.duration,
                           int(time_left // 3600),
-                          int(time_left // 60),
+                          int((time_left // 60) % 60),
                           int(time_left % 60)))
             self.last_time = time.time()
 
@@ -122,6 +122,7 @@ class Simulator(object):
         self.step_time += end_ens - start_ens
         self.prop_time += end_con - start_con
 
+    @MeasureTiming('sim_reset')
     def reset(self):
 
         # reset all neurons and save the spikes
