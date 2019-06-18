@@ -86,8 +86,7 @@ class NeuronType(object):
         self.ensemble.create_spike(self.index_1d)
 
         if self.spike_out_probed:
-            self.probed_values['spike_out'].append((Helper.time, self.index_2d))
-            Helper.log('Neuron', log.DEBUG, ' {0} spike notification to probe'.format(self.index_2d))
+            self.probed_values['spike_out'].append(Helper.time)
 
         self.nb_out += 1
 
@@ -96,8 +95,10 @@ class NeuronType(object):
         self.probed_values[variable] = []  # creates the array of probed values
         self.ensemble.probed_neuron_set.add(self)  # probed neurons step every step
         if variable == 'spike_in':
-            self.spike_in_probed = True
-            Helper.log('Neuron', log.DEBUG, 'probe plugged for input spikes on neuron ' + str(self.index_2d))
+            # DEPRECATED
+            return
+            # self.spike_in_probed = True
+            # Helper.log('Neuron', log.DEBUG, 'probe plugged for input spikes on neuron ' + str(self.index_2d))
         elif variable == 'spike_out':
             self.spike_out_probed = True
             Helper.log('Neuron', log.DEBUG, 'probe plugged for output spikes on neuron ' + str(self.index_2d))
@@ -181,6 +182,7 @@ class LIF(NeuronType):
             self.send_spike()
             self.voltage = 0
 
+
     def reset(self):
         super().reset()
         self.voltage = 0
@@ -237,6 +239,7 @@ class IF(NeuronType):
                        .format(self.index_2d, self.voltage, self.threshold))
             self.send_spike()
             self.voltage = 0
+
 
     def reset(self):
         super().reset()

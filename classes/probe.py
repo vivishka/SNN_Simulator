@@ -130,16 +130,19 @@ class NeuronProbe(Probe):
         super(NeuronProbe, self).__init__(target, variables)
 
         if isinstance(target, Ensemble):
-            neuron_list = target.neuron_list
+            self.target = target.neuron_list
         elif isinstance(target, NeuronType):
-            neuron_list = [target]
+            self.target = [target]
         elif isinstance(target, list) and all(isinstance(n, NeuronType) for n in target):
-            neuron_list = target
+            self.target = target
+        elif isinstance(target, np.ndarray):
+            neuron_array = target.flatten()
+            if all(isinstance(n, NeuronType) for n in neuron_array):
+                self.target = neuron_array
         else:
             raise Exception("wrong type given to probe target")
 
-        self.target = neuron_list
-        for neuron in neuron_list:
+        for neuron in self.target:
             for var in self.var:
                 neuron.add_probe(self, var)
 
@@ -156,12 +159,35 @@ class NeuronProbe(Probe):
         if variable not in self.var:
             print("no probe set for {}".format(variable))
             return
+        if variable == 'spike_out':
+            self.plot_spike_out()
+        else:
+            self.plot_variable(variable)
+
+    def plot_variable(self, variable):
+        if variable not in self.var:
+            print("no probe set for {}".format(variable))
+            return
+
         fig = plt.figure()
         plt.xlabel('time')
-        colors = ['k', 'r', 'b', 'g', 'm']
         values = self.get_data(variable)
         for i, neuron in enumerate(values):
             plt.ylabel(variable)
             plt.plot(*zip(*values[i]))
-            # plt.plot(*zip(*values[i]), color=colors[i % 5])
         return fig
+
+    def plot_spike_out(self):
+        if 'spike_out' not in self.var:
+            print("no probe set for spike_out")
+            return
+
+        fig = plt.figure()
+        plt.xlabel('time')
+        plt.ylabel('spike out')
+        plt.grid(axis='both')
+        values = self.get_data('spike_out')
+        for i, spike_times in enumerate(values):
+            plt.scatter(spike_times, [i] * len(spike_times))
+        return fig
+
