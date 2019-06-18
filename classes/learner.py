@@ -213,7 +213,7 @@ class SimplifiedSTDP(Learner):
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
 
-
+# TODO: change weight change after all experiments + average ?
 class Rstdp(Learner):
 
     def __init__(self, eta_up=0.1, eta_down=0.1, anti_eta_up=0.1, anti_eta_down=0.1, wta=True):

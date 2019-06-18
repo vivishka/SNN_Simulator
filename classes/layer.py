@@ -101,6 +101,7 @@ class Ensemble(Layer):
         self.ensemble_list.append(self)
         self.wta = False
         self.inhibited = False
+        self.threshold_adapt = False
         self.first_voltage = 0
         self.first_neuron = None
         if learner is not None:
@@ -128,12 +129,13 @@ class Ensemble(Layer):
         """
         simulate all the neurons of the Ensemble that are either probed or have received a spike
         """
-        # optimisation: merge the smaller set into the larger is faster
         if not self.inhibited:
+            # optimisation: merge the smaller set into the larger is faster
             if len(self.active_neuron_set) > len(self.probed_neuron_set):
                 simulated_neuron_set = self.active_neuron_set | self.probed_neuron_set
             else:
                 simulated_neuron_set = self.probed_neuron_set | self.active_neuron_set
+
             for neuron in simulated_neuron_set:
                 neuron.step()
             self.active_neuron_set.clear()
@@ -147,6 +149,10 @@ class Ensemble(Layer):
 
                 self.inhibited = True
                 self.bloc.propagate_inhibition(Helper.get_index_2d(self.first_neuron, self.size[1]))
+
+                # The first spike of each ens will trigger the threshold adaptation
+                if self.threshold_adapt:
+                    self.bloc.register_first_layer(self.index)
 
     # <inhibition region>
 
@@ -173,7 +179,6 @@ class Ensemble(Layer):
             if voltage > self.first_voltage:
                 self.first_voltage = voltage
                 self.first_neuron = index_1d
-            pass
         else:
             for con in self.out_connections:
                 con.register_neuron(index_1d)
@@ -216,6 +221,7 @@ class Ensemble(Layer):
         self.inhibited = False
         self.first_voltage = 0
         self.first_neuron = None
+        self.threshold_adapt = False
 
     def __getitem__(self, index):
         if isinstance(index, int):
@@ -260,15 +266,23 @@ class Bloc(Layer):
     inhibition_radius: int
         Distance of inhibition from the first spiking neuron
     """
+    objects = []
     index = 0
 
     def __init__(self, depth, size, neuron_type, learner=None, *args, **kwargs):
         super(Bloc, self).__init__()
+        Bloc.objects.append(self)
         self.index = Bloc.index
         Bloc.index += 1
         self.depth = depth
         self.size = (1, size) if isinstance(size, int) else size
         self.inhibition_radius = (0, 0)
+        self.threshold_adapt = False
+        self.t_targ = None
+        self.th_min = None
+        self.n_th1 = None
+        self.n_th2 = None
+        self.layer_time = None
 
         # Ensemble creation
         for i in range(depth):
@@ -299,6 +313,66 @@ class Bloc(Layer):
             for ens in self.ensemble_list:
                 ens.inhibit(index_2d_n, self.inhibition_radius)
                 Helper.log('Layer', log.INFO, 'ensemble {0} inhibited by propagation'.format(ens.id))
+
+    def activate_threshold_adapt(self, t_targ, th_min, n_th1, n_th2):
+        self.threshold_adapt = True
+        self.t_targ = t_targ
+        self.th_min = th_min
+        self.n_th1 = n_th1
+        self.n_th2 = n_th2
+        self.layer_time = np.ndarray((self.depth,), dtype=float)
+
+        for i, ens in enumerate(self.ensemble_list):
+            ens.threshold_adapt = True
+            self.layer_time[i] = float('inf')
+
+    def register_first_layer(self, ens_index):
+        # This function is  only called by the first spike of each ens
+        self.layer_time[ens_index] = Helper.time
+
+    def apply_threshold_adapt(self):
+        """
+        called once every input cycle, will adapt the threshold of the neurons of each layers depending on spiking time
+        2 mechanism:
+            - spike time target
+            - inter layer competition
+        """
+        if not self.threshold_adapt:
+            return
+        min_time = min(self.layer_time)
+        # number of simultaneous first spikes
+        nb_first = len([0 for time in self.layer_time if time == min_time])
+
+        for index, ens in enumerate(self.ensemble_list):
+            # get the first spike time
+            time = self.layer_time[index]
+            self.layer_time[index] = float('inf')
+            time = Helper.input_period if time is None else time % Helper.input_period
+
+            # First th adaptation: spike time target
+            old_th = ens.neuron_list[0].threshold
+            new_th = old_th - self.n_th1 * (time - self.t_targ)
+
+            # second th adaptation: inter layer competition
+            if time == min_time:
+                new_th += self.n_th2
+            else:
+                new_th -= self.n_th2 / self.depth
+
+            # clipping
+            new_th = max(self.th_min, new_th)
+            for neuron in ens.neuron_list:
+                neuron.threshold = new_th
+
+    def restore(self):
+        if self.learner is not None:
+            self.learner.restore()
+        self.threshold_adapt = False
+        self.t_targ = None
+        self.th_min = None
+        self.n_th1 = None
+        self.n_th2 = None
+        self.layer_time = None
 
     def __getitem__(self, index):
         return self.ensemble_list[index]

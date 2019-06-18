@@ -30,6 +30,7 @@ class Simulator(object):
         model.build()
         self.objects = model.get_all_objects()
         self.ensembles = self.objects[Ensemble]
+        self.blocs = self.objects[Bloc]
         self.connections = self.objects[Connection]
         self.nodes = self.objects[Node]
         self.step_time = 0
@@ -39,6 +40,7 @@ class Simulator(object):
         self.last_time = 0
 
         Helper.log('Simulator', log.INFO, 'new simulator created')
+
     @MeasureTiming('sim_run')
     def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
         self.duration = duration
@@ -72,6 +74,7 @@ class Simulator(object):
         Helper.log('Simulator', log.INFO, 'network of {0} neurons'.format(NeuronType.nb_neuron))
         Helper.log('Simulator', log.INFO, 'total time of {0}, step: {1}, synapse: {2}'
                    .format(end - start, self.step_time, self.prop_time))
+
     @MeasureTiming('sim_step')
     def step(self):
         """
@@ -139,6 +142,10 @@ class Simulator(object):
         else:
             Helper.log('Simulator', log.INFO, 'next input')
             Helper.input_index += 1
+
+        # apply threshold adaptation on block
+        for bloc in self.blocs:
+            bloc.apply_threshold_adapt()
 
     def propagate_all(self):
         """ Steps all the active connections """

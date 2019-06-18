@@ -35,6 +35,7 @@ class Weights(object):
         #  padding
         #  stride
         #  ALL 2 ALL connection
+        # TODO: all use similar weight init
         self.matrix = None
         if kernel_size is None:
             self.init_weights_dense()
@@ -49,6 +50,7 @@ class Weights(object):
         # tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
         tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim)) * \
                      (self.wmax - self.wmin) / 15 + (self.wmax - self.wmin) * 0.50
+        tmp_matrix = tmp_matrix.clip(self.wmin, self.wmax)
         # tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim))
         # tmp_matrix *= (self.max_w - self.min_w) / 15 + (self.max_w - self.min_w) * 0.75
         self.matrix = CompactMatrix(tmp_matrix)
@@ -74,6 +76,7 @@ class Weights(object):
                             # check if fuckuped
                             if 0 <= index_x < tmp_matrix.shape[0] and 0 <= index_y < tmp_matrix.shape[1]:
                                 tmp_matrix[(index_x, index_y)] = Helper.init_weight() * 2. / np.prod(self.kernel_size)
+                                tmp_matrix = tmp_matrix.clip(self.wmin, self.wmax)
                             else:
                                 Helper.log('Connection',
                                            log.WARNING,
@@ -84,6 +87,7 @@ class Weights(object):
     def init_weight_shared(self):
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)), dtype=object)
         kernel = np.random.randn(*self.kernel_size) * (self.wmax - self.wmin) / 10 + (self.wmax - self.wmin) * 0.75
+        tmp_matrix = tmp_matrix.clip(self.wmin, self.wmax)
         # kernel = np.random.rand(*self.kernel_size)
         # TODO: normalization
         # tmp_kernel = np.arange(self.kernel_size[0] * self.kernel_size[1]).reshape(self.kernel_size)
