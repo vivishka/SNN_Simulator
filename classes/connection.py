@@ -1,5 +1,8 @@
 import logging as log
+import matplotlib.pyplot as plt
+import numpy as np
 import copy
+import math
 from .base import SimulationObject, Helper, MeasureTiming
 from .layer import Bloc
 from .weights import Weights
@@ -156,11 +159,19 @@ class Connection(SimulationObject):
         return conv
 
     def plot(self):
+        images = []
         if self.active:
-            self.weights.plot()
+            return self.weights.matrix.get_kernel()
         else:
             for con in self.connection_list:
-                con.plot()
+                images.append(con.plot())
+
+            ncols = int(np.sqrt(len(images)))
+            nrows = math.ceil(len(images)/ncols)
+            fig, ax = plt.subplots(ncols=ncols, nrows=nrows)
+            fig.suptitle("Connection final kernels")
+            for index, image in enumerate(images):
+                ax[index // ncols, index % ncols].imshow(image, cmap='gray')
 
 
 class DiagonalConnection(Connection):
