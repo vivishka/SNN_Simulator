@@ -169,7 +169,7 @@ class Connection(SimulationObject):
             ncols = int(np.sqrt(len(images)))
             nrows = math.ceil(len(images)/ncols)
             fig, ax = plt.subplots(ncols=ncols, nrows=nrows)
-            fig.title("Connection final kernels")
+            fig.suptitle("Connection final kernels")
             for index, image in enumerate(images):
                 ax[index // ncols, index % ncols].imshow(image, cmap='gray')
 

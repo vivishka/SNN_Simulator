@@ -34,7 +34,7 @@ img_size = (28, 28)
 # img_size = (12, 12)
 first_image = np.random.randint(0, 59999-20000)
 print("init dataset image {}".format(first_image))
-image_dataset = FileDataset(filename, first_image, size=img_size, length=500)
+image_dataset = FileDataset(filename, first_image, size=img_size, length=5)
 # image_dataset = PatternGeneratorDataset(index=0, size=img_size, nb_images=300, nb_features=9)
 model = Network()
 e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
