@@ -355,7 +355,7 @@ class Bloc(Layer):
 
             # second th adaptation: inter layer competition
             if time == min_time:
-                new_th += self.n_th2 / nb_first
+                new_th += self.n_th2
             else:
                 new_th -= self.n_th2 / self.depth
 
@@ -363,8 +363,6 @@ class Bloc(Layer):
             new_th = max(self.th_min, new_th)
             for neuron in ens.neuron_list:
                 neuron.threshold = new_th
-            print(ens.id, old_th, new_th)
-
 
     def restore(self):
         if self.learner is not None:
