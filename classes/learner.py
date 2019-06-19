@@ -203,11 +203,8 @@ class SimplifiedSTDP(Learner):
                                format(connection.id, source_n, dest_n, dw))
                     # update weights in source connection
                     # TODO: be careful of weights init above maw: stuck up there
-                    if connection.wmin > weight + dw:
-                        dw = weight - connection.wmin
-                    elif connection.wmax < weight + dw:
-                        dw = weight - connection.wmax
-                    connection.weights[(source_n, dest_n)] = weight + dw
+                    weight = np.clip(weight + dw, connection.wmin, connection.wmax)
+                    connection.weights[(source_n, dest_n)] = weight
 
         self.out_spikes = []
         self.in_spikes = []
