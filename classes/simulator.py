@@ -92,7 +92,7 @@ class Simulator(object):
             for node in self.nodes:
                 node.step()
             time_left = int(self.duration - Helper.time) * (time.time() - self.last_time)
-            print('Time {} / {}, end estimated {} : {} : {} '
+            print('Time {} / {}, end estimated {}:{}:{} '
                   .format(int(Helper.time),
                           self.duration,
                           int(time_left // 3600),
