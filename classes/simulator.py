@@ -1,10 +1,13 @@
 import logging as log
+# from multiprocessing import Process, Queue
+import multiprocessing as mp
 import pickle
 from .connection import *
 from .neuron import NeuronType
 from .layer import Ensemble
 from .encoder import Node, Encoder
 from .base import Helper
+from .learner import *
 import sys
 import time
 sys.dont_write_bytecode = True
@@ -89,7 +92,7 @@ class Simulator(object):
             for node in self.nodes:
                 node.step()
             time_left = int(self.duration - Helper.time) * (time.time() - self.last_time)
-            print('Time {} / {}, end estimated {} hours {} minutes {} seconds'
+            print('Time {} / {}, end estimated {} : {} : {} '
                   .format(int(Helper.time),
                           self.duration,
                           int(time_left // 3600),
@@ -183,8 +186,84 @@ class Simulator(object):
         self.next_reset = self.input_period
 
 
-# class SimulatorMp(Simulator):
-#     def __init__(self, model, dt=0.001, batch_size=1, input_period=float('inf'), processes=1):
-#         super(SimulatorMp, self).__init__(model, dt, batch_size, input_period)
-#         self.processes = processes
-#
+class SimulatorMp(Simulator):
+    def __init__(self, model, dt=0.001, batch_size=1, input_period=float('inf'), processes=2):
+        super(SimulatorMp, self).__init__(model, dt, batch_size, input_period)
+        self.processes = processes
+
+        # init multiprocess
+        Helper.log('Simulator', log.INFO, 'Init multiprocess')
+        mp.set_start_method('spawn')
+        self.mpqueues = []
+        self.learning_split = []
+        for proc in range(self.processes):
+            self.mpqueues.append(mp.SimpleQueue())
+
+            # Compute learner repartition
+            if self.model.n_learners % self.processes == 0:
+                self.learning_split.append(self.model.n_learners / self.processes)
+            elif proc == self.processes - 1:
+                self.learning_split.append(self.model.n_learners % self.processes)
+            else:
+                self.learning_split.append(self.model.n_learners // self.processes)
+
+    @MeasureTiming('sim_reset')
+    def reset(self):
+
+        # reset all neurons and save the spikes
+        Helper.log('Simulator', log.DEBUG, 'resetting all ensembles')
+        for ens in self.ensembles:
+            ens.reset()
+        Helper.log('Simulator', log.DEBUG, 'all ensembles reset')
+
+        # apply learner if present
+        if Helper.input_index + 1 >= self.batch_size:
+            Helper.log('Simulator', log.DEBUG, 'end of batch: updating matrices')
+            Helper.log('Simulator', log.DEBUG, 'Starting workers with repartition {}'.format(self.learning_split))
+            # Start workers
+            proc_index = 0
+            learner_index = 0
+            learning_data = []
+            workers = []
+            learners = []
+            for ensemble in self.ensembles:
+                if ensemble.learner and ensemble.learner.active:
+                    if learner_index < self.learning_split[proc_index]-1:
+                        learner_index += 1
+                        learning_data.append(ensemble.learner.get_mp_data())
+
+                    else:
+
+                        learning_data.append(ensemble.learner.get_mp_data())
+                        workers.append(mp.Process(target=type(ensemble.learner).process_mp,
+                                                  args=(self.mpqueues[proc_index], learning_data)))  # maybe copy the data ?
+                        Helper.log('Simulator', log.INFO, 'Worker {} full of {} tasks, starting...'.format(proc_index+1, learner_index))
+                        workers[-1].start()
+                        proc_index += 1
+                        learner_index = 0
+                        learning_data = []
+
+                    learners.append(ensemble.learner)
+            Helper.log('Simulator', log.DEBUG, 'All workers sent, waiting for join')
+            # Wait workers
+            for worker in workers:
+                worker.join()
+                Helper.log('Simulator', log.DEBUG, 'Worker joined')
+            Helper.log('Simulator', log.DEBUG, 'All workers joined, updating objects')
+            # Update objects
+            learner_index = 0
+            for queue in self.mpqueues:
+                data = queue.get()
+                for learning_data in data:
+                    learners[learner_index].update(learning_data)
+                    learner_index += 1
+            Helper.log('Simulator', log.DEBUG, 'Learning done')
+            Helper.input_index = 0
+
+        else:
+            Helper.log('Simulator', log.INFO, 'next input')
+            Helper.input_index += 1
+
+        # apply threshold adaptation on block
+        for bloc in self.blocs:
+            bloc.apply_threshold_adapt()
