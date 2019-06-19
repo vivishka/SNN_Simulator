@@ -77,15 +77,14 @@ class ConnectionProbe(Probe):
 
             # range and graph init
             matrix_list = self.get_data(connection_index=connect_index)
-            nb_weight = len(matrix_list[0].get_all_weights())
+            nb_weight = len(matrix_list[0])
             if max_nb_neuron is not None:
                 nb_weight = max_nb_neuron
             nb_matrix = len(matrix_list)
             graph = [np.ndarray((nb_matrix,)) for _ in range(nb_weight)]
 
             # data extraction
-            for batch_number, batch_matrix in enumerate(matrix_list):
-                weights = batch_matrix.get_all_weights()
+            for batch_number, weights in enumerate(matrix_list):
                 for weight_index in range(nb_weight):
                     graph[weight_index][batch_number] = weights[weight_index]
 

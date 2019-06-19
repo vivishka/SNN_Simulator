@@ -118,7 +118,7 @@ class Connection(SimulationObject):
 
     def get_weights_copy(self):
         """ Returns a copy of the weight matrix """
-        return copy.deepcopy(self.weights.matrix)
+        return copy.deepcopy(self.weights.matrix.get_all_weights())
 
     def probe(self):
         """ stores the weight matrix to be analyzed later. Called every batch"""
