@@ -1,13 +1,11 @@
-import logging as log
-from .base import SimulationObject, Helper, MeasureTiming
+from .base import SimulationObject
 from .neuron import NeuronType
-from .layer import Ensemble, Bloc
+from .layer import Bloc
 from .dataset import *
 import numpy as np
 import sys
 sys.dont_write_bytecode = True
 
-import skimage.filters as flt
 
 class DelayedNeuron(NeuronType):
     """
@@ -16,10 +14,6 @@ class DelayedNeuron(NeuronType):
 
     Parameters
     ---------
-    ensemble: Node
-        The Node this neuron belongs to
-    index: int
-        The index (in 1D or 2D) of the neuron in the ensemble
 
     Attributes
     ----------
@@ -95,8 +89,6 @@ class EncoderGFR(Encoder):
         The dimension of the value or image
     depth : int
         The number of neuron used to encode a single value. Resolution
-    ensemble_list: [Ensemble]
-        There are nb ensembles. all neuron from the same ensemble have the same curve
 
     """
 
@@ -128,7 +120,7 @@ class EncoderGFR(Encoder):
                 elif isinstance(values, np.ndarray):
                     value = values[index // self.size[1], index % self.size[0]]
                 else:
-                    raise Exception("unsuported input format")
+                    raise Exception("unsupported input format")
 
                 delay = (1 - np.exp(-0.5 * ((value - mu) / sigma) ** 2)) * self.delay_max
 
@@ -198,7 +190,7 @@ class EncoderDoG(Encoder):
                 for row in range(self.size[0]):
                     for col in range(self.size[1]):
                         delay = self.delay_max
-                        if data_t[row, col] < self.threshold:# * (1-k) + (1 - self.threshold) * k:
+                        if data_t[row, col] < self.threshold:
                             data_t[row, col] = 0
                         else:
                             delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
@@ -211,14 +203,15 @@ class EncoderDoG(Encoder):
         plt.imshow(self.record[index][:, :, layer], cmap='gray_r')
         plt.title('Encoder sequence for input {} layer {}'.format(index, layer))
 
-    def filter(self, image, sigma1, sigma2, size=7):
+    @staticmethod
+    def filter(image, sigma1, sigma2, size=7):
         # create kernel (code from spyketorch)
         w = size // 2
         x, y = np.mgrid[-w:w + 1:1, -w:w + 1:1]
         a = 1.0 / (2 * np.pi)
         prod = x * x + y * y
-        f1 = (1 / (sigma1 * sigma1)) * np.exp(-0.5 * (1 / (sigma1 * sigma1)) * (prod))
-        f2 = (1 / (sigma2 * sigma2)) * np.exp(-0.5 * (1 / (sigma2 * sigma2)) * (prod))
+        f1 = (1 / (sigma1 * sigma1)) * np.exp(-0.5 * (1 / (sigma1 * sigma1)) * prod)
+        f2 = (1 / (sigma2 * sigma2)) * np.exp(-0.5 * (1 / (sigma2 * sigma2)) * prod)
         dog = a * (f1 - f2)
         dog_mean = np.mean(dog)
         dog = dog - dog_mean
@@ -240,7 +233,6 @@ class EncoderDoG(Encoder):
                         px += img_padded[row + k_row, col + k_col] * dog[k_row, k_col]
                 img_filtered[row, col] = px
         return img_filtered
-
 
 
 class Node(SimulationObject):
@@ -294,7 +286,6 @@ class Node(SimulationObject):
             value = self.dataset
         Helper.log('Encoder', log.INFO, 'Node sending next data')
         self.encoder.encode(value)
-
 
     def restore(self):
         self.dataset.index = 0

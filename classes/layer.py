@@ -100,6 +100,7 @@ class Ensemble(Layer):
         self.probed_neuron_set = set()
         self.ensemble_list.append(self)
         self.wta = False
+        self.intra_inhibition = True
         self.inhibited = False
         self.threshold_adapt = False
         self.first_voltage = 0
@@ -142,12 +143,16 @@ class Ensemble(Layer):
 
             # if WTA, only propagates the neuron which spiked first with highest voltage
             if self.wta and self.first_neuron is not None:
+                # propagates the first neuron to spike
                 for con in self.out_connections:
                     con.register_neuron(self.first_neuron)
+
+                # learning only on the first spike
                 if self.learner is not None:
                     self.learner.out_spike(self.first_neuron)
 
-                self.inhibited = True
+                if self.intra_inhibition:
+                    self.inhibited = True
                 self.bloc.propagate_inhibition(Helper.get_index_2d(self.first_neuron, self.size[1]))
 
                 # The first spike of each ens will trigger the threshold adaptation
@@ -156,7 +161,8 @@ class Ensemble(Layer):
 
     # <inhibition region>
 
-    def set_inhibition(self):
+    def set_inhibition(self, intra_inhibition=True):
+        self.intra_inhibition = intra_inhibition
         self.wta = True
 
     def inhibit(self, index_2d_n, radius):
@@ -175,7 +181,10 @@ class Ensemble(Layer):
 
     def create_spike(self, index_1d):
         if self.wta:
+            # stores the first neuron to spike
+            # if several neurons spike during this step, keep the one with the highest voltage
             voltage = self.neuron_list[index_1d].voltage
+            # TODO: handle WTA with no intra layer inhibition
             if voltage > self.first_voltage:
                 self.first_voltage = voltage
                 self.first_neuron = index_1d
@@ -300,13 +309,13 @@ class Bloc(Layer):
         for ens in self.ensemble_list:
             ens.learner.dataset = dataset
 
-    def set_inhibition(self, radius=None):
+    def set_inhibition(self, intra_inhibition=True, radius=None):
         if radius is not None:
             self.inhibition_radius = radius
         self.inhibition_radius = (radius, radius) if isinstance(radius, int) else radius
         for ens in self.ensemble_list:
             Helper.log('Layer', log.INFO, 'ensemble {0} inhibited'.format(ens.id))
-            ens.set_inhibition()
+            ens.set_inhibition(intra_inhibition)
 
     def propagate_inhibition(self, index_2d_n):
         if sum(self.inhibition_radius) > 0:
@@ -341,7 +350,7 @@ class Bloc(Layer):
             return
         min_time = min(self.layer_time)
         # number of simultaneous first spikes
-        nb_first = len([0 for time in self.layer_time if time == min_time])
+        # nb_first = len([0 for time in self.layer_time if time == min_time])
 
         for index, ens in enumerate(self.ensemble_list):
             # get the first spike time

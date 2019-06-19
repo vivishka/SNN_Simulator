@@ -162,10 +162,7 @@ class LearnerClassifier(Learner):
                            'Classifier learner found no output spikes, increasing weights')
                 for con in self.layer.in_connections:
                     con.weights.matrix.add(self.feedback_gain, con.wmin, con.wmax)
-            if not experiment:
-                # TODO: git gud
-                Helper.log('Learner', log.DEBUG, 'No valid spike during input cycle {}: increasing all weights'
-                           .format(index))
+
         super(LearnerClassifier, self).process()
 
 
@@ -290,6 +287,7 @@ class Rstdp(Learner):
 
             if not self.out_spikes[experiment_index]:
                 # if no spikes for this experience
+                Helper.log('Learner', log.CRITICAL, 'Not a single spike emitted on cycle {}'.format(experiment_index))
                 # TODO: do something
                 continue
 

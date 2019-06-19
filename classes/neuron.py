@@ -240,7 +240,6 @@ class IF(NeuronType):
             self.send_spike()
             self.voltage = 0
 
-
     def reset(self):
         super().reset()
         self.voltage = 0
