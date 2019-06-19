@@ -111,9 +111,9 @@ class Connection(SimulationObject):
             targets = self.weights.get_target_weights(index_1d)  # source dest weight
             # for target in targets:
             self.dest_e.receive_spike(targets=targets, source_c=self)
-            # TODO: this log 10-15% of this function time
-            Helper.log('Connection', log.DEBUG, 'spike propagated from layer {0} to {1}'
-                       .format(self.source_e.id, self.dest_e.id))
+            # This log 10-15% of this function time
+            # Helper.log('Connection', log.DEBUG, 'spike propagated from layer {0} to {1}'
+            #            .format(self.source_e.id, self.dest_e.id))
         self.in_neurons_spiking = []
 
     def get_weights_copy(self):
