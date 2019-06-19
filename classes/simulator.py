@@ -19,7 +19,7 @@ class Simulator(object):
     Builds the network with the given parameters
     can then be run for a set number of step
     """
-
+    @MeasureTiming('sim_init')
     def __init__(self, model, dt=0.001, batch_size=1, input_period=float('inf')):
         super(Simulator, self).__init__()
         self.model = model

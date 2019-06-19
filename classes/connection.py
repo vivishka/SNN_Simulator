@@ -52,7 +52,7 @@ class Connection(SimulationObject):
 
     objects = []
     con_count = 0
-
+    @MeasureTiming('con_init')
     def __init__(self, source_l, dest_l, wmin=0, wmax=1, kernel=None, shared=False, *args, **kwargs):
 
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
@@ -116,6 +116,7 @@ class Connection(SimulationObject):
                        .format(self.source_e.id, self.dest_e.id))
         self.in_neurons_spiking = []
 
+    @MeasureTiming('con_weight_copy')
     def get_weights_copy(self):
         """ Returns a copy of the weight matrix """
         return copy.deepcopy(self.weights.matrix)

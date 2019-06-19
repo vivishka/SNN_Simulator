@@ -27,7 +27,7 @@ if __name__ == '__main__':
     mpl_logger = log.getLogger('matplotlib')
     mpl_logger.setLevel(log.WARNING)
 
-    Helper.init_logging('main.log', log.DEBUG, ["Simulator"])
+    # Helper.init_logging('main.log', log.DEBUG, ["Simulator"])
 
 
     filename = 'datasets/mnist/mnist_train.csv'
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # img_size = (12, 12)
     first_image = np.random.randint(0, 59999-20000)
     print("init dataset image {}".format(first_image))
-    image_dataset = FileDataset(filename, first_image, size=img_size, length=5)
+    image_dataset = FileDataset(filename, first_image, size=img_size, length=500)
     # image_dataset = PatternGeneratorDataset(index=0, size=img_size, nb_images=300, nb_features=9)
     model = Network()
     e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
@@ -50,9 +50,9 @@ if __name__ == '__main__':
     d1 = Decoder(img_size)
 
     c1 = Connection(e1, b1, kernel=(3, 3), shared=True)
-    cps = []
-    for con in c1:
-        cps.append(ConnectionProbe(con))
+    # cps = []
+    # for con in c1:
+    #     cps.append(ConnectionProbe(con))
 
     c2 = Connection(b1, d1, kernel=1)
 
@@ -68,9 +68,9 @@ if __name__ == '__main__':
     #     cp.plot()
     sim.save('tests.w')
 
-    for index in range(image_dataset.length):
-        image_dataset.plot(index)
-        e1.plot(index, 0)
+    # for index in range(image_dataset.length):
+    #     image_dataset.plot(index)
+    #     e1.plot(index, 0)
 
 
     Helper.print_timings()

@@ -137,7 +137,7 @@ class LearnerClassifier(Learner):
     def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, feedback_gain=0.001):
         super(LearnerClassifier, self).__init__(eta_up, eta_down, tau_up, tau_down)
         self.feedback_gain = feedback_gain
-
+    @MeasureTiming('learn_process')
     def process(self):
         # remove multiple output spikes from buffer TODO: optimize : high complexity
 
@@ -174,7 +174,7 @@ class SimplifiedSTDP(Learner):
     def __init__(self, eta_up=0.1, eta_down=-0.1):
         super(SimplifiedSTDP, self).__init__(eta_up=eta_up, eta_down=eta_down)
 
-    @MeasureTiming('Learning')
+    @MeasureTiming('learn_process')
     def process(self):  # call every batch
         Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
