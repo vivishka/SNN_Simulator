@@ -186,7 +186,7 @@ class EncoderDoG(Encoder):
                 # plt.figure()
                 # plt.imshow(data_t, cmap='gray')
                 # plt.title('data_t layer ' + str(2 * index + k))
-                self.threshold = np.mean(data_t) * 1.05
+                self.threshold = np.mean(data_t) * 1.1
                 for row in range(self.size[0]):
                     for col in range(self.size[1]):
                         delay = self.delay_max

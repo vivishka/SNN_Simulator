@@ -55,6 +55,7 @@ class Learner(object):
         self.active = True
         self.size = None
 
+
         # Helper.log('Learner', log.INFO, 'Learner initialized on ensemble {0}'.format(self.layer.id))
         Helper.log('Learner', log.INFO, 'Learner initialized TODO: change log'.format())
 
@@ -65,6 +66,7 @@ class Learner(object):
         for i in range(self.size):
             self.buffer_in_empty[i] = []
         self.buffer_in = copy.deepcopy(self.buffer_in_empty)
+
 
     def in_spike(self, source_n, dest_n, weight, source_c):
         self.buffer_in[dest_n].append([Helper.time, source_n, source_c, weight, Helper.input_index])
@@ -166,7 +168,7 @@ class LearnerClassifier(Learner):
 
 class SimplifiedSTDP(Learner):
 
-    def __init__(self, eta_up=0.1, eta_down=0.1):
+    def __init__(self, eta_up=0.1, eta_down=-0.1):
         super(SimplifiedSTDP, self).__init__(eta_up=eta_up, eta_down=eta_down)
 
     @MeasureTiming('Learning')
@@ -206,6 +208,65 @@ class SimplifiedSTDP(Learner):
         for connection in self.layer.in_connections:
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
+
+
+
+class SimplifiedSTDP_MP(SimplifiedSTDP):
+
+    def __init__(self, eta_up=0.1, eta_down=-0.1):
+        super(SimplifiedSTDP_MP, self).__init__(eta_up=eta_up, eta_down=eta_down)
+        self.cons_minmax = {}
+
+    def set_layer(self, layer):
+        super(SimplifiedSTDP_MP, self).set_layer(layer)
+        for con in layer.in_connections:
+            self.cons_minmax[con] = (con.wmin, con.wmax)
+
+    def get_mp_data(self):
+        return [Helper.batch_size, self.out_spikes, self.in_spikes, self.eta_up, self.eta_down, self.cons_minmax]
+
+    @staticmethod
+    def process_mp(q, learning_data):
+        all_return_data = []
+        for learner_data in learning_data:
+            # batch_size = learner_data[0]
+            # out_spikes = learner_data[1]
+            # in_spikes = learner_data[2]
+            # eta_down = learner_data[3]
+            # eta_up = learner_data[4]
+            # cons_minmax = learner_data[5]
+            learner_return_data = []
+            for experiment_index in range(learner_data[0]):
+                # for each spike emitted by the Ensemble during this experiment
+                for out_s in learner_data[1][experiment_index]:
+                    dest_n = out_s[1]
+                    # for all the spikes in_s received by the same neuron which emitted out_s
+                    for in_s in learner_data[2][experiment_index][dest_n]:
+                        source_n = in_s[1]
+                        connection = in_s[2]
+                        weight = in_s[3]
+
+                        dt = out_s[0] - in_s[0]
+                        if dt >= 0:
+                            dw = learner_data[4] * (weight - learner_data[5][connection][0]) * (learner_data[5][connection][1] - weight)
+                            # dw = learner_data[4]
+                        else:
+                            dw = learner_data[3] * (weight - learner_data[5][connection][0]) * (learner_data[5][connection][1] - weight)
+                            # dw = learner_data[3]
+
+                        # update weights in source connection
+                        # TODO: be careful of weights init above maw: stuck up there
+                        if learner_data[5][connection][0] > weight + dw:
+                            dw = weight - learner_data[5][connection][0]
+                        elif learner_data[5][connection][1] < weight + dw:
+                            dw = weight - learner_data[5][connection][1]
+                        learner_return_data.append((connection, (source_n, dest_n), weight + dw))
+            all_return_data.append(learner_return_data)
+        q.put(all_return_data)
+
+    def update(self, return_data):
+        for data in return_data:
+            data[0][data[1]] = data[2]
 
 # TODO: change weight change after all experiments + average ?
 class Rstdp(Learner):

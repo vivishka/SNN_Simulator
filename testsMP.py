@@ -30,7 +30,7 @@ if __name__ == '__main__':
     Helper.init_logging('main.log', log.DEBUG, ["Simulator"])
 
 
-    filename = 'datasets/mnist/mnist_train.csv'
+    filename = 'datasets/fashionmnist/fashion-mnist_train.csv'
     img_size = (28, 28)
     # img_size = (12, 12)
     first_image = np.random.randint(0, 59999-20000)
@@ -41,9 +41,9 @@ if __name__ == '__main__':
     e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
                     kernel_sizes=[3], size=img_size, in_min=0, in_max=255, delay_max=1)
     n1 = Node(e1, image_dataset, 1, 0)
-    b1 = Bloc(8, img_size, IF(threshold=2), SimplifiedSTDP(
-        eta_up=0.005,
-        eta_down=-0.01,
+    b1 = Bloc(8, img_size, IF(threshold=2), SimplifiedSTDP_MP(
+        eta_up=0.05,
+        eta_down=-0.1,
     ))
     b1.set_dataset(image_dataset)
     b1.set_inhibition(1)
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     c2 = Connection(b1, d1, kernel=1)
 
 
-    sim = Simulator(model, 1/15, input_period=1, batch_size=3)
+    sim = SimulatorMp(model, 1/15, input_period=1, batch_size=3, processes=4)
     sim.run(len(image_dataset.data)+0.02)
     # image_dataset.plot(-1)
     # e1.plot(layer=4)
@@ -68,9 +68,9 @@ if __name__ == '__main__':
     #     cp.plot()
     sim.save('tests.w')
 
-    for index in range(image_dataset.length):
-        image_dataset.plot(index)
-        e1.plot(index, 0)
+    # for index in range(image_dataset.length):
+    #     image_dataset.plot(index)
+    #     e1.plot(index, 1)
 
 
     Helper.print_timings()
