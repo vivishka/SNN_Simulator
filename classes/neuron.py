@@ -39,8 +39,6 @@ class NeuronType(object):
     nb_neuron = 0
 
     def __init__(self, *args, **kwargs):
-        # super(NeuronType, self).__init__(
-        #     "{0}_Neuron_{1}".format(ensemble.label, index))
         NeuronType.nb_neuron += 1
         self.ensemble = None
         self.index_1d = 0
@@ -58,7 +56,6 @@ class NeuronType(object):
         self.nb_in = 0
         self.nb_out = 0
 
-        # TODO: change that
         # Helper.log('Neuron', log.DEBUG, '{0} of layer {1} created'.format(self.index, self.ensemble.id))
 
     def set_ensemble(self, ensemble, index_2d):
@@ -77,7 +74,6 @@ class NeuronType(object):
 
     def receive_spike(self, index_1d, weight):
         """ Append an axons which emitted a received spikes this step """
-        # TODO: if in spike probing: do here
         self.received.append((index_1d, weight))
 
     def send_spike(self):
@@ -181,7 +177,8 @@ class LIF(NeuronType):
                        .format(self.index_2d, self.voltage, self.threshold))
             self.send_spike()
             self.voltage = 0
-
+            if self.variable_probed:
+                self.probe()
 
     def reset(self):
         super().reset()
@@ -239,6 +236,8 @@ class IF(NeuronType):
                        .format(self.index_2d, self.voltage, self.threshold))
             self.send_spike()
             self.voltage = 0
+            if self.variable_probed:
+                self.probe()
 
     def reset(self):
         super().reset()

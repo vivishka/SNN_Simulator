@@ -99,8 +99,8 @@ class Ensemble(Layer):
         self.active_neuron_set = set()
         self.probed_neuron_set = set()
         self.ensemble_list.append(self)
+        self.inhibition = True
         self.wta = False
-        self.intra_inhibition = True
         self.inhibited = False
         self.threshold_adapt = False
         self.first_voltage = 0
@@ -143,6 +143,9 @@ class Ensemble(Layer):
 
             # if WTA, only propagates the neuron which spiked first with highest voltage
             if self.wta and self.first_neuron is not None:
+                self.inhibited = True
+                self.bloc.propagate_inhibition(Helper.get_index_2d(self.first_neuron, self.size[1]))
+
                 # propagates the first neuron to spike
                 for con in self.out_connections:
                     con.register_neuron(self.first_neuron)
@@ -151,19 +154,15 @@ class Ensemble(Layer):
                 if self.learner is not None:
                     self.learner.out_spike(self.first_neuron)
 
-                if self.intra_inhibition:
-                    self.inhibited = True
-                self.bloc.propagate_inhibition(Helper.get_index_2d(self.first_neuron, self.size[1]))
-
                 # The first spike of each ens will trigger the threshold adaptation
                 if self.threshold_adapt:
                     self.bloc.register_first_layer(self.index)
 
     # <inhibition region>
 
-    def set_inhibition(self, intra_inhibition=True):
-        self.intra_inhibition = intra_inhibition
-        self.wta = True
+    def set_inhibition(self, wta=True):
+        self.inhibition = True
+        self.wta = wta
 
     def inhibit(self, index_2d_n, radius):
         for row in range(index_2d_n[0] - radius[0], index_2d_n[0] + radius[0] + 1):
@@ -184,11 +183,15 @@ class Ensemble(Layer):
             # stores the first neuron to spike
             # if several neurons spike during this step, keep the one with the highest voltage
             voltage = self.neuron_list[index_1d].voltage
-            # TODO: handle WTA with no intra layer inhibition
             if voltage > self.first_voltage:
                 self.first_voltage = voltage
                 self.first_neuron = index_1d
+
         else:
+            # Iif only lateral inhibition and no global ens inhibition
+            if self.inhibition:
+                self.bloc.propagate_inhibition(Helper.get_index_2d(index_1d, self.size[1]))
+
             for con in self.out_connections:
                 con.register_neuron(index_1d)
 
@@ -231,6 +234,8 @@ class Ensemble(Layer):
         self.first_voltage = 0
         self.first_neuron = None
         self.threshold_adapt = False
+        self.inhibition = False
+        self.wta = False
 
     def __getitem__(self, index):
         if isinstance(index, int):
@@ -309,13 +314,13 @@ class Bloc(Layer):
         for ens in self.ensemble_list:
             ens.learner.dataset = dataset
 
-    def set_inhibition(self, intra_inhibition=True, radius=None):
+    def set_inhibition(self, wta=True, radius=None):
         if radius is not None:
             self.inhibition_radius = radius
         self.inhibition_radius = (radius, radius) if isinstance(radius, int) else radius
         for ens in self.ensemble_list:
             Helper.log('Layer', log.INFO, 'ensemble {0} inhibited'.format(ens.id))
-            ens.set_inhibition(intra_inhibition)
+            ens.set_inhibition(wta=wta)
 
     def propagate_inhibition(self, index_2d_n):
         if sum(self.inhibition_radius) > 0:
