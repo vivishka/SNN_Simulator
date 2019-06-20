@@ -1,5 +1,6 @@
 import logging as log
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import numpy as np
 import copy
 import math
@@ -171,8 +172,9 @@ class Connection(SimulationObject):
             nrows = math.ceil(len(images)/ncols)
             fig, ax = plt.subplots(ncols=ncols, nrows=nrows)
             fig.suptitle("Connection final kernels")
+            norm = colors.Normalize(vmin=0, vmax=1)
             for index, image in enumerate(images):
-                ax[index // ncols, index % ncols].imshow(image, cmap='gray')
+                ax[index // ncols, index % ncols].imshow(image, cmap='gray', norm=norm)
 
 
 class DiagonalConnection(Connection):
