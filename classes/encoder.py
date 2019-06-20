@@ -193,7 +193,8 @@ class EncoderDoG(Encoder):
                         if data_t[row, col] < self.threshold:
                             data_t[row, col] = 0
                         else:
-                            delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
+                            # delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
+                            delay = (self.delay_max - data_t[row, col]) / (1 - self.threshold)
                             self.ensemble_list[2 * index + k].neuron_array[row, col].set_value(delay)
                         delays[row, col, 2 * index + k] = delay
         self.record.append(delays)

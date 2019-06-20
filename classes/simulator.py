@@ -19,7 +19,7 @@ class Simulator(object):
     Builds the network with the given parameters
     can then be run for a set number of step
     """
-
+    @MeasureTiming('sim_init')
     def __init__(self, model, dt=0.001, batch_size=1, input_period=float('inf')):
         super(Simulator, self).__init__()
         self.model = model
@@ -92,7 +92,7 @@ class Simulator(object):
             for node in self.nodes:
                 node.step()
             time_left = int(self.duration - Helper.time) * (time.time() - self.last_time)
-            print('Time {} / {}, end estimated {} : {} : {} '
+            print('Time {} / {}, end estimated {}:{}:{} '
                   .format(int(Helper.time),
                           self.duration,
                           int(time_left // 3600),
