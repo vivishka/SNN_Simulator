@@ -145,7 +145,7 @@ class EncoderGFR(Encoder):
 
 
 class EncoderDoG(Encoder):
-    def __init__(self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1, threshold=0.76, double_filter=True):
+    def __init__(self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1, threshold=None, double_filter=True):
         depth = len(sigma) * (2 if double_filter else 1)
         super(EncoderDoG, self).__init__(
             depth=depth,
@@ -193,12 +193,12 @@ class EncoderDoG(Encoder):
                 # plt.figure()
                 # plt.imshow(data_t, cmap='gray')
                 # plt.title('data_t layer ' + str(2 * index + k))
-                self.threshold = np.mean(data_t) * 0.9
+                threshold = np.mean(data_t) * 1.1 if self.threshold is None else self.threshold
                 for row in range(self.size[0]):
                     for col in range(self.size[1]):
-                        if data_t[row, col] >= self.threshold:
+                        if data_t[row, col] >= threshold:
                             # delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
-                            delay = self.delay_max * (2 - data_t[row, col] / self.threshold)
+                            delay = self.delay_max * (2 - data_t[row, col] / threshold)
                         else:
                             delay = self.delay_max
                         self.ensemble_list[nb_per_value * index + k].neuron_array[row, col].set_value(delay)
@@ -235,8 +235,8 @@ class EncoderDoG(Encoder):
         for row in range(image.shape[0]):
             for col in range(image.shape[1]):
                 px = 0
-                for k_row in range(-w, w+1):
-                    for k_col in range(-w, w+1):
+                for k_row in range(size):
+                    for k_col in range(size):
                         px += img_padded[row + k_row, col + k_col] * dog[k_row, k_col]
                 img_filtered[row, col] = px
         return img_filtered
