@@ -19,6 +19,8 @@ class Layer(SimulationObject):
     ----------
     ensemble_list: list[Ensemble]
         if Block: the list of Ensembles inside, if Ensemble: itself
+    learner: Learner
+        Leaner can be linked to the layer and will train the incoming connections
     out_connections: list[Connection]
         outbound Connections
     in_connections: list[Connection]
@@ -38,11 +40,6 @@ class Layer(SimulationObject):
         Layer.layer_count += 1
         Helper.log('Layer', log.INFO, 'new layer created, {0}'.format(self.id))
 
-    def set_weights(self, dw):
-        for ens in self.ensemble_list:
-            for neuron in ens.neuron_list:
-                neuron.set_weights(neuron.weights.weights + dw)
-
 
 class Ensemble(Layer):
     """
@@ -55,7 +52,7 @@ class Ensemble(Layer):
         Size / number of neurons of the ensemble
     neuron_type : NeuronType
         instanced NeuronType that every neuron of the Ensemble will copy
-    block: Bloc
+    bloc: Bloc
         Blocks in which this Ensemble belongs to
     index: int
         index of the Ensemble in the Block
@@ -80,9 +77,19 @@ class Ensemble(Layer):
         set of the neurons which received a spike and should be simulated the next step
     probed_neuron_set: set(NeuronType)
         set of the neurons which are probed and should be simulated every step
-    learner: Learner
-        every batch, modifies the weights of the inbound connections
-
+    inhibition: bool
+        True if the ensemble triggers inhibition when one of its neuron spikes
+    wta: bool
+        winner takes all inhibition mode
+        only one neuron can spike per ensemble per input cycle
+    inhibited: bool
+        if True, will not be simulated until the end of the cycle
+    threshold_adapt: bool
+        adapt the threshold depending on received / emitted spikes
+    first_neuron: int
+        index of the first neuron to spike this cycle
+    first_voltage:
+        voltage of the first neuron to spike this cycle, used to determine highest voltage if double spike
     """
 
     objects = []
@@ -93,18 +100,18 @@ class Ensemble(Layer):
         Ensemble.objects.append(self)
         self.bloc = bloc
         self.index = index
+        self.ensemble_list.append(self)
         self.size = (1, size) if isinstance(size, int) else size
         self.neuron_list = []
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.active_neuron_set = set()
         self.probed_neuron_set = set()
-        self.ensemble_list.append(self)
         self.inhibition = True
         self.wta = False
         self.inhibited = False
         self.threshold_adapt = False
-        self.first_voltage = 0
         self.first_neuron = None
+        self.first_voltage = 0
         if learner is not None:
             self.learner = learner
             self.learner.set_layer(self)

@@ -145,8 +145,8 @@ class EncoderGFR(Encoder):
 
 
 class EncoderDoG(Encoder):
-    def __init__(self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1, threshold=0.76):
-        depth = len(sigma) * 2
+    def __init__(self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1, threshold=0.76, double_filter=True):
+        depth = len(sigma) * (2 if double_filter else 1)
         super(EncoderDoG, self).__init__(
             depth=depth,
             size=size,
@@ -156,13 +156,16 @@ class EncoderDoG(Encoder):
         )
         self.sigma = sigma  # [(s1,s2), (s3,s4) ...]
         self.kernel_sizes = kernel_sizes  # [5,7...]
-        self.threshold = threshold
         self.delay_max = delay_max
+        self.threshold = threshold
+        self.double_filter = double_filter
 
     @MeasureTiming('enc_dog')
     def encode(self, data):
         delays = np.zeros((self.size[0], self.size[1], self.depth))
+        nb_per_value = 2 if self.double_filter else 1
         for index, sigmas in enumerate(self.sigma):
+
             # fact = self.sigma[index][1]/self.sigma[index][0]
             # data = np.reshape(data, self.size)
             # data_p = flt.gaussian(data, self.sigma[index][0])
@@ -173,30 +176,33 @@ class EncoderDoG(Encoder):
             # plt.figure()
             # plt.imshow(data_n, cmap='gray')
             # plt.title('data_n layer ' + str(index))
-            data_f = (self.filter(data, sigmas[0], sigmas[1], self.kernel_sizes[index]),
-                      self.filter(data, sigmas[1], sigmas[0], self.kernel_sizes[index]))
+            if self.double_filter:
+                data_f = [self.filter(data, sigmas[0], sigmas[1], self.kernel_sizes[index]),
+                          self.filter(data, sigmas[1], sigmas[0], self.kernel_sizes[index])]
+            else:
+                data_f = [self.filter(data, sigmas[0], sigmas[1], self.kernel_sizes[index])]
             # data_f = (data_p-data_n, data_n-data_p)
             # plt.figure()
             # plt.imshow(data_f, cmap='gray')
             # plt.title('data_f layer ' + str(index))
-            for k in range(2):
-                i_min = data_f[k].min()
-                i_max = data_f[k].max()
-                data_t = (data_f[k] - i_min) / (i_max - i_min)
+
+            for k, data in enumerate(data_f):
+                i_min = data.min()
+                i_max = data.max()
+                data_t = (data - i_min) / (i_max - i_min)
                 # plt.figure()
                 # plt.imshow(data_t, cmap='gray')
                 # plt.title('data_t layer ' + str(2 * index + k))
-                self.threshold = np.mean(data_t) * 1.1
+                self.threshold = np.mean(data_t) * 0.9
                 for row in range(self.size[0]):
                     for col in range(self.size[1]):
-                        delay = self.delay_max
-                        if data_t[row, col] < self.threshold:
-                            data_t[row, col] = 0
-                        else:
+                        if data_t[row, col] >= self.threshold:
                             # delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
-                            delay = (self.delay_max - data_t[row, col]) / (1 - self.threshold)
-                            self.ensemble_list[2 * index + k].neuron_array[row, col].set_value(delay)
-                        delays[row, col, 2 * index + k] = delay
+                            delay = self.delay_max * (2 - data_t[row, col] / self.threshold)
+                        else:
+                            delay = self.delay_max
+                        self.ensemble_list[nb_per_value * index + k].neuron_array[row, col].set_value(delay)
+                        delays[row, col, nb_per_value * index + k] = delay
         self.record.append(delays)
 
     def plot(self, index=-1, layer=0):

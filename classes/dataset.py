@@ -154,9 +154,9 @@ class PatternGeneratorDataset(Dataset):
         for i in range(size[0]):
             for j in range(size[1]):
                 if mat[i, j] == 1:
-                    mat[i, j] = np.random.randn() * 0.1 + 0.75
+                    mat[i, j] = np.random.randn() * 0.1 + 0.8
                 else:
-                    mat[i, j] = np.random.randn() * 0.1 + 0.25
+                    mat[i, j] = np.random.randn() * 0.1 + 0.2
 
         mat = np.clip(mat, 0, 1) * 255
         return mat.astype('uint8')
