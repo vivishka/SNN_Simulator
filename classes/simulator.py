@@ -40,7 +40,9 @@ class Simulator(object):
         self.prop_time = 0
         self.batch_size = batch_size
         self.duration = -1
-        self.last_time = 0
+        self.start = 0
+        self.last_time = time.time()
+        self.steptimes = []
 
         Helper.log('Simulator', log.INFO, 'new simulator created')
 
@@ -48,7 +50,6 @@ class Simulator(object):
     def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
         self.duration = duration
         Helper.log('Simulator', log.INFO, 'simulation start')
-        start = time.time()
         self.nb_step = int(duration / Helper.dt)
         Helper.log('Simulator', log.INFO, 'total steps: {0}'.format(self.nb_step))
 
@@ -58,6 +59,7 @@ class Simulator(object):
             node.step()
 
         converged = False
+        self.start = time.time()
         # runs for the specified number of steps
         while Helper.step_nb < self.nb_step and not converged:
             Helper.log('Simulator', log.DEBUG, 'next step {0}'.format(self.nb_step))
@@ -76,7 +78,7 @@ class Simulator(object):
         Helper.log('Simulator', log.INFO, 'simulating ended')
         Helper.log('Simulator', log.INFO, 'network of {0} neurons'.format(NeuronType.nb_neuron))
         Helper.log('Simulator', log.INFO, 'total time of {0}, step: {1}, synapse: {2}'
-                   .format(end - start, self.step_time, self.prop_time))
+                   .format(end - self.start, self.step_time, self.prop_time))
 
     @MeasureTiming('sim_step')
     def step(self):
@@ -91,14 +93,16 @@ class Simulator(object):
             self.next_reset += self.input_period
             for node in self.nodes:
                 node.step()
-            time_left = int(self.duration - Helper.time) * (time.time() - self.last_time)
-            print('Time {} / {}, end estimated {}:{}:{} '
+            time_left = int((time.time() - self.start) / Helper.time * (self.duration - Helper.time))
+            print('Time {} / {}, {}:{}:{} left '
                   .format(int(Helper.time),
                           self.duration,
                           int(time_left // 3600),
                           int((time_left // 60) % 60),
                           int(time_left % 60)))
+            self.steptimes.append(time.time()-self.last_time)
             self.last_time = time.time()
+
 
         Helper.step()
 
@@ -162,10 +166,13 @@ class Simulator(object):
             data = []
             Helper.log('Simulator', log.INFO, 'saving weights ...')
             for index, con in enumerate(self.connections):
-                if not isinstance(con, DiagonalConnection) and con.active:
+                if not isinstance(con, DiagonalConnection) \
+                        and con.mode != 'pooling' \
+                        and con.active:
                     Helper.log('Simulator', log.INFO, 'saving weight matrix connection {}'.format(index))
                     Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con.weights.matrix.size))
-                    data.append((index, con.weights.matrix))
+                    data.append((con.id, con.weights))
+
             pickle.dump(data, savefile, pickle.HIGHEST_PROTOCOL)
             Helper.log('Simulator', log.INFO, 'done')
 
@@ -174,10 +181,19 @@ class Simulator(object):
             Helper.log('Simulator', log.INFO, 'loading weights ...')
             data = pickle.load(savefile)
             for con in data:
-                if not isinstance(self.connections[con[0]], DiagonalConnection) and self.connections[con[0]].active:
+                for receptor in self.connections:
                     Helper.log('Simulator', log.INFO, 'loading weight matrix connection {}'.format(con[0]))
-                    Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con[1].size))
-                    self.connections[con[0]].weights.matrix = con[1]
+                    # Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con[1].matrix.size))
+                    if receptor.id == con[0]:
+                        receptor.weights = con[1]
+                        break
+
+
+
+                # if not isinstance(self.connections[con[0]], DiagonalConnection) \
+                #         and self.connections[con[0]].mode != 'pooling' \
+                #         and self.connections[con[0]].active:
+
             Helper.log('Simulator', log.INFO, 'done')
 
     def flush(self):
@@ -185,9 +201,14 @@ class Simulator(object):
         Helper.reset()
         self.next_reset = self.input_period
 
+    def plot_steptimes(self):
+        plt.figure()
+        plt.title("Input process duration")
+        plt.plot(self.steptimes)
+
 
 class SimulatorMp(Simulator):
-    def __init__(self, model, dt=0.001, batch_size=1, input_period=float('inf'), processes=2):
+    def __init__(self, model, dt=0.01, batch_size=1, input_period=float('inf'), processes=2):
         super(SimulatorMp, self).__init__(model, dt, batch_size, input_period)
         self.processes = processes
 
