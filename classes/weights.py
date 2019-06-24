@@ -12,11 +12,11 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, source_dim, dest_dim, kernel_size=None, shared=False, wmin=0, wmax=0.6):
+    def __init__(self, source_dim, dest_dim, kernel_size=None, mode=None, wmin=0, wmax=0.6):
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
-        self.shared = shared
+        self.mode = mode  # shared, pooling
         if isinstance(kernel_size, int):
             self.kernel_size = (kernel_size, kernel_size)
         elif isinstance(kernel_size, tuple) and len(kernel_size) == 2:
@@ -40,8 +40,10 @@ class Weights(object):
         if kernel_size is None:
             self.init_weights_dense()
         else:
-            if shared:
+            if mode == 'shared':
                 self.init_weight_shared()
+            elif mode == 'pooling':
+                self.init_weight_pooling()
             else:
                 self.init_weight_kernel()
 
@@ -118,6 +120,23 @@ class Weights(object):
                                            'index ({}, {})out of range in weight matrix'.format(index_x, index_y))
 
         self.matrix = SharedCompactMatrix(mat=tmp_matrix, kernel=kernel)
+
+    def init_weight_pooling(self):
+        tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)))
+        # for every source neuron
+        for dest_row in range(self.dest_dim[0]):
+            for dest_col in range(self.dest_dim[1]):
+                for kern_row in range(self.kernel_size[0]):
+                    for kern_col in range(self.kernel_size[1]):
+
+                        # computes the source (row) and dest (col) indexes
+                        index_y = dest_row * self.dest_dim[1] + dest_col
+                        index_x = index_y * self.kernel_size[0] + kern_col + kern_row * self.source_dim[1] + dest_row * self.source_dim[1]
+                        #     # handles incoherent sizes
+                        #     if 0 <= index_x < tmp_matrix.shape[0] and 0 <= index_y < tmp_matrix.shape[1]:
+                        tmp_matrix[(index_x, index_y)] = 1
+
+        self.matrix = CompactMatrix(mat=tmp_matrix)
 
     # @MeasureTiming('get_weight')
     def get_target_weights(self, index):

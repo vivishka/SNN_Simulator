@@ -54,14 +54,14 @@ class Connection(SimulationObject):
     objects = []
     con_count = 0
     @MeasureTiming('con_init')
-    def __init__(self, source_l, dest_l, wmin=0, wmax=1, kernel=None, shared=False, *args, **kwargs):
+    def __init__(self, source_l, dest_l, wmin=0, wmax=1, kernel=None, mode=None, *args, **kwargs):
 
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
         self.id = Connection.con_count
         Connection.con_count += 1
         self.connection_list = []
-        self.shared = shared
+        self.mode = mode  # shared, pooling
         self.active = False
         self.in_neurons_spiking = []
         self.source_e = None
@@ -78,9 +78,15 @@ class Connection(SimulationObject):
         # TODO: idea: try to change __new()__ to return the list of sub connections
         if isinstance(source_l, Bloc) or isinstance(dest_l, Bloc):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
-            for l_out in dest_l.ensemble_list:
-                for l_in in source_l.ensemble_list:
-                    self.connection_list.append(Connection(l_in, l_out, self.wmin, self.wmax, kernel, shared, *args, **kwargs))
+            if mode == 'pooling':
+                for l in range(len(dest_l.ensemble_list)):
+                    self.connection_list.append(Connection(source_l.ensemble_list[l], dest_l.ensemble_list[l],
+                                                           self.wmin, self.wmax, kernel, mode, *args, **kwargs))
+            else:
+                for l_out in dest_l.ensemble_list:
+                    for l_in in source_l.ensemble_list:
+                        self.connection_list.append(Connection(l_in, l_out, self.wmin,
+                                                               self.wmax, kernel, mode, *args, **kwargs))
 
             self.weights = None
         else:
@@ -92,7 +98,7 @@ class Connection(SimulationObject):
                 source_dim=self.source_e.size,
                 dest_dim=self.dest_e.size,
                 kernel_size=kernel,
-                shared=self.shared,
+                mode=mode,
                 wmin=wmin,
                 wmax=wmax)
             self.active = True
@@ -180,7 +186,7 @@ class Connection(SimulationObject):
 class DiagonalConnection(Connection):
     
     def __init__(self, source_l, dest_l):
-        super(DiagonalConnection, self).__init__(source_l, dest_l, 0, 0.6, kernel=None,)
+        super(DiagonalConnection, self).__init__(source_l, dest_l, 0, 1, kernel=None,)
         for i, connection in enumerate(self.connection_list):
             for col in range(connection.weights.matrix.shape[1]):
                 if col != i:

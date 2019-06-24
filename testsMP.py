@@ -46,7 +46,7 @@ if __name__ == '__main__':
         eta_down=-0.1,
     ))
     b1.set_dataset(image_dataset)
-    b1.set_inhibition(1)
+    b1.set_inhibition(True, 1)
     d1 = Decoder(img_size)
 
     c1 = Connection(e1, b1, kernel=(3, 3), shared=True)
