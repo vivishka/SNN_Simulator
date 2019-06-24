@@ -236,7 +236,7 @@ class SimulatorMp(Simulator):
 
                         learning_data.append(ensemble.learner.get_mp_data())
                         workers.append(mp.Process(target=type(ensemble.learner).process_mp,
-                                                  args=(self.mpqueues[proc_index], learning_data)))  # maybe copy the data ?
+                                                  args=(self.mpqueues[proc_index], learning_data.copy())))  # maybe copy the data ?
                         Helper.log('Simulator', log.INFO, 'Worker {} full of {} tasks, starting...'.format(proc_index+1, learner_index))
                         workers[-1].start()
                         proc_index += 1
