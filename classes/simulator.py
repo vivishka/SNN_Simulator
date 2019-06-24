@@ -183,7 +183,7 @@ class Simulator(object):
             for con in data:
                 for receptor in self.connections:
                     Helper.log('Simulator', log.INFO, 'loading weight matrix connection {}'.format(con[0]))
-                    Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con[1].matrix.size))
+                    # Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con[1].matrix.size))
                     if receptor.id == con[0]:
                         receptor.weights = con[1]
                         break
