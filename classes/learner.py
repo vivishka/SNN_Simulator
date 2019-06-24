@@ -9,6 +9,7 @@ import logging as log
 
 class Learner(object):
     """
+    Basic STDP learner. depends on the time of the spike and not the previous weights
 
     Parameters
     ---------
@@ -25,14 +26,24 @@ class Learner(object):
     ----------
     layer: Layer
         Ensemble or Block this learner is monitoring
+    size: int
+        number of neuron in the layer
+    eta_up: float
+        weight increase coefficient
+    eta_down: float
+        weight decrease coefficient
+    tau_up: float
+        sensitivity to pre synaptic delay
+    tau_down: float
+        sensitivity to post synaptic delay
     buffer_in: np.array
-        array of list of received spikes
+        array of list of received spikes this input cycle
         index is source neuron index
         list of tuple: (time, source_n, dest_n  , weight, source_c, input_index)
-    self.buffer_in_empty: np.array
+    buffer_in_empty: np.array
         array of empty list, used to reset the buffer_in
-    self.buffer_out: list
-        list of emitted spikes, ordered by time of emission
+    buffer_out: list
+        list of emitted spikes this input cycle, ordered by time of emission
     in_spikes: list
         list of buffer_in, one array for each input cycle
     out_spikes: list
@@ -43,6 +54,7 @@ class Learner(object):
 
     def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=1, tau_down=1):
         self.layer = None
+        self.size = None
         self.eta_up = eta_up
         self.eta_down = eta_down
         self.tau_up = tau_up
@@ -53,13 +65,16 @@ class Learner(object):
         self.in_spikes = []
         self.out_spikes = []
         self.active = True
-        self.size = None
 
-
-        # Helper.log('Learner', log.INFO, 'Learner initialized on ensemble {0}'.format(self.layer.id))
         Helper.log('Learner', log.INFO, 'Learner initialized TODO: change log'.format())
 
     def set_layer(self, layer):
+        """
+        Called by the layer after its init. Now layer and learner are both linked
+        :param layer: the layer linked to this learner
+        :type layer: Layer
+        :return:
+        """
         self.layer = layer
         self.size = layer.size[0] * layer.size[1]
         self.buffer_in_empty = np.ndarray(self.size, dtype=list)
@@ -67,18 +82,40 @@ class Learner(object):
             self.buffer_in_empty[i] = []
         self.buffer_in = copy.deepcopy(self.buffer_in_empty)
 
-
     def in_spike(self, source_n, dest_n, weight, source_c):
+        """
+        Called when a neuron in the layer receives a spike
+        :param source_n: source neuron 1D index
+        :type source_n: int
+        :param dest_n: destination neuron 1D index
+        :type dest_n: int
+        :param weight: weight of the spike
+        :type weight: float
+        :param source_c: reference of the connection which propagated this spike
+        :type source_c: Connection
+        :return:
+        """
         self.buffer_in[dest_n].append([Helper.time, source_n, source_c, weight, Helper.input_index])
 
     def out_spike(self, source_n):
+        """
+        Called when a neuron in the layer emits a spike
+        :param source_n: source neuron 1D index
+        :type source_n: int
+        :return:
+        """
         if self.active:
             self.buffer_out.append((Helper.time, source_n, Helper.input_index))
             Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered output spike from {1}'
                        .format(self.layer.id, source_n))
             Helper.log('Learner', log.DEBUG, 'Appended {} to buffer'.format(self.buffer_out[-1]))
 
-    def reset_input(self):  # call every input cycle
+    def reset_input(self):
+        """
+        Called every input cycle.
+        Saves and empty the in and out buffers into the list that store the batch
+        :return:
+        """
         Helper.log('Learner', log.DEBUG, 'Learner reset')
         Helper.log('Learner', log.DEBUG, 'Appended {} to memory'.format(self.buffer_out))
         self.in_spikes.append(self.buffer_in)
@@ -91,7 +128,12 @@ class Learner(object):
         self.buffer_out = []
         Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} reset for next input'.format(self.layer.id))
 
-    def process(self):  # call every batch
+    def process(self):
+        """
+        Called every batch.
+        process each input cycle of the batch.
+        :return:
+        """
         Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
         for experiment_index in range(Helper.input_index):
@@ -133,10 +175,33 @@ class Learner(object):
 
 
 class LearnerClassifier(Learner):
+    """
+    Classifying STDP learner.
+    Works the same as its super, but removes double output spikes before processing
+    decreases the weights that leads to a double spike
 
+    Parameters
+    ---------
+    eta_up: float
+        weight increase coefficient
+    eta_down: float
+        weight decrease coefficient
+    tau_up: float
+        sensitivity to pre synaptic delay
+    tau_down: float
+        sensitivity to post synaptic delay
+    feedback_gain: float
+        amount by which the weights leading to duplicate spikes will be decreased or increased if no spikes
+
+    Attributes
+    ----------
+    feedback_gain: float
+        amount by which the weights leading to duplicate spikes will be decreased or increased if no spikes
+    """
     def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, feedback_gain=0.001):
         super(LearnerClassifier, self).__init__(eta_up, eta_down, tau_up, tau_down)
         self.feedback_gain = feedback_gain
+
     @MeasureTiming('learn_process')
     def process(self):
         # remove multiple output spikes from buffer TODO: optimize : high complexity
@@ -153,10 +218,14 @@ class LearnerClassifier(Learner):
                             duplicates.append(out)
                             Helper.log('Learner', log.INFO,
                                        'Classifier learner ignored simultaneous output spikes, reducing weights')
+
+                # Decreases the weight leading to duplicate
                 for duplicate in duplicates:
                     for con in self.layer.in_connections:
                         con.weights.matrix.add(-self.feedback_gain, con.wmin, con.wmax)
                     self.out_spikes[index].remove(duplicate)
+
+            # Increases the weight when no spikes
             else:
                 Helper.log('Learner', log.INFO,
                            'Classifier learner found no output spikes, increasing weights')
@@ -167,6 +236,21 @@ class LearnerClassifier(Learner):
 
 
 class SimplifiedSTDP(Learner):
+    """
+        Simplified STDP learner.
+        Weight change depends on previous weights, not on precise timing
+
+        Parameters
+        ---------
+        eta_up: float
+            weight increase coefficient
+        eta_down: float
+            weight decrease coefficient
+
+        Attributes
+        ----------
+
+        """
 
     def __init__(self, eta_up=0.1, eta_down=-0.1):
         super(SimplifiedSTDP, self).__init__(eta_up=eta_up, eta_down=eta_down)
@@ -199,7 +283,6 @@ class SimplifiedSTDP(Learner):
                     Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
                                format(connection.id, source_n, dest_n, dw))
                     # update weights in source connection
-                    # TODO: be careful of weights init above maw: stuck up there
                     weight = np.clip(weight + dw, connection.wmin, connection.wmax)
                     connection.weights[(source_n, dest_n)] = weight
 
@@ -208,7 +291,6 @@ class SimplifiedSTDP(Learner):
         for connection in self.layer.in_connections:
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
-
 
 
 class SimplifiedSTDP_MP(SimplifiedSTDP):
@@ -248,10 +330,14 @@ class SimplifiedSTDP_MP(SimplifiedSTDP):
 
                         dt = out_s[0] - in_s[0]
                         if dt >= 0:
-                            dw = learner_data[4] * (weight - learner_data[5][connection][0]) * (learner_data[5][connection][1] - weight)
+                            dw = learner_data[4] \
+                                 * (weight - learner_data[5][connection][0]) \
+                                 * (learner_data[5][connection][1] - weight)
                             # dw = learner_data[4]
                         else:
-                            dw = learner_data[3] * (weight - learner_data[5][connection][0]) * (learner_data[5][connection][1] - weight)
+                            dw = learner_data[3] \
+                                 * (weight - learner_data[5][connection][0]) \
+                                 * (learner_data[5][connection][1] - weight)
                             # dw = learner_data[3]
 
                         # update weights in source connection
@@ -264,14 +350,47 @@ class SimplifiedSTDP_MP(SimplifiedSTDP):
             all_return_data.append(learner_return_data)
         q.put(all_return_data)
 
-    def update(self, return_data):
+    @staticmethod
+    def update(return_data):
         for data in return_data:
             data[0][data[1]] = data[2]
 
+
 # TODO: change weight change after all experiments + average ?
 class Rstdp(Learner):
+    """
+        Classifying STDP learner.
+        Works the same as its super, but removes double output spikes before processing
+        decreases the weights that leads to a double spike
 
-    def __init__(self, eta_up=0.1, eta_down=0.1, anti_eta_up=0.1, anti_eta_down=0.1, wta=True):
+        Parameters
+        ---------
+        eta_up: float
+            weight increase coefficient for good output
+        eta_down: float
+            weight decrease coefficient for good output
+        anti_eta_up: float
+            weight decrease coefficient for bad output
+        anti_eta_down: float
+            weight increase coefficient for bad output
+        wta: bool
+            experimental
+            only learn once per input cycle if True
+
+        Attributes
+        ----------
+        anti_eta_up: float
+            weight decrease coefficient for bad output
+        anti_eta_down: float
+            weight increase coefficient for bad output
+        wta: bool
+            experimental
+            only learn once per input cycle if True
+        dataset: Dataset
+            dataset used as input for the network. Labels are used to compare with the output
+        """
+
+    def __init__(self, eta_up=0.1, eta_down=-0.1, anti_eta_up=-0.1, anti_eta_down=0.1, wta=True):
         super(Rstdp, self).__init__(eta_up=eta_up, eta_down=eta_down,)
         self.anti_eta_up = anti_eta_up
         self.anti_eta_down = anti_eta_down
