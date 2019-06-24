@@ -42,6 +42,9 @@ class DelayedNeuron(NeuronType):
         self.active = active
         Helper.log('Neuron', log.DEBUG, 'neuron delay set to {}'.format(delay))
 
+    def reset(self):
+        super(DelayedNeuron, self).reset()
+        self.active = False
 
 class Encoder(Bloc):
     
@@ -198,12 +201,8 @@ class EncoderDoG(Encoder):
                     for col in range(self.size[1]):
                         if data_t[row, col] >= threshold:
                             # delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
-<<<<<<< Updated upstream
                             delay = self.delay_max * (2 - data_t[row, col] / threshold)
-=======
-                            delay = self.delay_max * (2 - data_t[row, col] / self.threshold)
                             self.ensemble_list[nb_per_value * index + k].neuron_array[row, col].set_value(delay)
->>>>>>> Stashed changes
                         else:
                             delay = self.delay_max
 
