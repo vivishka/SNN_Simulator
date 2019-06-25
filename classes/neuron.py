@@ -82,7 +82,7 @@ class NeuronType(object):
         self.ensemble.create_spike(self.index_1d)
 
         if self.spike_out_probed:
-            self.probed_values['spike_out'].append(Helper.time)
+            self.probed_values['spike_out'].append(self.ensemble.sim.curr_time)
 
         self.nb_out += 1
 
@@ -105,7 +105,7 @@ class NeuronType(object):
         for var, probe in self.probes.items():
             # TODO: check existence
             if var not in 'spike_in, spike_out':
-                self.probed_values[var].append((Helper.time, self.__getattribute__(var)))
+                self.probed_values[var].append((self.ensemble.sim.curr_time, self.__getattribute__(var)))
 
     def step(self):
         pass
@@ -113,7 +113,7 @@ class NeuronType(object):
     def reset(self):
         Helper.log('Neuron', log.DEBUG, str(self.index_2d) + ' reset')
         self.received = []
-        self.last_active = Helper.step_nb
+        self.last_active = self.ensemble.sim.step_nb
         self.inhibited = False
 
     def restore(self):
@@ -163,9 +163,9 @@ class LIF(NeuronType):
         self.received = []
 
         # interpolation of the state
-        elapsed_steps = Helper.step_nb - self.last_active
-        self.last_active = Helper.step_nb
-        self.voltage = self.voltage * (1 - self.tau_inv * Helper.dt) ** elapsed_steps + input_sum
+        elapsed_steps = self.ensemble.sim.step_nb - self.last_active
+        self.last_active = self.ensemble.sim.step_nb
+        self.voltage = self.voltage * (1 - self.tau_inv * self.ensemble.sim.dt) ** elapsed_steps + input_sum
 
         # probing
         if self.variable_probed:

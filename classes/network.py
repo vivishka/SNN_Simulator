@@ -29,14 +29,17 @@ class Network(object):
         self.n_learners = 0
         Helper.log('Network', log.INFO, 'new network created')
 
-    def build(self):
+    def build(self, sim):
 
         for attr, value in self.objects.items():
             self.objects[attr] = list(set(self.objects[attr] + attr.get_objects()))
+            for obj in self.objects[attr]:
+                obj.sim = sim
             attr.flush()
         for ens in self.objects[Ensemble]:
             if ens.learner:
                 self.n_learners += 1
+
         Helper.log('Network', log.INFO, 'network built')
 
     def get_all_objects(self):

@@ -95,7 +95,7 @@ class Learner(object):
         :type source_c: Connection
         :return:
         """
-        self.buffer_in[dest_n].append([Helper.time, source_n, source_c, weight, Helper.input_index])
+        self.buffer_in[dest_n].append([self.layer.sim.curr_time, source_n, source_c, weight])
 
     def out_spike(self, source_n):
         """
@@ -105,7 +105,7 @@ class Learner(object):
         :return:
         """
         if self.active:
-            self.buffer_out.append((Helper.time, source_n, Helper.input_index))
+            self.buffer_out.append((self.layer.sim.curr_time, source_n))
             Helper.log('Learner', log.DEBUG, 'Learner of ensemble {0} registered output spike from {1}'
                        .format(self.layer.id, source_n))
             Helper.log('Learner', log.DEBUG, 'Appended {} to buffer'.format(self.buffer_out[-1]))
@@ -136,7 +136,7 @@ class Learner(object):
         """
         Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
-        for experiment_index in range(Helper.input_index):
+        for experiment_index in range(self.layer.sim.batch_size):
             Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
 
             # for each spike emitted by the Ensemble during this experiment
@@ -259,7 +259,7 @@ class SimplifiedSTDP(Learner):
     def process(self):  # call every batch
         Helper.log('Learner', log.DEBUG, 'Processing learning ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
-        for experiment_index in range(Helper.batch_size):
+        for experiment_index in range(self.layer.sim.batch_size):
             Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
 
             # for each spike emitted by the Ensemble during this experiment
@@ -305,7 +305,7 @@ class SimplifiedSTDP_MP(SimplifiedSTDP):
             self.cons_minmax[con] = (con.wmin, con.wmax)
 
     def get_mp_data(self):
-        return [Helper.batch_size, self.out_spikes, self.in_spikes, self.eta_up, self.eta_down, self.cons_minmax]
+        return [self.layer.sim.batch_size, self.out_spikes, self.in_spikes, self.eta_up, self.eta_down, self.cons_minmax]
 
     @staticmethod
     def process_mp(q, learning_data):
@@ -401,7 +401,7 @@ class Rstdp(Learner):
     def process(self):
         Helper.log('Learner', log.DEBUG, 'Processing rstdp ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
-        for experiment_index in range(Helper.batch_size):
+        for experiment_index in range(self.layer.sim.batch_size):
             Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
 
             if not self.out_spikes[experiment_index]:

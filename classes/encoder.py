@@ -32,19 +32,20 @@ class DelayedNeuron(NeuronType):
 
     def step(self):
         # Helper.log('Neuron', log.DEBUG, 'neuron delay step')
-        if self.active and Helper.time >= self.delay:
+        if self.active and self.ensemble.sim.curr_time >= self.delay:
             Helper.log('Neuron', log.DEBUG, 'neuron delay expired : firing')
             self.active = False
             self.send_spike()
 
     def set_value(self, delay, active=True):
-        self.delay = delay + Helper.time
+        self.delay = delay + self.ensemble.sim.curr_time
         self.active = active
         Helper.log('Neuron', log.DEBUG, 'neuron delay set to {}'.format(delay))
 
     def reset(self):
         super(DelayedNeuron, self).reset()
         self.active = False
+
 
 class Encoder(Bloc):
     
