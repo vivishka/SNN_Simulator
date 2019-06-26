@@ -64,8 +64,8 @@ class Connection(SimulationObject):
         self.mode = mode  # shared, pooling
         self.active = False
         self.in_neurons_spiking = []
-        self.source_e = None
-        self.dest_e = None
+        self.source_e = source_l
+        self.dest_e = dest_l
         self.is_probed = False
         self.probed_values = []
         self.wmin = wmin
@@ -181,6 +181,20 @@ class Connection(SimulationObject):
             norm = colors.Normalize(vmin=0, vmax=1)
             for index, image in enumerate(images):
                 ax[index // ncols, index % ncols].imshow(image, cmap='gray', norm=norm)
+
+    def plot_all_kernels(self):
+        nb_source = len(self.source_e.ensemble_list)
+        nb_dest = len(self.dest_e.ensemble_list)
+        fig = plt.figure()
+        norm = colors.Normalize(vmin=self.connection_list[0].wmin, vmax=self.connection_list[0].wmax)
+        for i, con in enumerate(self.connection_list):
+            ax = fig.subplot(nb_source, nb_dest, i)
+            kernel = con.weights.matrix.get_kernel()
+            ax.imshow(kernel, cmap='gray', norm=norm)
+            plt.axis('off')
+
+        fig.suptitle("Connection final kernels")
+
 
 
 class DiagonalConnection(Connection):

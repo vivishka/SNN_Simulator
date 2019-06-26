@@ -368,7 +368,7 @@ class Bloc(Layer):
             # get the first spike time
             time = self.layer_time[index]
             self.layer_time[index] = float('inf')
-            time = self.sim.input_period if time is None else time % self.sim.input_period
+            time = self.sim.input_period if time == float('inf') else time % self.sim.input_period
 
             # First th adaptation: spike time target
             old_th = ens.neuron_list[0].threshold
