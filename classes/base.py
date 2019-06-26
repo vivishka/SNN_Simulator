@@ -14,6 +14,7 @@ class SimulationObject(object):
     def __init__(self, label=''):
         super(SimulationObject, self).__init__()
         self.label = label
+        self.sim = None
 
     @classmethod
     def get_objects(cls):
@@ -28,13 +29,13 @@ class SimulationObject(object):
 
 
 class Helper(object):
-    step_nb = 0
-    time = 0.
-    dt = 0.
-    nb = 0.
-    input_index = 0
-    batch_size = 0
-    input_period = 0
+    # step_nb = 0
+    # time = 0.
+    # dt = 0.
+    # nb = 0.
+    # input_index = 0
+    # batch_size = 0
+    # input_period = 0
 
     logged_modules = []  # Helper, Neuron, Encoder, Decoder, Connection, Simulator, Layer, Learner, Dataset, All
 
@@ -44,10 +45,10 @@ class Helper(object):
     def __init__(self):
         pass
 
-    @staticmethod
-    def step():
-        Helper.time += Helper.dt
-        Helper.step_nb += 1
+    # @staticmethod
+    # def step():
+    #     Helper.time += Helper.dt
+    #     Helper.step_nb += 1
 
     @staticmethod
     def init_weight():
@@ -87,13 +88,13 @@ class Helper(object):
         """
         return index_2d[0] * length + index_2d[1]
 
-    @staticmethod
-    def reset():
-        Helper.step_nb = 0
-        Helper.time = 0.
-        Helper.nb = 0.
-        Helper.input_index = 0
-        Helper.input_period = 0
+    # @staticmethod
+    # def reset():
+    #     Helper.step_nb = 0
+    #     Helper.time = 0.
+    #     Helper.nb = 0.
+    #     Helper.input_index = 0
+    #     Helper.input_period = 0
 
     @staticmethod
     def print_timings():

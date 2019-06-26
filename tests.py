@@ -1,17 +1,17 @@
 
-import matplotlib.pyplot as plt
-import numpy as np
-import csv
-import logging as log
-from classes.base import Helper
+# import matplotlib.pyplot as plt
+# import numpy as np
+# import csv
+# import logging as log
+# from classes.base import Helper
 from classes.network import Network
-from classes.neuron import LIF, IF
-from classes.neuron import PoolingNeuron
-from classes.layer import Bloc, Ensemble
-from classes.simulator import Simulator, SimulatorMp
-from classes.connection import *
+import classes.simulator as Sim
+from classes.neuron import IF
+# from classes.neuron import PoolingNeuron
+# from classes.layer import Bloc, Ensemble
+# from classes.connection import *
 from classes.probe import *
-from classes.decoder import *
+# from classes.decoder import *
 from classes.encoder import *
 from classes.dataset import *
 from classes.learner import *
@@ -40,20 +40,21 @@ if __name__ == '__main__':
 
     # image_dataset = PatternGeneratorDataset(index=0, size=img_size, nb_images=200, nb_features=9)
     model = Network()
-    for layer in range(1, 3):
+    for layer in range(1, 2):
+    # layer = 2
         if layer == 1:
-            image_dataset = FileDataset(filename, first_image, size=img_size, length=-1)
+            image_dataset = FileDataset(filename, first_image, size=img_size, length=5000)
         else:
-            image_dataset = FileDataset(filename, first_image, size=img_size, length=-1)
+            image_dataset = FileDataset(filename, first_image, size=img_size, length=5)
 
         e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
                         kernel_sizes=[3], size=img_size, in_min=0, in_max=255, delay_max=1)
         n1 = Node(e1, image_dataset, 1, 0)
         if layer == 1:
-            b1 = Bloc(4, img_size, IF(threshold=2.1),
+            b1 = Bloc(6, img_size, IF(threshold=2.1),
                       SimplifiedSTDP(
-                      eta_up=0.003,
-                      eta_down=-0.003)
+                          eta_up=0.003,
+                          eta_down=-0.003)
                       )
             b1.set_dataset(image_dataset)
             b1.set_inhibition(wta=True, radius=1)
@@ -62,7 +63,7 @@ if __name__ == '__main__':
 
         # d1 = Decoder((7, 7))
         if layer == 2:
-            b2 = Bloc(4, (14, 14), IF(threshold=0.1))
+            b2 = Bloc(6, (14, 14), IF(threshold=0.1))
             b2.set_inhibition(wta=True, radius=0)
 
             b3 = Bloc(8, (14, 14), IF(threshold=2),
@@ -81,17 +82,19 @@ if __name__ == '__main__':
 
         cps = []
         if layer == 1:
-            for con in c1:
-                cps.append(ConnectionProbe(con))
-                sprobein = NeuronProbe(target=e1[0], variables='spike_out')
-                sprobeout = NeuronProbe(target=b1[0], variables='spike_out')
+            # for con in c1:
+            # cps.append(ConnectionProbe(con))
+            sprobein = NeuronProbe(target=e1[0], variables='spike_out')
+            sprobeout = NeuronProbe(target=b1[0], variables='spike_out')
+            vprobe = NeuronProbe(target=b1[0], variables='voltage')
         elif layer == 2:
-            for con in c3:
-                cps.append(ConnectionProbe(con))
-                sprobein = NeuronProbe(target=b2[0], variables='spike_out')
-                sprobeout = NeuronProbe(target=b3[0], variables='spike_out')
+            # for con in c3:
+            #     cps.append(ConnectionProbe(con))
+            sprobein = NeuronProbe(target=b2[0], variables='spike_out')
+            sprobeout = NeuronProbe(target=b3[0], variables='spike_out')
+            vprobe = NeuronProbe(target=b1[0], variables='voltage')
 
-        sim = Simulator(model, 0.0625, input_period=1, batch_size=1)
+        sim = Sim.Simulator(model, 0.02, input_period=1, batch_size=1)
         try:
             if layer == 1:
                 sim.load('tests1.w')
@@ -100,7 +103,7 @@ if __name__ == '__main__':
         except:
             pass
 
-        sim.run(len(image_dataset.data)+0.0625)
+        sim.run(len(image_dataset.data))
         # image_dataset.plot(-1)
         # e1.plot(layer=4)
         # plot final kernels
@@ -116,8 +119,9 @@ if __name__ == '__main__':
             c1.plot()
         if layer == 2:
             sim.save('tests2.w')
+            c1.plot()
             c3.plot()
-
+        vprobe.plot('voltage')
         sprobein.plot('spike_out')
         sprobeout.plot('spike_out')
         # for index in range(image_dataset.length):

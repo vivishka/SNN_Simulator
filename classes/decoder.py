@@ -34,7 +34,7 @@ class NeuronLog(NeuronType):
             super(NeuronLog, self).receive_spike(index_1d, weight)
             for spike in self.received:
                 Helper.log('Decoder', log.DEBUG, ' neuron {} received spike {}'.format(self.index_2d, spike))
-                self.spike_times.append((spike[0], Helper.time))
+                self.spike_times.append((spike[0], self.ensemble.sim.time))
             self.received = []
 
     def step(self):
@@ -105,7 +105,7 @@ class Decoder(Ensemble):
                     image[row, col] = value - min_val
                 else:
                     # image[row, col] = None
-                    image[row, col] = Helper.input_period +1*Helper.dt
+                    image[row, col] = self.sim.input_period + 1 * self.sim.dt
         return image
 
     def decoded_image(self):
