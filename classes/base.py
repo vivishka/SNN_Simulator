@@ -10,7 +10,6 @@ class SimulationObject(object):
 
     # objects = {}
 
-    # TODO:  __repr__
     def __init__(self, label=''):
         super(SimulationObject, self).__init__()
         self.label = label

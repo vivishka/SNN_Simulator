@@ -208,9 +208,9 @@ class EncoderDoG(Encoder):
                             delay = self.delay_max
 
                         delays[row, col, nb_per_value * index + k] = delay
-                plt.figure()
-                plt.imshow(delays[:,:,k], cmap='gray_r')
-                plt.title('Encoder sequence for layer {}'.format(k))
+                # plt.figure()
+                # plt.imshow(delays[:,:,k], cmap='gray_r')
+                # plt.title('Encoder sequence for layer {}'.format(k))
         self.record.append(delays)
 
     def plot(self, index=-1, layer=0):

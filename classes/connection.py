@@ -75,7 +75,6 @@ class Connection(SimulationObject):
                    .format(self.id, source_l.id, dest_l.id))
 
         # check if connection is from ensemble to ensemble, generate sub-connections if needed recursively
-        # TODO: idea: try to change __new()__ to return the list of sub connections
         if isinstance(source_l, Bloc) or isinstance(dest_l, Bloc):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
             if mode == 'pooling':
@@ -186,15 +185,18 @@ class Connection(SimulationObject):
         nb_source = len(self.source_e.ensemble_list)
         nb_dest = len(self.dest_e.ensemble_list)
         fig = plt.figure()
+        fig.patch.set_facecolor('xkcd:light blue')
+        # fig, ax = plt.subplots(nrows=nb_source, ncols=nb_dest)
         norm = colors.Normalize(vmin=self.connection_list[0].wmin, vmax=self.connection_list[0].wmax)
-        for i, con in enumerate(self.connection_list):
-            ax = fig.subplot(nb_source, nb_dest, i)
-            kernel = con.weights.matrix.get_kernel()
-            ax.imshow(kernel, cmap='gray', norm=norm)
-            plt.axis('off')
+        for row in range(nb_source):
+            for col in range(nb_dest):
+                con = self.connection_list[col * nb_source + row]
+                plt.subplot(nb_source, nb_dest, row * nb_dest + col + 1)
+                kernel = con.weights.matrix.get_kernel()
+                plt.imshow(kernel, cmap='gray', norm=norm)
+                plt.axis('off')
 
         fig.suptitle("Connection final kernels")
-
 
 
 class DiagonalConnection(Connection):
