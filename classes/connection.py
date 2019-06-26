@@ -82,8 +82,11 @@ class Connection(SimulationObject):
                     self.connection_list.append(Connection(source_l.ensemble_list[l], dest_l.ensemble_list[l],
                                                            self.wmin, self.wmax, kernel, mode, *args, **kwargs))
             else:
+                c=0
                 for l_out in dest_l.ensemble_list:
                     for l_in in source_l.ensemble_list:
+                        print(c)
+                        c = c + 1
                         self.connection_list.append(Connection(l_in, l_out, self.wmin,
                                                                self.wmax, kernel, mode, *args, **kwargs))
 
