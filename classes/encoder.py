@@ -208,6 +208,9 @@ class EncoderDoG(Encoder):
                             delay = self.delay_max
 
                         delays[row, col, nb_per_value * index + k] = delay
+                plt.figure()
+                plt.imshow(delays[:,:,k], cmap='gray_r')
+                plt.title('Encoder sequence for layer {}'.format(k))
         self.record.append(delays)
 
     def plot(self, index=-1, layer=0):
@@ -280,24 +283,23 @@ class Node(SimulationObject):
         """
     objects = []
 
-    def __init__(self, encoder, dataset, *args, **kwargs):
+    def __init__(self, encoder, *args, **kwargs):
         super(Node, self).__init__()
         Node.objects.append(self)
         self.encoder = encoder
-        self.dataset = dataset
         self.args = args
         self.kwargs = kwargs
         Helper.log('Encoder', log.INFO, 'new node created')
 
     def step(self):
-        if isinstance(self.dataset, Dataset):
-            value = self.dataset.next()
-        elif callable(self.dataset):
-            value = self.dataset(*self.args, **self.kwargs)
+        if isinstance(self.sim.dataset, Dataset):
+            value = self.sim.dataset.next()
+        elif callable(self.sim.dataset):
+            value = self.sim.dataset(*self.args, **self.kwargs)
         else:
-            value = self.dataset
+            value = self.sim.dataset
         Helper.log('Encoder', log.INFO, 'Node sending next data')
         self.encoder.encode(value)
 
     def restore(self):
-        self.dataset.index = 0
+        self.sim.dataset.index = 0

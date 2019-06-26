@@ -43,7 +43,7 @@ if __name__ == '__main__':
     for layer in range(1, 2):
     # layer = 2
         if layer == 1:
-            image_dataset = FileDataset(filename, first_image, size=img_size, length=5000)
+            image_dataset = FileDataset(filename, first_image, size=img_size, length=10)
         else:
             image_dataset = FileDataset(filename, first_image, size=img_size, length=5)
 
@@ -56,7 +56,6 @@ if __name__ == '__main__':
                           eta_up=0.003,
                           eta_down=-0.003)
                       )
-            b1.set_dataset(image_dataset)
             b1.set_inhibition(wta=True, radius=1)
         else:
             b1 = Bloc(4, img_size, IF(threshold=2.1))
@@ -71,7 +70,6 @@ if __name__ == '__main__':
                           eta_up=0.03,
                           eta_down=-0.03)
                       )
-            b3.set_dataset(image_dataset)
             b3.set_inhibition(radius=1)
 
         c1 = Connection(e1, b1, kernel=(3, 3), mode='shared')
@@ -84,17 +82,18 @@ if __name__ == '__main__':
         if layer == 1:
             # for con in c1:
             # cps.append(ConnectionProbe(con))
-            sprobein = NeuronProbe(target=e1[0], variables='spike_out')
-            sprobeout = NeuronProbe(target=b1[0], variables='spike_out')
-            vprobe = NeuronProbe(target=b1[0], variables='voltage')
+            # sprobein = NeuronProbe(target=e1[0], variables='spike_out')
+            # sprobeout = NeuronProbe(target=b1[0], variables='spike_out')
+            # vprobe = NeuronProbe(target=b1[0], variables='voltage')
+            pass
         elif layer == 2:
             # for con in c3:
             #     cps.append(ConnectionProbe(con))
-            sprobein = NeuronProbe(target=b2[0], variables='spike_out')
-            sprobeout = NeuronProbe(target=b3[0], variables='spike_out')
-            vprobe = NeuronProbe(target=b1[0], variables='voltage')
-
-        sim = Sim.Simulator(model, 0.02, input_period=1, batch_size=1)
+            # sprobein = NeuronProbe(target=b2[0], variables='spike_out')
+            # sprobeout = NeuronProbe(target=b3[0], variables='spike_out')
+            # vprobe = NeuronProbe(target=b1[0], variables='voltage')
+            pass
+        sim = Sim.Simulator(model, image_dataset, 0.01, input_period=1, batch_size=1)
         try:
             if layer == 1:
                 sim.load('tests1.w')
@@ -112,23 +111,23 @@ if __name__ == '__main__':
         # c2.plot()
         # d1.plot()
         #  plot weight history
-        for cp in cps:
-            cp.plot()
+        # for cp in cps:
+        #     cp.plot()
         if layer == 1:
             sim.save('tests1.w')
-            c1.plot()
+            # c1.plot()
         if layer == 2:
             sim.save('tests2.w')
-            c1.plot()
-            c3.plot()
-        vprobe.plot('voltage')
-        sprobein.plot('spike_out')
-        sprobeout.plot('spike_out')
+            # c1.plot()
+            # c3.plot()
+        # vprobe.plot('voltage')
+        # sprobein.plot('spike_out')
+        # sprobeout.plot('spike_out')
         # for index in range(image_dataset.length):
         #     image_dataset.plot(index)
         #     e1.plot(index, 0)
 
-        # sim.plot_steptimes()
+        sim.plot_steptimes()
         Helper.print_timings()
 
         sim.flush()

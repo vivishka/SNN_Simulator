@@ -34,7 +34,7 @@ class NeuronLog(NeuronType):
             super(NeuronLog, self).receive_spike(index_1d, weight)
             for spike in self.received:
                 Helper.log('Decoder', log.DEBUG, ' neuron {} received spike {}'.format(self.index_2d, spike))
-                self.spike_times.append((spike[0], self.ensemble.sim.time))
+                self.spike_times.append((spike[0], self.ensemble.sim.curr_time))
             self.received = []
 
     def step(self):

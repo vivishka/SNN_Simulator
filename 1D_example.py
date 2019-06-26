@@ -4,14 +4,14 @@ import csv
 import logging as log
 from classes.base import Helper
 from classes.network import Network
-from classes.neuron import LIF
+from classes.neuron import LIF, IF
 from classes.neuron import PoolingNeuron
 from classes.layer import Bloc, Ensemble
 from classes.simulator import Simulator
 from classes.connection import *
 from classes.probe import *
 from classes.decoder import *
-from classes.encoder import Encoder, Node
+from classes.encoder import EncoderGFR, Node
 from classes.dataset import *
 from classes.learner import *
 
@@ -59,16 +59,16 @@ def exp3generator(size):
 
 # Helper.init_logging('main1.log', log.DEBUG, ['All'])
 
-for i in range(5):
+for i in range(1):
     model = Network()
-    n_nodes = 8
+    n_nodes = 5
     n_int = 10
     n_out = 2
-    # exp1_dataset = VectorDataset(size=2000, generator=exp1generator)
+    exp_dataset = VectorDataset(size=20000, generator=exp1generator)
     # exp2_dataset = VectorDataset(size=2000, generator=exp2generator)
-    exp3_dataset = VectorDataset(size=2000, generator=exp3generator)
-    e1 = Encoder(depth=n_nodes, size=1, in_min=0, in_max=1, delay_max=1, gamma=1., threshold=0.9)
-    n1 = Node(e1, exp3_dataset)
+    # exp3_dataset = VectorDataset(size=2000, generator=exp3generator)
+    e1 = EncoderGFR(depth=n_nodes, size=1, in_min=0, in_max=1, delay_max=1, gamma=1., threshold=0.9)
+    n1 = Node(e1, exp_dataset)
     # b1 = Bloc(1, n_int, LIF(threshold=0.8, tau=20),
     #          learner=
     #          Learner(
@@ -80,51 +80,40 @@ for i in range(5):
     #          tau_down=0.1,
     #          )
     #           )
-    b1 = Bloc(1, n_out, LIF(threshold=0.8, tau=20),
+    b1 = Bloc(1, n_out, IF(threshold=0.8, tau=20),
              learner=
-             LearnerClassifier(
-             feedback_gain=0.0005,
+             Rstdp(
              eta_up=0.02,
-             eta_down=0.05,
-             # eta_up=0,
-             # eta_down=0,
-             tau_up=1,
-             tau_down=1,
+             eta_down=-0.02,
+             anti_eta_up=-0.005,
+             anti_eta_down=0.005,
+
              )
               )
-    d1 = Decoder(n_nodes)
-    d2 = DecoderClassifier(n_out, exp3_dataset)
+    b1.set_dataset(exp_dataset)
+    # d1 = Decoder(n_nodes)
+    # d2 = DecoderClassifier(n_out, exp3_dataset)
     c1 = Connection(e1, b1, wmin=0, wmax=0.5)
-    c2 = DiagonalConnection(e1, d1)
-    c3 = Connection(b1, d2, 0, 0.4, kernel=1)
+    # c2 = DiagonalConnection(e1, d1)
+    # c3 = Connection(b1, d2, 0, 0.4, kernel=1)
 
-    np1 = NeuronProbe(b1[0], 'voltage')
+    np1 = NeuronProbe(b1[0], ['voltage', 'spike_out'])
+    np2 = NeuronProbe(e1[0], 'spike_out')
     cp1 = ConnectionProbe(c1)
 
     sim = Simulator(model, 0.02, input_period=1, batch_size=1)
     sim.run(2000)
-    # np1.plot('voltage')
-    # Helper.init_logging('main2.log', log.DEBUG, ['All'])
-    sim.save('main_trained.w')
-    sim.flush()
-    model.restore()
-    sim.load('main_trained.w')
-    b1[0].learner.active = False
 
-    exp3_dataset_test = VectorDataset(size=300, generator=exp3generator)
-    d2.dataset = exp3_dataset_test
-    n1.dataset = exp3_dataset_test
-    d2.dataset = exp3_dataset_test
-
-    sim.run(300)
-
-    # cp1.plot()
+    cp1.plot()
+    np1.plot('voltage')
+    np1.plot('spike_out')
+    np2.plot('spike_out')
     # cp2.plot()
     # cp2.print()
     # exp3_dataset.plot('Labels')
     # np1.plot('voltage')
     # np2.plot('voltage')
-    print(d2.get_correlation_matrix())
+    # print(d2.get_correlation_matrix())
     # print(d3.get_correlation_matrix())
     #
 

@@ -394,7 +394,7 @@ class Rstdp(Learner):
         super(Rstdp, self).__init__(eta_up=eta_up, eta_down=eta_down,)
         self.anti_eta_up = anti_eta_up
         self.anti_eta_down = anti_eta_down
-        self.dataset = None
+        self.dataset = self.layer.sim.dataset
         self.wta = wta
 
     @MeasureTiming('Learning')
