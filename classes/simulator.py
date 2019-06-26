@@ -1,6 +1,6 @@
 # import logging as log
 # from multiprocessing import Process, Queue
-# import multiprocessing as mp
+import multiprocessing as mp
 import pickle
 from .connection import *
 from .neuron import NeuronType
@@ -9,6 +9,7 @@ from .encoder import Node, Encoder
 from .learner import *
 import sys
 import time
+import copy
 sys.dont_write_bytecode = True
 
 # if __name__ == '__main__':
@@ -19,9 +20,10 @@ class Simulator(object):
     can then be run for a set number of step
     """
     @MeasureTiming('sim_init')
-    def __init__(self, model, dt=0.001, batch_size=1, input_period=float('inf')):
+    def __init__(self, model, dataset, dt=0.001, batch_size=1, input_period=float('inf')):
         super(Simulator, self).__init__()
         self.model = model
+        self.dataset = dataset
         self.nb_step = 0
         self.input_period = input_period
         self.next_reset = input_period
@@ -61,10 +63,9 @@ class Simulator(object):
         for node in self.nodes:
             node.step()
 
-        # converged = False
         self.start = time.time()
         # runs for the specified number of steps
-
+        self.curr_time = 0
         for curr_batch in range(self.nb_batches):
             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(curr_batch))
             for curr_input in range(self.batch_size):
@@ -73,8 +74,12 @@ class Simulator(object):
                     self.curr_time += self.dt
                     Helper.log('Simulator', log.DEBUG, 'next step {0}'.format(curr_step))
                     self.step()
+
                 Helper.log('Simulator', log.DEBUG, 'end of input cycle: reset of network and next input')
                 self.reset()
+
+                self.steptimes.append(time.time() - self.last_time)
+                self.last_time = time.time()
             Helper.log('Simulator', log.DEBUG, 'end of batch: applying learning')
             self.learn()
             self.plot_time()
@@ -200,108 +205,71 @@ class Simulator(object):
                       int(time_left // 3600),
                       int((time_left // 60) % 60),
                       int(time_left % 60)))
-        self.steptimes.append(time.time()-self.last_time)
-        self.last_time = time.time()
+
+
+        # self.memory_estimate()
 
     def plot_steptimes(self):
         plt.figure()
         plt.title("Input process duration")
         plt.plot(self.steptimes)
 
- # WIP
-    # class SimulatorMp(Simulator):
-    #     def __init__(self, model, dt=0.01, batch_size=1, input_period=float('inf'), processes=3):
-    #         super(SimulatorMp, self).__init__(model, dt, batch_size, input_period)
-    #         self.processes = processes
-    #
-    #         # init multiprocess
-    #         Helper.log('Simulator', log.INFO, 'Init multiprocess')
-    #         mp.set_start_method('spawn')
-    #         self.workers = []
-    #         self.pipes = []
-    #         self.split = []
-    #         for exp in range(self.batch_size):
-    #             self.pipes.append(mp.Pipe())
-    #             self.split[exp % self.processes] += 1
-    #
-    #     def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
-    #         self.duration = duration
-    #         n_batches = duration // self.batch_size
-    #
-    #         Helper.log('Simulator', log.INFO, 'simulation start')
-    #         self.nb_step = int(duration / self.dt)
-    #         Helper.log('Simulator', log.INFO, 'total steps: {0}'.format(self.nb_step))
-    #
-    #         # starts the input nodes
-    #         Helper.log('Simulator', log.INFO, 'nodes init')
-    #         for node in self.nodes:
-    #             node.step()
-    #
-    #         converged = False
-    #         self.start = time.time()
-    #         # runs for the specified number of steps
-    #         for batch in range(n_batches):
-    #             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(batch))
-    #             # Setup workers
-    #             self.workers = []
-    #             for worker_id in self.split:
-    #                 self.workers.append(mp.Process(target=self.mp_task,
-    #                                                args=(self.pipes[worker_id][1], self.model, self.split[worker_id])))
-    #                 self.workers[-1].start()
-    #
-    #             if monitor_connection:
-    #                 conv_coeff = monitor_connection.get_convergence()
-    #                 if conv_coeff < convergence_threshold:
-    #                     Helper.log('Simulator', log.INFO, 'Connection weight converged, ending simulation at step {} '
-    #                                .format(self.step_nb))
-    #                     break
-    #         if monitor_connection and not converged:
-    #             Helper.log('Simulator', log.WARNING, 'Connection weight did not converged, final convergence {} '
-    #                        .format(conv_coeff))
-    #         end = time.time()
-    #
-    #         Helper.log('Simulator', log.INFO, 'simulating ended')
-    #         Helper.log('Simulator', log.INFO, 'network of {0} neurons'.format(NeuronType.nb_neuron))
-    #         Helper.log('Simulator', log.INFO, 'total time of {0}, step: {1}, synapse: {2}'
-    #                    .format(end - self.start, self.step_time, self.prop_time))
-    #
-    #     def mp_task(self, pipe, model, iterations):
-    #
-    #         def step():
-    #
-    #             # Ensembles
-    #             start_ens = time.time()
-    #             for ens in self.ensembles:
-    #                 ens.step()
-    #                 if isinstance(ens.bloc, Encoder):
-    #                     for neuron in ens.neuron_list:
-    #                         if neuron.active:
-    #                             ens.active_neuron_set.update(ens.neuron_list)
-    #             end_ens = time.time()
-    #
-    #             # Connections
-    #             start_con = time.time()
-    #             self.propagate_all()
-    #             end_con = time.time()
-    #
-    #             self.step_time += end_ens - start_ens
-    #             self.prop_time += end_con - start_con
-    #
-    #         def propagate_all():
-    #             """ Steps all the active connections """
-    #             for con in self.connections:
-    #                 if con.active:
-    #                     # Helper.log('Simulator', log.DEBUG, 'propagating through connection {0}'.format(con.id))
-    #                     con.step()
-    #
-    #         for exp in range(iterations):
-    #             curr_time = 0
-    #             for step_time in range(int(self.input_period // self.dt)):
-    #                 curr_time += self.dt
-    #                 step()
-    #                 propagate_all()
-    #
-    #             reset()
-    #             restore()
+    def memory_estimate(self):
+        print('Estimated memory size: {}'.format(len(pickle.dumps(self, protocol=pickle.HIGHEST_PROTOCOL))))
+# WIP
+
+
+class SimulatorMp(Simulator):
+    def __init__(self, model, dt=0.01, batch_size=1, input_period=float('inf'), processes=3, dataset=None):
+        super(SimulatorMp, self).__init__(model, dataset, dt, batch_size, input_period)
+        self.processes = processes
+        # init multiprocess
+        Helper.log('Simulator', log.INFO, 'Init multiprocess')
+        mp.set_start_method('spawn')
+        self.workers = []
+        self.pipes = []
+        self.split = []
+        self.copies = []
+        for exp in range(self.batch_size):
+            self.pipes.append(mp.Pipe())
+            self.split[exp % self.processes] += 1
+
+
+    def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
+        self.duration = duration
+        n_batches = duration // self.batch_size
+
+        Helper.log('Simulator', log.INFO, 'simulation start')
+        self.nb_step = int(duration / self.dt)
+        Helper.log('Simulator', log.INFO, 'total steps: {0}'.format(self.nb_step))
+
+        # starts the input nodes
+        Helper.log('Simulator', log.INFO, 'nodes init')
+        for node in self.nodes:
+            node.step()
+
+        self.start = time.time()
+        # runs for the specified number of steps
+        for batch in range(n_batches):
+            Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(batch))
+            # Setup workers
+            self.workers = []
+            for worker_id, worker_load in enumerate(self.split):
+                self.copies.append(copy.deepcopy(self.model))
+                self.workers.append(mp.Process(target=self.mp_run,
+                                               args=(self.pipes[worker_id][1],
+                                                     self.copies[worker_id],
+                                                     self.split[worker_id],
+                                                     )
+                                               )
+                                    )
+
+                self.workers[worker_id].start()
+
+
+
+    def mp_run(self, pipe, model, iterations):
+        pass
+
 
 

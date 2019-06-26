@@ -64,15 +64,15 @@ class Helper(object):
     def log(module, level, message):
         if module in Helper.logged_modules or 'All' in Helper.logged_modules:
             if level == log.DEBUG:
-                log.debug('simulation time: {0:.6f} - {1}: {2}'.format(Helper.time, module, message))
+                log.debug('{} {}'.format(module, message))
             elif level == log.INFO:
-                log.info('simulation time: {0:.6f} - {1}: {2}'.format(Helper.time, module, message))
+                log.info('{} {}'.format(module, message))
             elif level == log.WARNING:
-                log.warning('simulation time: {0:.6f} - {1}: {2}'.format(Helper.time, module, message))
+                log.warning('{} {}'.format(module, message))
             elif level == log.ERROR:
-                log.error('simulation time: {0:.6f} - {1}: {2}'.format(Helper.time, module, message))
+                log.error('{} {}'.format(module, message))
             elif level == log.CRITICAL:
-                log.critical('simulation time: {0:.6f} - {1}: {2}'.format(Helper.time, module, message))
+                log.critical('{} {}'.format(module, message))
 
     @staticmethod
     def get_index_2d(index_1d, length):

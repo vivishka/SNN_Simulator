@@ -317,10 +317,6 @@ class Bloc(Layer):
             self.ensemble_list.append(ens)
         Helper.log('Layer', log.INFO, 'layer type : bloc of size {0}'.format(depth))
 
-    def set_dataset(self, dataset):
-        for ens in self.ensemble_list:
-            ens.learner.dataset = dataset
-
     def set_inhibition(self, wta=True, radius=None):
         if radius is not None:
             self.inhibition_radius = radius

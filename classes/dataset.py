@@ -12,7 +12,6 @@ class Dataset(object):
         self.index = index
         self.data = []
         self.labels = []
-        self.file = None
         self.n_cats = None
         self.pop_cats = []
 
@@ -75,10 +74,10 @@ class FileDataset(Dataset):
     @MeasureTiming('file_load')
     def load(self):
         Helper.log('Dataset', log.INFO, 'reading file')
-        self.file = open(self.path, 'r')
-        self.file.__next__()  # skip first line
+        file = open(self.path, 'r')
+        file.__next__()  # skip first line
         if self.length < 0:
-            temp = self.file.readlines()
+            temp = file.readlines()
             for string in temp:
                 self.data.append(np.array(string[2:].split(',')).astype(np.uint8).reshape(self.size))
                 self.labels.append(np.array(string[0]).astype(np.uint8))
@@ -86,17 +85,17 @@ class FileDataset(Dataset):
             # self.file.seek(2 * (self.size[0]*self.size[1] - 1), 1)
             for _ in range(self.index):
                 try:
-                    self.file.__next__()
+                    file.__next__()
                 except ValueError:
                     self.index = 0
-                    self.file.seek(0, 0)
-                    self.file.__next__()
+                    file.seek(0, 0)
+                    file.__next__()
             for line in range(self.length):
-                string = self.file.readline()
+                string = file.readline()
                 self.data.append(np.array(string[2:].split(',')).astype(np.uint8).reshape(self.size))
                 self.labels.append(np.array(string[0]).astype(np.uint8))
 
-        self.file.close()
+        file.close()
         Helper.log('Dataset', log.INFO, 'reading file done')
 
     def plot(self, index=-1):
