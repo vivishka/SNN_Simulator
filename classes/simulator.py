@@ -7,6 +7,7 @@ from .neuron import NeuronType
 from .layer import Ensemble
 from .encoder import Node, Encoder
 from .learner import *
+from .dataset import *
 import sys
 import time
 import copy
@@ -230,6 +231,7 @@ class SimulatorMp(Simulator):
         self.pipes = []
         self.split = []
         self.copies = []
+        self.connections.sort(key=lambda con: con.id)
         for exp in range(self.batch_size):
             self.pipes.append(mp.Pipe())
             self.split[exp % self.processes] += 1
@@ -245,8 +247,8 @@ class SimulatorMp(Simulator):
 
         # starts the input nodes
         Helper.log('Simulator', log.INFO, 'nodes init')
-        for node in self.nodes:
-            node.step()
+        # for node in self.nodes:
+        #    node.step()
 
         self.start = time.time()
         # runs for the specified number of steps
@@ -256,20 +258,45 @@ class SimulatorMp(Simulator):
             self.workers = []
             for worker_id, worker_load in enumerate(self.split):
                 self.copies.append(copy.deepcopy(self.model))
+                data = []
+                labels = []
+                for _ in self.split[worker_id]:
+                    data.append(self.dataset.next())
+                    labels.append(self.dataset.labels[self.dataset.index])
+
                 self.workers.append(mp.Process(target=self.mp_run,
                                                args=(self.pipes[worker_id][1],
                                                      self.copies[worker_id],
-                                                     self.split[worker_id],
+                                                     data,
+                                                     labels,
                                                      )
                                                )
                                     )
-
                 self.workers[worker_id].start()
+            Helper.log('Simulator', log.INFO, 'All workers sent')
+            #update when woker finished
+            finished = 0
+            while finished < self.processes:
+                for worker_id, worker in enumerate(self.workers):
+                    if self.pipes[worker_id][0].poll():
+                        updates = self.pipes[worker_id][0].recv()
+                        for attr, value in updates.items():
+                            self.connections[attr[0]].weights.matrix[attr[1], attr[2]] += value
+                        finished += 1
 
-
-
-    def mp_run(self, pipe, model, iterations):
-        pass
-
-
+    def mp_run(self, pipe, model, data, labels):
+        Helper.log('Simulator', log.INFO, 'new worker init')
+        dataset = Dataset()
+        dataset.data = data
+        dataset.labels = labels
+        dataset.index = 0
+        sim = Simulator(model=model, dataset=dataset, dt=self.dt, input_period=self.input_period)
+        sim.run(duration=len(data)*self.input_period)
+        Helper.log('Simulator', log.INFO, 'worker done, extracting delta')
+        out = []
+        for ens in model.objects[Ensemble]:
+            if ens.learner:
+                out.append(ens.learner.update)
+        pipe.send(out)
+        Helper.log('Simulator', log.INFO, 'data sent, shutting down')
 
