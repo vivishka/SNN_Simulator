@@ -196,12 +196,12 @@ class EncoderDoG(Encoder):
                 # plt.figure()
                 # plt.imshow(data_t, cmap='gray')
                 # plt.title('data_t layer ' + str(2 * index + k))
-                threshold = np.mean(data_t) * 1.1 if self.threshold is None else self.threshold
+                threshold = np.mean(data_t) * 1. if self.threshold is None else self.threshold
                 for row in range(self.size[0]):
                     for col in range(self.size[1]):
                         if data_t[row, col] >= threshold:
                             # delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
-                            delay = self.delay_max * (2 - data_t[row, col] / threshold)
+                            delay = self.delay_max * (1 - data_t[row, col]) / (1 - threshold)
                             self.ensemble_list[nb_per_value * index + k].neuron_array[row, col].set_value(delay)
                         else:
                             delay = self.delay_max
