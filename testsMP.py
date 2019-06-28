@@ -41,7 +41,7 @@ if __name__ == '__main__':
     e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
                     kernel_sizes=[3], size=img_size, in_min=0, in_max=255, delay_max=1, double_filter=False)
     n1 = Node(e1, image_dataset, 1, 0)
-    b1 = Bloc(8, img_size, IF(threshold=2.1), SimplifiedSTDP_MP(
+    b1 = Bloc(30, img_size, IF(threshold=1.8), SimplifiedSTDP_MP(
         eta_up=0.005,
         eta_down=-0.005,
     ))
@@ -55,13 +55,13 @@ if __name__ == '__main__':
 
     # c2 = Connection(b1, d1, kernel=1, mode)
 
-    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=52, processes=4)
+    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=50, processes=4)
     # sim = Simulator(model=model, dataset=image_dataset, dt=0.02, input_period=1, batch_size=30)
     sim.run(len(image_dataset.data)+0.02)
     # image_dataset.plot(-1)
     # e1.plot(layer=4)
     # plot final kernels
-    c1.plot()
+    c1.plot_all_kernels()
     #  plot weight history
     for cp in cps:
         cp.plot()

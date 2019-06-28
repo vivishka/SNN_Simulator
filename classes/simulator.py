@@ -9,6 +9,7 @@ from .encoder import Node, Encoder
 from .learner import *
 from .dataset import *
 import sys
+import platform
 import time
 import copy
 sys.dont_write_bytecode = True
@@ -246,7 +247,10 @@ class SimulatorMp(Simulator):
         self.processes = processes
         # init multiprocess
         Helper.log('Simulator', log.INFO, 'Init multiprocess')
-        mp.set_start_method('spawn')
+        if platform.system() == 'Windows':
+            mp.set_start_method('spawn')
+        else:
+            mp.set_start_method('fork')
         self.workers = []
         self.pipes = []
         self.split = [0 for _ in range(self.processes)]
