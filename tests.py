@@ -40,97 +40,101 @@ if __name__ == '__main__':
 
     # image_dataset = PatternGeneratorDataset(index=0, size=img_size, nb_images=200, nb_features=9)
     model = Network()
-    for layer in range(1, 2):
-    # layer = 2
-        if layer == 1:
-            image_dataset = FileDataset(filename, first_image, size=img_size, length=10)
-        else:
-            image_dataset = FileDataset(filename, first_image, size=img_size, length=5)
 
-        e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
-                        kernel_sizes=[3], size=img_size, in_min=0, in_max=255, delay_max=1)
-        n1 = Node(e1, image_dataset, 1, 0)
-        if layer == 1:
-            b1 = Bloc(6, img_size, IF(threshold=2.1),
-                      SimplifiedSTDP(
-                          eta_up=0.003,
-                          eta_down=-0.003)
-                      )
-            b1.set_inhibition(wta=True, radius=1)
-        else:
-            b1 = Bloc(4, img_size, IF(threshold=2.1))
+    layer = 1
 
-        # d1 = Decoder((7, 7))
-        if layer == 2:
-            b2 = Bloc(6, (14, 14), IF(threshold=0.1))
-            b2.set_inhibition(wta=True, radius=0)
+    image_dataset = FileDataset(filename, first_image, size=img_size, length=10000)
 
-            b3 = Bloc(8, (14, 14), IF(threshold=2),
-                      SimplifiedSTDP(
-                          eta_up=0.03,
-                          eta_down=-0.03)
-                      )
-            b3.set_inhibition(radius=1)
+    e1 = EncoderDoG(sigma=[(3 / 9, 6 / 9)],  # (7/9, 14/9), (13/6, 26/9)],
+                    kernel_sizes=[3], size=img_size, in_min=0, in_max=255, delay_max=1, double_filter=False)
+    n1 = Node(e1, image_dataset, 1, 0)
 
-        c1 = Connection(e1, b1, kernel=(3, 3), mode='shared')
-        if layer == 2:
-            c2 = Connection(b1, b2, kernel=(2, 2), mode='pooling')
-            c3 = Connection(b2, b3, kernel=(3, 3), mode='shared')
-            # c4 = Connection(b2, d1, kernel=(2, 2), mode='pooling')
+    b1 = Bloc(12, img_size, IF(threshold=2.1),
+              SimplifiedSTDP(
+                  eta_up=0.003,
+                  eta_down=-0.003)
+              )
+    b1.set_inhibition(wta=True, radius=1)
 
-        cps = []
-        if layer == 1:
-            # for con in c1:
-            # cps.append(ConnectionProbe(con))
-            # sprobein = NeuronProbe(target=e1[0], variables='spike_out')
-            # sprobeout = NeuronProbe(target=b1[0], variables='spike_out')
-            # vprobe = NeuronProbe(target=b1[0], variables='voltage')
-            pass
-        elif layer == 2:
-            # for con in c3:
-            #     cps.append(ConnectionProbe(con))
-            # sprobein = NeuronProbe(target=b2[0], variables='spike_out')
-            # sprobeout = NeuronProbe(target=b3[0], variables='spike_out')
-            # vprobe = NeuronProbe(target=b1[0], variables='voltage')
-            pass
-        sim = Sim.Simulator(model, image_dataset, 0.01, input_period=1, batch_size=1)
-        try:
-            if layer == 1:
-                sim.load('tests1.w')
-            if layer == 2:
-                sim.load('tests1.w')
-        except:
-            pass
+    c1 = Connection(e1, b1, kernel=(3, 3), mode='shared')
 
-        sim.run(len(image_dataset.data))
-        # image_dataset.plot(-1)
-        # e1.plot(layer=4)
-        # plot final kernels
+    sim = Sim.Simulator(model, image_dataset, 0.03, input_period=1, batch_size=1)
+    try:
+        sim.load('tests1.w')
+    except:
+        pass
 
+    cps = []
+    for con in c1:
+        cps.append(ConnectionProbe(con))
+    #     sprobein = NeuronProbe(target=e1[0], variables='spike_out')
+    #     sprobeout = NeuronProbe(target=b1[0], variables='spike_out')
+    #     vprobe = NeuronProbe(target=b1[0], variables='voltage')
 
-        # c2.plot()
-        # d1.plot()
-        #  plot weight history
-        # for cp in cps:
-        #     cp.plot()
-        if layer == 1:
-            sim.save('tests1.w')
-            # c1.plot()
-        if layer == 2:
-            sim.save('tests2.w')
-            # c1.plot()
-            # c3.plot()
-        # vprobe.plot('voltage')
-        # sprobein.plot('spike_out')
-        # sprobeout.plot('spike_out')
-        # for index in range(image_dataset.length):
-        #     image_dataset.plot(index)
-        #     e1.plot(index, 0)
+    sim.run(len(image_dataset.data))
+    sim.save('tests1.w')
+    c1.plot()
+    # vprobe.plot('voltage')
+    # sprobein.plot('spike_out')
+    # sprobeout.plot('spike_out')
+    # plt.show()
+    for cp in cps:
+        cp.plot()
+    sim.flush()
+    model.restore()
+#############################
 
-        sim.plot_steptimes()
-        Helper.print_timings()
+    image_dataset = FileDataset(filename, first_image, size=img_size, length=10000)
+    b1.set_inhibition(wta=False, radius=None)
+    b1.learner = None
 
-        sim.flush()
-        model.restore()
+    b2 = Bloc(6, (14, 14), IF(threshold=0.1))
+    b2.set_inhibition(wta=True, radius=0)
 
+    b3 = Bloc(8, (14, 14), IF(threshold=2),
+              SimplifiedSTDP(
+                  eta_up=0.003,
+                  eta_down=-0.003)
+              )
+    b3.set_inhibition(radius=1)
+
+    c2 = Connection(b1, b2, kernel=(2, 2), mode='pooling')
+    c3 = Connection(b2, b3, kernel=(3, 3), mode='shared')
+    # c4 = Connection(b2, d1, kernel=(2, 2), mode='pooling')
+
+    cps = []
+    # for con in c3:
+    #     cps.append(ConnectionProbe(con))
+    # sprobein = NeuronProbe(target=b2[0], variables='spike_out')
+    # sprobeout = NeuronProbe(target=b3[0], variables='spike_out')
+    # vprobe = NeuronProbe(target=b1[0], variables='voltage')
+
+    sim.load('tests1.w')
+
+    sim.run(len(image_dataset.data))
+    # image_dataset.plot(-1)
+    # e1.plot(layer=4)
+    # plot final kernels
+    c2.plot()
+    # d1.plot()
+    #  plot weight history
+    for cp in cps:
+        cp.plot()
+
+    sim.save('tests2.w')
+
+    # c3.plot()
+    # vprobe.plot('voltage')
+    # sprobein.plot('spike_out')
+    # sprobeout.plot('spike_out')
+    # for index in range(image_dataset.length):
+    #     image_dataset.plot(index)
+    #     e1.plot(index, 0)
+
+    sim.plot_steptimes()
+    Helper.print_timings()
+
+    # sim.flush()
+    # model.restore()
     plt.show()
+

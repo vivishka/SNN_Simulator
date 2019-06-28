@@ -31,11 +31,8 @@ class Simulator(object):
         self.dt = dt
         self.step_nb = 0
         self.curr_time = 0
-        # Helper.dt = dt
-        # Helper.time = 0
-        # Helper.input_period = input_period
-        # Helper.batch_size = batch_size
-        model.build(self)
+        model.build()
+        model.set_sim(self)
         self.objects = model.get_all_objects()
         self.ensembles = self.objects[Ensemble]
         self.blocs = self.objects[Bloc]
@@ -222,14 +219,37 @@ class Simulator(object):
 
 class SimulatorMp(Simulator):
     def __init__(self, model, dt=0.01, batch_size=1, input_period=float('inf'), processes=3, dataset=None):
-        super(SimulatorMp, self).__init__(model, dataset, dt, batch_size, input_period)
+        super(Simulator, self).__init__()
+        self.model = model
+        self.dataset = dataset
+        self.nb_step = 0
+        self.input_period = input_period
+        self.next_reset = input_period
+        self.dt = dt
+        self.step_nb = 0
+        self.curr_time = 0
+        model.build()
+        self.objects = model.get_all_objects()
+        self.ensembles = self.objects[Ensemble]
+        self.blocs = self.objects[Bloc]
+        self.connections = self.objects[Connection]
+        self.nodes = self.objects[Node]
+        self.step_time = 0
+        self.prop_time = 0
+        self.batch_size = batch_size
+        self.nb_batches = 0
+        self.duration = -1
+        self.start = 0
+        self.last_time = time.time()
+        self.steptimes = []
+
         self.processes = processes
         # init multiprocess
         Helper.log('Simulator', log.INFO, 'Init multiprocess')
         mp.set_start_method('spawn')
         self.workers = []
         self.pipes = []
-        self.split = []
+        self.split = [0 for _ in range(self.processes)]
         self.copies = []
         self.connections.sort(key=lambda con: con.id)
         for exp in range(self.batch_size):
@@ -239,7 +259,7 @@ class SimulatorMp(Simulator):
 
     def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
         self.duration = duration
-        n_batches = duration // self.batch_size
+        n_batches = int(duration // self.batch_size)
 
         Helper.log('Simulator', log.INFO, 'simulation start')
         self.nb_step = int(duration / self.dt)
@@ -260,7 +280,7 @@ class SimulatorMp(Simulator):
                 self.copies.append(copy.deepcopy(self.model))
                 data = []
                 labels = []
-                for _ in self.split[worker_id]:
+                for _ in range(self.split[worker_id]):
                     data.append(self.dataset.next())
                     labels.append(self.dataset.labels[self.dataset.index])
 
@@ -296,7 +316,7 @@ class SimulatorMp(Simulator):
         out = []
         for ens in model.objects[Ensemble]:
             if ens.learner:
-                out.append(ens.learner.update)
+                out.append(ens.learner.updates)
         pipe.send(out)
         Helper.log('Simulator', log.INFO, 'data sent, shutting down')
 

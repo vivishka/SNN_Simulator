@@ -319,8 +319,10 @@ class Bloc(Layer):
 
     def set_inhibition(self, wta=True, radius=None):
         if radius is not None:
-            self.inhibition_radius = radius
-        self.inhibition_radius = (radius, radius) if isinstance(radius, int) else radius
+            self.inhibition_radius = (radius, radius) if isinstance(radius, int) else radius
+        else:
+            self.inhibition_radius = (0, 0)
+
         for ens in self.ensemble_list:
             Helper.log('Layer', log.INFO, 'ensemble {0} inhibited'.format(ens.id))
             ens.set_inhibition(wta=wta)
