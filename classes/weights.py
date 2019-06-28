@@ -88,8 +88,9 @@ class Weights(object):
 
     def init_weight_shared(self):
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)), dtype=object)
-        kernel = np.random.randn(*self.kernel_size) * (self.wmax - self.wmin) / 10 + (self.wmax - self.wmin) * 0.75
-        tmp_matrix = tmp_matrix.clip(self.wmin, self.wmax)
+        kernel = np.random.randn(*self.kernel_size) * (self.wmax - self.wmin) / 10 + (self.wmax - self.wmin) * 0.8
+        delta = (self.wmax - self.wmin) * 0.05
+        kernel = kernel.clip(self.wmin + delta, self.wmax - delta)
         # kernel = np.random.rand(*self.kernel_size)
         # TODO: normalization
         # tmp_kernel = np.arange(self.kernel_size[0] * self.kernel_size[1]).reshape(self.kernel_size)
