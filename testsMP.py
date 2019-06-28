@@ -27,7 +27,7 @@ if __name__ == '__main__':
     mpl_logger = log.getLogger('matplotlib')
     mpl_logger.setLevel(log.WARNING)
 
-    Helper.init_logging('main.log', log.DEBUG, ["Simulator"])
+    # Helper.init_logging('main.log', log.DEBUG, ["Simulator"])
 
 
     filename = 'datasets/fashionmnist/fashion-mnist_train.csv'
@@ -35,27 +35,27 @@ if __name__ == '__main__':
     # img_size = (12, 12)
     first_image = np.random.randint(0, 59999-20000)
     print("init dataset image {}".format(first_image))
-    image_dataset = FileDataset(filename, first_image, size=img_size, length=9)
+    image_dataset = FileDataset(filename, first_image, size=img_size, length=100)
     # image_dataset = PatternGeneratorDataset(index=0, size=img_size, nb_images=300, nb_features=9)
     model = Network()
     e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
-                    kernel_sizes=[3], size=img_size, in_min=0, in_max=255, delay_max=1)
+                    kernel_sizes=[3], size=img_size, in_min=0, in_max=255, delay_max=1, double_filter=False)
     n1 = Node(e1, image_dataset, 1, 0)
-    b1 = Bloc(8, img_size, IF(threshold=2), SimplifiedSTDP(
+    b1 = Bloc(4, img_size, IF(threshold=2), SimplifiedSTDP_MP(
         eta_up=0.05,
         eta_down=-0.1,
     ))
     b1.set_inhibition(True, 1)
-    d1 = Decoder(img_size)
+    # d1 = Decoder(img_size)
 
-    c1 = Connection(e1, b1, kernel=(3, 3), shared=True)
+    c1 = Connection(e1, b1, kernel=(3, 3), mode='shared')
     cps = []
     for con in c1:
         cps.append(ConnectionProbe(con))
 
-    c2 = Connection(b1, d1, kernel=1)
+    # c2 = Connection(b1, d1, kernel=1, mode)
 
-    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.02, input_period=1, batch_size=3, processes=3)
+    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.02, input_period=1, batch_size=10, processes=3)
     sim.run(len(image_dataset.data)+0.02)
     # image_dataset.plot(-1)
     # e1.plot(layer=4)
