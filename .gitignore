@@ -20,4 +20,6 @@ main.py
 
 *.log
 
+# Ignore weights
 *.w
+*.npy

@@ -52,7 +52,7 @@ class Learner(object):
         learning ? 
     """
 
-    def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=1, tau_down=1):
+    def __init__(self, eta_up=0.1, eta_down=-0.1, tau_up=1, tau_down=1):
         self.layer = None
         self.size = None
         self.eta_up = eta_up
@@ -155,7 +155,7 @@ class Learner(object):
                     if dt >= 0:
                         dw = self.eta_up * connection.wmax / 2 * np.exp(- dt * weight / self.tau_up)
                     else:
-                        dw = - self.eta_down * connection.wmax / 2 * np.exp(dt * weight / self.tau_down)
+                        dw = self.eta_down * connection.wmax / 2 * np.exp(dt * weight / self.tau_down)
                     Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
                                format(connection.id, source_n, dest_n, dw))
                     # update weights in source connection
