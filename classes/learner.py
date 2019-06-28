@@ -322,13 +322,13 @@ class SimplifiedSTDP_MP(SimplifiedSTDP):
                         dw = self.eta_down * (weight - connection.wmin) * (connection.wmax - weight)
                         # dw = self.eta_down
                     # update weights in source connection
-                    weight = np.clip(weight + dw, connection.wmin, connection.wmax)
+                    # weight = np.clip(weight + dw, connection.wmin, connection.wmax)
                     # connection.weights[(source_n, dest_n)] = weight
 
                     if (connection.id, source_n, dest_n) in self.updates:
-                        self.updates[(connection.id, source_n, dest_n)] += weight
+                        self.updates[(connection.id, source_n, dest_n)] += dw
                     else:
-                        self.updates[(connection.id, source_n, dest_n)] = weight
+                        self.updates[(connection.id, source_n, dest_n)] = dw
 
         self.out_spikes = []
         self.in_spikes = []
