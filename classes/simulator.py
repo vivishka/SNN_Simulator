@@ -47,7 +47,7 @@ class Simulator(object):
         self.start = 0
         self.last_time = time.time()
         self.steptimes = []
-
+        self.connections.sort(key=lambda con: con.id)
         Helper.log('Simulator', log.INFO, 'new simulator created')
 
     @MeasureTiming('sim_run')
@@ -197,6 +197,7 @@ class Simulator(object):
         pass
 
     def print_time(self):
+        # if __name__ == '__main__':
         time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
         print('Time {} / {}, {}:{}:{} left '
               .format(int(self.curr_time),
@@ -205,8 +206,7 @@ class Simulator(object):
                       int((time_left // 60) % 60),
                       int(time_left % 60)))
 
-
-        # self.memory_estimate()
+            # self.memory_estimate()
 
     def plot_steptimes(self):
         plt.figure()
@@ -215,7 +215,6 @@ class Simulator(object):
 
     def memory_estimate(self):
         print('Estimated memory size: {}'.format(len(pickle.dumps(self, protocol=pickle.HIGHEST_PROTOCOL))))
-# WIP
 
 
 class SimulatorMp(Simulator):
@@ -276,12 +275,51 @@ class SimulatorMp(Simulator):
 
         self.start = time.time()
         # runs for the specified number of steps
+        self.workers = []
+        for worker_id, worker_load in enumerate(self.split):
+
+            # self.copies.append(copy.deepcopy(self.model))
+            data = []
+            labels = []
+            for _ in range(self.split[worker_id]):
+                data.append(self.dataset.next())
+                # labels.append(self.dataset.labels[self.dataset.index])
+
+            self.workers.append(mp.Process(target=self.mp_run,
+                                           args=(self.pipes[worker_id][1],
+                                                 self.model,
+                                                 data,
+                                                 # labels,
+                                                 self.dt,
+                                                 self.input_period,
+                                                 worker_id,
+                                                 )
+                                           )
+                                )
+            self.workers[worker_id].start()
+
         for batch in range(n_batches):
             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(batch))
             print("next batch")
             # self.print_time()
             # Setup workers
-            self.workers = []
+
+
+            Helper.log('Simulator', log.INFO, 'All workers sent')
+            # update when worker finished
+            finished = 0
+            all_updates = {}
+            while finished < self.processes:
+                for worker_id, worker in enumerate(self.workers):
+                    if self.pipes[worker_id][0].poll():
+                        Helper.log('Simulator', log.INFO, 'worker {} finished, gathering data')
+                        update = self.pipes[worker_id][0].recv()
+                        for attr, value in update.items():
+                            self.connections[attr[0]].update_weight(attr[1], attr[2], value)
+                        all_updates = {k: all_updates.get(k, 0) + update.get(k, 0) for k in set(all_updates)
+                                       | set(update)}  # merge sum dicts
+                        finished += 1
+
             for worker_id, worker_load in enumerate(self.split):
 
                 # self.copies.append(copy.deepcopy(self.model))
@@ -289,53 +327,42 @@ class SimulatorMp(Simulator):
                 labels = []
                 for _ in range(self.split[worker_id]):
                     data.append(self.dataset.next())
-                    # labels.append(self.dataset.labels[self.dataset.index])
 
-                self.workers.append(mp.Process(target=self.mp_run,
-                                               args=(self.pipes[worker_id][1],
-                                                     self.model,
-                                                     data,
-                                                     # labels,
-                                                     self.dt,
-                                                     self.input_period,
-                                                     )
-                                               )
-                                    )
-                self.workers[worker_id].start()
-            Helper.log('Simulator', log.INFO, 'All workers sent')
-            #update when woker finished
-            finished = 0
-            while finished < self.processes:
-                for worker_id, worker in enumerate(self.workers):
-                    if self.pipes[worker_id][0].poll():
-                        Helper.log('Simulator', log.INFO, 'worker {} finished, gathering data')
-                        updates = self.pipes[worker_id][0].recv()
-                        for update in updates:
-                            for attr, value in update.items():
-                                self.connections[attr[0]].update_weight(attr[1], attr[2], value) # /self.batch_size
-                        finished += 1
-            self.curr_time = (1 + batch) * self.batch_size * self.input_period
+                self.pipes[worker_id][0].send([all_updates, data])
 
             for con in self.connections:
                 con.probe()
 
+            self.curr_time = (1 + batch) * self.batch_size * self.input_period
             self.print_time()
+
+        for worker in self.workers:
+            worker.kill()
+
     @staticmethod
-    def mp_run(pipe, model, data, dt, input_period):
-        print("new worker")
-        my_model = copy.deepcopy(model)
+    def mp_run(pipe, model, data, dt, input_period, id):
+        print("new worker " + str(id))
         Helper.log('Simulator', log.INFO, 'new worker init')
+        my_model = copy.deepcopy(model)
         dataset = Dataset()
-        dataset.data = data
-        dataset.index = 0
         sim = Simulator(model=my_model, dataset=dataset, dt=dt, input_period=input_period)
-        sim.run(duration=len(data)*input_period)
-        Helper.log('Simulator', log.INFO, 'worker done, extracting delta')
-        out = []
-        for ens in my_model.objects[Ensemble]:
-            if ens.learner:
-                out.append(ens.learner.updates)
-        pipe.send(out)
-        Helper.log('Simulator', log.INFO, 'data sent, shutting down')
-        print("worker done")
+        while True:
+            dataset.index = 0
+            dataset.data = data
+            sim.run(duration=len(data)*input_period)
+            Helper.log('Simulator', log.INFO, 'worker done, extracting delta')
+            out = {}
+            for ens in my_model.objects[Ensemble]:
+                if ens.learner:
+                    out = {k: out.get(k, 0) + ens.learner.updates.get(k, 0) for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
+            print('worker {} finished simulating, sending updates'.format(id))
+            pipe.send(out)
+            print('data sent, waiting updates')
+            update = pipe.recv()
+            print('update received')
+            for attr, value in update[0].items():
+                sim.connections[attr[0]].update_weight(attr[1], attr[2], value)
+            data = update[1]
+            sim.flush()
+        # print("worker done")
 

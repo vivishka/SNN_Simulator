@@ -55,9 +55,9 @@ if __name__ == '__main__':
 
     # c2 = Connection(b1, d1, kernel=1, mode)
 
-    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=50, processes=4)
+    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=100, processes=3)
     # sim = Simulator(model=model, dataset=image_dataset, dt=0.02, input_period=1, batch_size=30)
-    sim.run(len(image_dataset.data)+0.02)
+    sim.run(len(image_dataset.data))
     # image_dataset.plot(-1)
     # e1.plot(layer=4)
     # plot final kernels
