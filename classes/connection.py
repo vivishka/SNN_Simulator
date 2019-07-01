@@ -168,6 +168,10 @@ class Connection(SimulationObject):
                 conv += con.get_convergence()
         return conv
 
+    def update_weight(self, x, y, value):
+        if self.wmin < self.weights.matrix[x, y] + value < self.wmax:
+            self.weights.matrix[x, y] += value
+
     def plot(self):
         images = []
         if self.active:

@@ -61,17 +61,18 @@ class Helper(object):
 
     @staticmethod
     def log(module, level, message):
-        if module in Helper.logged_modules or 'All' in Helper.logged_modules:
-            if level == log.DEBUG:
-                log.debug('{} {}'.format(module, message))
-            elif level == log.INFO:
-                log.info('{} {}'.format(module, message))
-            elif level == log.WARNING:
-                log.warning('{} {}'.format(module, message))
-            elif level == log.ERROR:
-                log.error('{} {}'.format(module, message))
-            elif level == log.CRITICAL:
-                log.critical('{} {}'.format(module, message))
+        if __name__ == '__main__':
+            if module in Helper.logged_modules or 'All' in Helper.logged_modules:
+                if level == log.DEBUG:
+                    log.debug('{} {}'.format(module, message))
+                elif level == log.INFO:
+                    log.info('{} {}'.format(module, message))
+                elif level == log.WARNING:
+                    log.warning('{} {}'.format(module, message))
+                elif level == log.ERROR:
+                    log.error('{} {}'.format(module, message))
+                elif level == log.CRITICAL:
+                    log.critical('{} {}'.format(module, message))
 
     @staticmethod
     def get_index_2d(index_1d, length):
