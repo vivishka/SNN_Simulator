@@ -365,6 +365,8 @@ class SimulatorMp(Simulator):
                 sim.connections[attr[0]].update_weight(attr[1], attr[2], value)
             data = update[1]
             sim.flush()
+            my_model.restore()
+
         # print("worker done")
 
     def print_time(self):
