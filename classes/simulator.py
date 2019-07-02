@@ -335,13 +335,14 @@ class SimulatorMp(Simulator):
 
             self.curr_time = (1 + batch) * self.batch_size * self.input_period
             self.print_time()
-
+            self.steptimes.append(time.time() - self.last_time)
+            self.last_time = time.time()
         for worker in self.workers:
             worker.kill()
 
     @staticmethod
     def mp_run(pipe, model, data, dt, input_period, id):
-        # print("new worker " + str(id))
+        print("new worker " + str(id))
         Helper.log('Simulator', log.INFO, 'new worker init')
         my_model = copy.deepcopy(model)
         dataset = Dataset()
@@ -355,7 +356,7 @@ class SimulatorMp(Simulator):
             for ens in my_model.objects[Ensemble]:
                 if ens.learner:
                     out = {k: out.get(k, 0) + ens.learner.updates.get(k, 0) for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
-            # print('worker {} finished simulating, sending updates'.format(id))
+            print('worker {} finished simulating, sending updates'.format(id))
             pipe.send(out)
             # print('data sent, waiting updates')
             update = pipe.recv()
