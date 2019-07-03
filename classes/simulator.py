@@ -364,19 +364,19 @@ class SimulatorMp(Simulator):
             pipe.send(out)
             # print('data sent, waiting updates')
             update = pipe.recv()
-            print('worker {} received updates'.format(id))
-            print(my_model.objects[Connection][1].weights.matrix[0, 0])
+            # print('worker {} received updates'.format(id))
+            # print(my_model.objects[Connection][1].weights.matrix[0, 0])
             # try:
             #     print(update[0][(my_model.objects[Connection][1].id, 0, 0)])
             # except:
             #     pass
             for attr, value in update[0].items():
                 sim.connections[attr[0]].update_weight(attr[1], attr[2], value)
-            print(my_model.objects[Connection][1].weights.matrix[0, 0])
+            # print(my_model.objects[Connection][1].weights.matrix[0, 0])
             my_model.restore()
-            print(my_model.objects[Connection][1].weights.matrix[0, 0])
+            # print(my_model.objects[Connection][1].weights.matrix[0, 0])
             data = update[1]
-            print('worker {} updates applied'.format(id))
+            # print('worker {} updates applied'.format(id))
 
         # print("worker done")
 
