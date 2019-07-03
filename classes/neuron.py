@@ -236,6 +236,7 @@ class IF(NeuronType):
                        .format(self.index_2d, self.voltage, self.threshold))
             self.send_spike()
             self.voltage = 0
+            self.inhibited = True
             if self.variable_probed:
                 self.probe()
 

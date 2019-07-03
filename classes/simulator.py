@@ -173,24 +173,31 @@ class Simulator(object):
             Helper.log('Simulator', log.INFO, 'done')
 
     def load(self, file):
-        with open(file, 'rb') as savefile:
-            Helper.log('Simulator', log.INFO, 'loading weights ...')
-            data = pickle.load(savefile)
-            for con in data:
-                for receptor in self.connections:
-                    Helper.log('Simulator', log.INFO, 'loading weight matrix connection {}'.format(con[0]))
-                    # Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con[1].matrix.size))
-                    if receptor.id == con[0]:
-                        receptor.weights = con[1]
-                        break
+        ext = file.spit('.')[-1]
+        if ext == 'w':
+            with open(file, 'rb') as savefile:
+                Helper.log('Simulator', log.INFO, 'loading weights ...')
+                data = pickle.load(savefile)
+                for con in data:
+                    for receptor in self.connections:
+                        Helper.log('Simulator', log.INFO, 'loading weight matrix connection {}'.format(con[0]))
+                        # Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con[1].matrix.size))
+                        if receptor.id == con[0]:
+                            receptor.weights = con[1]
+                            break
 
 
 
-                # if not isinstance(self.connections[con[0]], DiagonalConnection) \
-                #         and self.connections[con[0]].mode != 'pooling' \
-                #         and self.connections[con[0]].active:
+                    # if not isinstance(self.connections[con[0]], DiagonalConnection) \
+                    #         and self.connections[con[0]].mode != 'pooling' \
+                    #         and self.connections[con[0]].active:
 
-            Helper.log('Simulator', log.INFO, 'done')
+                Helper.log('Simulator', log.INFO, 'done')
+        elif ext == 'npy':
+            for connextion in self.connections:
+                pass
+        else:
+            Helper.log('Simulator', log.ERROR, 'unknown extension for file {}'.format(file))
 
     def flush(self):
 

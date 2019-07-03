@@ -79,6 +79,7 @@ class Connection(SimulationObject):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
             if mode == 'pooling':
                 for l in range(len(dest_l.ensemble_list)):
+                    # TODO: range check: same depth
                     self.connection_list.append(Connection(source_l.ensemble_list[l], dest_l.ensemble_list[l],
                                                            self.wmin, self.wmax, kernel, mode, *args, **kwargs))
             else:
@@ -195,15 +196,31 @@ class Connection(SimulationObject):
         fig.patch.set_facecolor('xkcd:light blue')
         # fig, ax = plt.subplots(nrows=nb_source, ncols=nb_dest)
         norm = colors.Normalize(vmin=self.connection_list[0].wmin, vmax=self.connection_list[0].wmax)
-        for row in range(nb_source):
-            for col in range(nb_dest):
-                con = self.connection_list[col * nb_source + row]
-                plt.subplot(nb_source, nb_dest, row * nb_dest + col + 1)
+        for source_i in range(nb_source):
+            for dest_i in range(nb_dest):
+                con = self.connection_list[dest_i * nb_source + source_i]
+                plt.subplot(nb_source, nb_dest, source_i * nb_dest + dest_i + 1)
                 kernel = con.weights.matrix.get_kernel()
                 plt.imshow(kernel, cmap='gray', norm=norm)
                 plt.axis('off')
 
         fig.suptitle("Connection final kernels")
+
+    def load(self, weights):
+        if weights.shape[-2:] != self.connection_list[0].weights.kernel_size:
+            Helper.log('Connection', log.ERROR, 'wrong size of kernel when loading')
+            raise Exception("Wrong size of kernel when loading")
+        if not self.active:
+            nb_source = len(self.source_e.ensemble_list)
+            nb_dest = len(self.dest_e.ensemble_list)
+
+            if nb_source != weights.shape[1] or nb_dest != weights.shape[0]:
+                raise Exception("Wrong number of weight when loading")
+
+            for source_i in range(nb_source):
+                for dest_i in range(nb_dest):
+                    kernel = weights[dest_i, source_i]
+                    self.connection_list[dest_i * nb_source + source_i].weights.matrix.kernel = kernel
 
 
 class DiagonalConnection(Connection):

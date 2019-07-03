@@ -30,7 +30,7 @@ class NeuronLog(NeuronType):
         """ logs the ensemble index and the time of the received spike in a tuple
         The weight is not important
         """
-        if weight != 0.:
+        if weight > 1e-6:
             super(NeuronLog, self).receive_spike(index_1d, weight)
             for spike in self.received:
                 Helper.log('Decoder', log.DEBUG, ' neuron {} received spike {}'.format(self.index_2d, spike))
@@ -70,7 +70,7 @@ class Decoder(Ensemble):
 
     objects = []
 
-    def __init__(self, size):
+    def __init__(self, size, absolute_time = False):
         super(Decoder, self).__init__(
             size=size,
             neuron_type=NeuronLog(),
@@ -78,6 +78,7 @@ class Decoder(Ensemble):
         )
         self.decoded_wta = []
         self.decoded_image = []
+        self.absolute_time = absolute_time
         Decoder.objects.append(self)
 
     def get_first_spike(self):
@@ -96,6 +97,8 @@ class Decoder(Ensemble):
             return image
 
         min_val = min(first_spike_list)
+        if self.absolute_time:
+            min_val = (min_val // self.sim.input_period) * self.sim.input_period
         Helper.log("Decoder", log.DEBUG, "get first spike: First spike logged at time {}".format(min_val))
         for row in range(self.size[0]):
             for col in range(self.size[1]):
