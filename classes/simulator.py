@@ -330,10 +330,11 @@ class SimulatorMp(Simulator):
 
                 # self.copies.append(copy.deepcopy(self.model))
                 data = []
-                labels = []
+                # labels = []
                 for _ in range(self.split[worker_id]):
                     data.append(self.dataset.next())
-                    labels.append(self.dataset.labels[self.dataset.index])
+                    # if(self.dataset.labels):
+                    #     labels.append(self.dataset.labels[self.dataset.index])
 
                 self.pipes[worker_id][0].send([all_updates, (data, labels)])
 
