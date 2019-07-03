@@ -151,6 +151,8 @@ class Ensemble(Layer):
             # if WTA, only propagates the neuron which spiked first with highest voltage
             if self.wta and self.first_neuron is not None:
                 self.inhibited = True
+                print('first_neuron: digit {} with {:.3f}v at {:.3f}'
+                      .format(self.index//20, self.first_voltage, self.sim.curr_time))
                 self.bloc.propagate_inhibition(Helper.get_index_2d(self.first_neuron, self.size[1]))
 
                 # propagates the first neuron to spike
@@ -172,6 +174,8 @@ class Ensemble(Layer):
         self.wta = wta
 
     def inhibit(self, index_2d_n, radius):
+        if radius[0] == -1:
+            return
         for row in range(index_2d_n[0] - radius[0], index_2d_n[0] + radius[0] + 1):
             for col in range(index_2d_n[1] - radius[1], index_2d_n[1] + radius[1] + 1):
 
@@ -321,17 +325,16 @@ class Bloc(Layer):
         if radius is not None:
             self.inhibition_radius = (radius, radius) if isinstance(radius, int) else radius
         else:
-            self.inhibition_radius = (0, 0)
+            self.inhibition_radius = (-1, -1)
 
         for ens in self.ensemble_list:
             Helper.log('Layer', log.INFO, 'ensemble {0} inhibited'.format(ens.id))
             ens.set_inhibition(wta=wta)
 
     def propagate_inhibition(self, index_2d_n):
-        if sum(self.inhibition_radius) > 0:
-            for ens in self.ensemble_list:
-                ens.inhibit(index_2d_n, self.inhibition_radius)
-                Helper.log('Layer', log.INFO, 'ensemble {0} inhibited by propagation'.format(ens.id))
+        for ens in self.ensemble_list:
+            ens.inhibit(index_2d_n, self.inhibition_radius)
+            Helper.log('Layer', log.INFO, 'ensemble {0} inhibited by propagation'.format(ens.id))
 
     def activate_threshold_adapt(self, t_targ, th_min, n_th1, n_th2):
         self.threshold_adapt = True

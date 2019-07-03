@@ -79,6 +79,7 @@ class Connection(SimulationObject):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
             if mode == 'pooling':
                 for l in range(len(dest_l.ensemble_list)):
+                    # TODO: range check: same depth
                     self.connection_list.append(Connection(source_l.ensemble_list[l], dest_l.ensemble_list[l],
                                                            self.wmin, self.wmax, kernel, mode, *args, **kwargs))
             else:
@@ -206,12 +207,15 @@ class Connection(SimulationObject):
         fig.suptitle("Connection final kernels")
 
     def load(self, weights):
+        if weights.shape[-2:] != self.connection_list[0].weights.kernel_size:
+            Helper.log('Connection', log.ERROR, 'wrong size of kernel when loading')
+            raise Exception("Wrong size of kernel when loading")
         if not self.active:
             nb_source = len(self.source_e.ensemble_list)
             nb_dest = len(self.dest_e.ensemble_list)
 
             if nb_source != weights.shape[1] or nb_dest != weights.shape[0]:
-                return
+                raise Exception("Wrong number of weight when loading")
 
             for source_i in range(nb_source):
                 for dest_i in range(nb_dest):

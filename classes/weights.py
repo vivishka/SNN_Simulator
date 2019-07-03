@@ -123,6 +123,7 @@ class Weights(object):
         self.matrix = SharedCompactMatrix(mat=tmp_matrix, kernel=kernel)
 
     def init_weight_pooling(self):
+        # TODO: range check of dim before this
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)))
         # for every source neuron
         for dest_row in range(self.dest_dim[0]):
