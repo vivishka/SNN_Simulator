@@ -335,6 +335,10 @@ class SimplifiedSTDP_MP(SimplifiedSTDP):
         for connection in self.layer.in_connections:
             connection.probe()
 
+    def restore(self):
+        super(SimplifiedSTDP_MP, self).restore()
+        self.updates = {}
+
 # TODO: change weight change after all experiments + average ?
 class Rstdp(Learner):
     """

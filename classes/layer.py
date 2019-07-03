@@ -244,9 +244,9 @@ class Ensemble(Layer):
         self.inhibited = False
         self.first_voltage = 0
         self.first_neuron = None
-        self.threshold_adapt = False
-        self.inhibition = False
-        self.wta = False
+        # self.threshold_adapt = False
+        # self.inhibition = False
+        # self.wta = False
 
     def __getitem__(self, index):
         if isinstance(index, int):

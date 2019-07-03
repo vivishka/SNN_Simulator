@@ -204,14 +204,14 @@ class Simulator(object):
         pass
 
     def print_time(self):
-        # if __name__ == '__main__':
-        time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
-        print('Time {} / {}, {}:{}:{} left '
-              .format(int(self.curr_time),
-                      self.duration,
-                      int(time_left // 3600),
-                      int((time_left // 60) % 60),
-                      int(time_left % 60)))
+        if __name__ == '__main__':
+            time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
+            print('Time {} / {}, {}:{}:{} left '
+                  .format(int(self.curr_time),
+                          self.duration,
+                          int(time_left // 3600),
+                          int((time_left // 60) % 60),
+                          int(time_left % 60)))
 
             # self.memory_estimate()
 
@@ -307,7 +307,7 @@ class SimulatorMp(Simulator):
 
         for batch in range(n_batches):
             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(batch))
-            print("next batch")
+            # print("next batch")
             # self.print_time()
             # Setup workers
 
@@ -319,14 +319,16 @@ class SimulatorMp(Simulator):
             while finished < self.processes:
                 for worker_id, worker in enumerate(self.workers):
                     if self.pipes[worker_id][0].poll():
-                        Helper.log('Simulator', log.INFO, 'worker {} finished, gathering data')
+                        Helper.log('Simulator', log.INFO, 'worker {} finished, gathering data'.format(id))
                         update = self.pipes[worker_id][0].recv()
                         for attr, value in update.items():
                             self.connections[attr[0]].update_weight(attr[1], attr[2], value)
                         all_updates = {k: all_updates.get(k, 0) + update.get(k, 0) for k in set(all_updates)
                                        | set(update)}  # merge sum dicts
                         finished += 1
-
+                Helper.log('Simulator', log.INFO, 'worker {} finished, gathering data')
+                time.sleep(0.1)
+            print('all updates processed: size {}'.format(len(all_updates)))
             for worker_id, worker_load in enumerate(self.split):
 
                 # self.copies.append(copy.deepcopy(self.model))
@@ -342,7 +344,8 @@ class SimulatorMp(Simulator):
 
             self.curr_time = (1 + batch) * self.batch_size * self.input_period
             self.print_time()
-
+            self.steptimes.append(time.time() - self.last_time)
+            self.last_time = time.time()
         for worker in self.workers:
             worker.kill()
 
@@ -356,20 +359,40 @@ class SimulatorMp(Simulator):
         while True:
             dataset.index = 0
             dataset.data = data
+            print('worker {} run sim'.format(id))
             sim.run(duration=len(data)*input_period)
-            Helper.log('Simulator', log.INFO, 'worker done, extracting delta')
+            Helper.log('Simulator', log.INFO, 'worker {} done, extracting updates'.format(id))
             out = {}
             for ens in my_model.objects[Ensemble]:
                 if ens.learner:
                     out = {k: out.get(k, 0) + ens.learner.updates.get(k, 0) for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
-            print('worker {} finished simulating, sending updates'.format(id))
+            print('worker {} finished simulating, sending {} updates'.format(id, len(out)))
+            sim.flush()
             pipe.send(out)
-            print('data sent, waiting updates')
+            # print('data sent, waiting updates')
             update = pipe.recv()
-            print('update received')
+            print('worker {} received updates'.format(id))
+            print(my_model.objects[Connection][1].weights.matrix[0, 0])
+            # try:
+            #     print(update[0][(my_model.objects[Connection][1].id, 0, 0)])
+            # except:
+            #     pass
             for attr, value in update[0].items():
                 sim.connections[attr[0]].update_weight(attr[1], attr[2], value)
+            print(my_model.objects[Connection][1].weights.matrix[0, 0])
+            my_model.restore()
+            print(my_model.objects[Connection][1].weights.matrix[0, 0])
             data = update[1]
-            sim.flush()
+            print('worker {} updates applied'.format(id))
+
         # print("worker done")
 
+    def print_time(self):
+        # if __name__ == '__main__':
+        time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
+        print('Time {} / {}, {}:{}:{} left '
+              .format(int(self.curr_time),
+                      self.duration,
+                      int(time_left // 3600),
+                      int((time_left // 60) % 60),
+                      int(time_left % 60)))
