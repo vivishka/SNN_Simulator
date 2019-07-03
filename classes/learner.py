@@ -428,3 +428,63 @@ class Rstdp(Learner):
         for connection in self.layer.in_connections:
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
+
+class RstdpMP(Rstdp):
+    def __init__(self, eta_up=0.001, eta_down=-0.001, anti_eta_up=-0.001, anti_eta_down=0.0001, wta=True):
+        super(RstdpMP, self).__init__(self, eta_up, eta_down, anti_eta_up, anti_eta_down, wta)
+        self.updates = {}
+
+
+    @MeasureTiming('Learning')
+    def process(self):
+        Helper.log('Learner', log.DEBUG, 'Processing rstdp ensemble {0}'.format(self.layer.id))
+        # for each experiment in the batch that ends
+        for experiment_index in range(self.layer.sim.batch_size):
+            Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
+
+            if not self.out_spikes[experiment_index]:
+                # if no spikes for this experience
+                Helper.log('Learner', log.CRITICAL, 'Not a single spike emitted on cycle {}'.format(experiment_index))
+                # TODO: do something
+                continue
+
+            output_value = self.out_spikes[experiment_index][0][1]
+            target_value = self.dataset.labels[self.dataset.index]
+            # print(output_value, target_value)
+            a_p = self.eta_up if output_value == target_value else self.anti_eta_up
+            a_n = self.eta_down if output_value == target_value else self.anti_eta_down
+
+            # if wta: only the first spike leads to learning
+            # else, each spike received leads to learning
+            out_s_list = self.out_spikes[experiment_index][:1] if self.wta else self.out_spikes[experiment_index]
+            for out_s in out_s_list:
+
+                dest_n = out_s[1]
+                Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(dest_n))
+
+                # for all the spikes in_s received by the same neuron which emitted out_s
+                for in_s in self.in_spikes[experiment_index][dest_n]:
+                    source_n = in_s[1]
+                    connection = in_s[2]
+                    weight = in_s[3]
+
+                    dt = out_s[0] - in_s[0]
+                    if dt >= 0:
+                        dw = a_p * (weight - connection.wmin) * (connection.wmax - weight)
+                    else:
+                        dw = a_n * (weight - connection.wmin) * (connection.wmax - weight)
+
+                    if (connection.id, source_n, dest_n) in self.updates:
+                        self.updates[(connection.id, source_n, dest_n)] += dw
+                    else:
+                        self.updates[(connection.id, source_n, dest_n)] = dw
+
+        self.out_spikes = []
+        self.in_spikes = []
+        for connection in self.layer.in_connections:
+            connection.probe()
+        Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
+
+    def restore(self):
+        super(RstdpMP, self).restore()
+        self.updates = {}
