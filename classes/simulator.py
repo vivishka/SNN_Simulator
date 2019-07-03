@@ -173,7 +173,7 @@ class Simulator(object):
             Helper.log('Simulator', log.INFO, 'done')
 
     def load(self, file):
-        ext = file.spit('.')[-1]
+        ext = file.split('.')[-1]
         if ext == 'w':
             with open(file, 'rb') as savefile:
                 Helper.log('Simulator', log.INFO, 'loading weights ...')
@@ -185,9 +185,6 @@ class Simulator(object):
                         if receptor.id == con[0]:
                             receptor.weights = con[1]
                             break
-
-
-
                     # if not isinstance(self.connections[con[0]], DiagonalConnection) \
                     #         and self.connections[con[0]].mode != 'pooling' \
                     #         and self.connections[con[0]].active:
@@ -296,7 +293,7 @@ class SimulatorMp(Simulator):
                                            args=(self.pipes[worker_id][1],
                                                  self.model,
                                                  data,
-                                                 # labels,
+                                                 labels,
                                                  self.dt,
                                                  self.input_period,
                                                  worker_id,
@@ -336,8 +333,9 @@ class SimulatorMp(Simulator):
                 labels = []
                 for _ in range(self.split[worker_id]):
                     data.append(self.dataset.next())
+                    labels.append(self.dataset.labels[self.dataset.index])
 
-                self.pipes[worker_id][0].send([all_updates, data])
+                self.pipes[worker_id][0].send([all_updates, (data, labels)])
 
             for con in self.connections:
                 con.probe()
@@ -350,7 +348,7 @@ class SimulatorMp(Simulator):
             worker.kill()
 
     @staticmethod
-    def mp_run(pipe, model, data, dt, input_period, id):
+    def mp_run(pipe, model, data, labels, dt, input_period, id):
         print("new worker " + str(id))
         Helper.log('Simulator', log.INFO, 'new worker init')
         my_model = copy.deepcopy(model)
@@ -359,6 +357,7 @@ class SimulatorMp(Simulator):
         while True:
             dataset.index = 0
             dataset.data = data
+            dataset.labels = labels
             print('worker {} run sim'.format(id))
             sim.run(duration=len(data)*input_period)
             Helper.log('Simulator', log.INFO, 'worker {} done, extracting updates'.format(id))
@@ -382,7 +381,8 @@ class SimulatorMp(Simulator):
             # print(my_model.objects[Connection][1].weights.matrix[0, 0])
             my_model.restore()
             # print(my_model.objects[Connection][1].weights.matrix[0, 0])
-            data = update[1]
+            data = update[1][0]
+            labels = update[1][1]
             # print('worker {} updates applied'.format(id))
 
         # print("worker done")
