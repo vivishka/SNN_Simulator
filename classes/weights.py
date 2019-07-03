@@ -1,5 +1,6 @@
 from .compactmatrix import CompactMatrix, SharedCompactMatrix
 from .base import Helper, MeasureTiming
+import copy
 import numpy as np
 import logging as log
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, source_dim, dest_dim, kernel_size=None, mode=None, wmin=0, wmax=0.6):
+    def __init__(self, source_dim, dest_dim, kernel_size=None, mode=None, wmin=0, wmax=0.6, **kwargs):
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
@@ -41,7 +42,11 @@ class Weights(object):
             self.init_weights_dense()
         else:
             if mode == 'shared':
-                self.init_weight_shared()
+                if 'first' in kwargs and not kwargs['first']:
+                    # First: optimisation: copy the index matrix across all connections from the same blocks
+                    self.init_weight_shared(model=kwargs['connection'].connection_list[0].weights.matrix)
+                else:
+                    self.init_weight_shared()
             elif mode == 'pooling':
                 self.init_weight_pooling()
             else:
@@ -86,11 +91,18 @@ class Weights(object):
 
         self.matrix = CompactMatrix(tmp_matrix)
 
-    def init_weight_shared(self):
-        tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)), dtype=object)
+    def init_weight_shared(self, model=None):
         kernel = np.random.randn(*self.kernel_size) * (self.wmax - self.wmin) / 10 + (self.wmax - self.wmin) * 0.8
         delta = (self.wmax - self.wmin) * 0.05
         kernel = kernel.clip(self.wmin + delta, self.wmax - delta)
+
+        if model is not None:
+            # no deep copy: can share the index matrix
+            self.matrix = copy.copy(model)
+            self.matrix.kernel = kernel
+            return
+
+        tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)), dtype=object)
         # kernel = np.random.rand(*self.kernel_size)
         # TODO: normalization
         # tmp_kernel = np.arange(self.kernel_size[0] * self.kernel_size[1]).reshape(self.kernel_size)
