@@ -151,8 +151,8 @@ class Ensemble(Layer):
             # if WTA, only propagates the neuron which spiked first with highest voltage
             if self.wta and self.first_neuron is not None:
                 self.inhibited = True
-                print('first_neuron: digit {} with {:.3f}v at {:.3f}'
-                      .format(self.index//20, self.first_voltage, self.sim.curr_time))
+                # print('first_neuron: digit {} with {:.3f}v at {:.3f}'
+                #       .format(self.index//20, self.first_voltage, self.sim.curr_time))
                 self.bloc.propagate_inhibition(Helper.get_index_2d(self.first_neuron, self.size[1]))
 
                 # propagates the first neuron to spike
