@@ -48,7 +48,11 @@ class Weights(object):
                 else:
                     self.init_weight_shared()
             elif mode == 'pooling':
-                self.init_weight_pooling()
+                if 'first' in kwargs and not kwargs['first']:
+                    # First: optimisation: copy the index matrix across all connections from the same blocks
+                    self.init_weight_pooling(model=kwargs['connection'].connection_list[0].weights.matrix)
+                else:
+                    self.init_weight_pooling()
             else:
                 self.init_weight_kernel()
 
@@ -82,8 +86,9 @@ class Weights(object):
 
                             # check if fuckuped
                             if 0 <= index_x < tmp_matrix.shape[0] and 0 <= index_y < tmp_matrix.shape[1]:
-                                tmp_matrix[(index_x, index_y)] = Helper.init_weight() * 2. / np.prod(self.kernel_size)
-                                tmp_matrix = tmp_matrix.clip(self.wmin, self.wmax)
+                                weight = np.clip(Helper.init_weight() * 2. / np.prod(self.kernel_size),
+                                                 a_min=self.wmin, a_max=self.wmax)
+                                tmp_matrix[(index_x, index_y)] = weight
                             else:
                                 Helper.log('Connection',
                                            log.WARNING,
@@ -134,8 +139,13 @@ class Weights(object):
 
         self.matrix = SharedCompactMatrix(mat=tmp_matrix, kernel=kernel)
 
-    def init_weight_pooling(self):
+    def init_weight_pooling(self, model=None):
         # TODO: range check of dim before this
+        if model is not None:
+            # no deep copy: can share the index matrix
+            self.matrix = copy.copy(model)
+            return
+
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)))
         # for every source neuron
         for dest_row in range(self.dest_dim[0]):

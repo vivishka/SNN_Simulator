@@ -121,14 +121,8 @@ class PatternGeneratorDataset(Dataset):
 
         for i in range(self.nb_images):
             data = self.pattern_image_generator(self.size, [k3, k4], self.nb_features)
-            if self.nb_images == 1:
-                plt.figure()
-                plt.imshow(data, cmap='gray')
             self.data.append(data)
             self.labels.append(0)
-
-        if self.nb_images == 1:
-            plt.show()
 
     @staticmethod
     def pattern_image_generator(size, pattern_list, nb_features):
@@ -159,3 +153,8 @@ class PatternGeneratorDataset(Dataset):
 
         mat = np.clip(mat, 0, 1) * 255
         return mat.astype('uint8')
+
+    def plot(self, index=-1):
+        plt.figure()
+        plt.imshow(self.data[index], cmap='gray')
+        plt.title('Source image input '+str(index))

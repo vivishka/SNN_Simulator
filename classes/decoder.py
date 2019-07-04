@@ -149,17 +149,17 @@ class Decoder(Ensemble):
                 graph[row] = value
         else:
             graph = self.decoded_wta[index]
-        norm = colors.Normalize(vmin=0, vmax=self.sim.input_period + 1 * self.sim.dt)
+        t_min = np.min(graph)
+        t_max = self.sim.input_period + 1 * self.sim.dt
+        if t_min == t_max:
+            t_min = 0
+        norm = colors.Normalize(vmin=t_min, vmax=t_max)
         plt.figure()
         plt.imshow(graph, cmap='gray_r', norm=norm)
         plt.xlabel('column number')
         plt.ylabel('row number')
         if title is not None:
             plt.title(title)
-        # for row in range(self.size[0]):
-        #     for col in range(self.size[1]):
-        #         if table[row, col] == np.nan:
-        #             plt.plot(row, col, 'bo')
 
     def step(self):
         pass

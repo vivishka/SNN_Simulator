@@ -77,13 +77,17 @@ class Connection(SimulationObject):
         # check if connection is from ensemble to ensemble, generate sub-connections if needed recursively
         if isinstance(source_l, Bloc) or isinstance(dest_l, Bloc):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
+            first = True
             if mode == 'pooling':
-                for l in range(len(dest_l.ensemble_list)):
+                for l_ind, l_out in enumerate(dest_l.ensemble_list):
                     # TODO: range check: same depth
-                    self.connection_list.append(Connection(source_l.ensemble_list[l], dest_l.ensemble_list[l],
-                                                           self.wmin, self.wmax, kernel, mode, *args, **kwargs))
+                    self.connection_list.append(Connection(source_l=source_l.ensemble_list[l_ind],
+                                                           dest_l=l_out,
+                                                           wmin=self.wmin, wmax=self.wmax,
+                                                           kernel=kernel, mode=mode,
+                                                           first=first, connection=self, *args, **kwargs))
+                    first = False
             else:
-                first = True
                 for l_out in dest_l.ensemble_list:
                     for l_in in source_l.ensemble_list:
                         self.connection_list.append(Connection(source_l=l_in, dest_l=l_out,
@@ -192,9 +196,13 @@ class Connection(SimulationObject):
             for index, image in enumerate(images):
                 ax[index // ncols, index % ncols].imshow(image, cmap='gray', norm=norm)
 
-    def plot_all_kernels(self):
+    def plot_all_kernels(self, nb_source_max=None, nb_dest_max=None):
         nb_source = len(self.source_e.ensemble_list)
+        if nb_source_max is not None and nb_source_max < nb_source:
+            nb_source = nb_source_max
         nb_dest = len(self.dest_e.ensemble_list)
+        if nb_dest_max is not None and nb_dest_max < nb_dest:
+            nb_dest = nb_dest_max
         fig = plt.figure()
         fig.patch.set_facecolor('xkcd:light blue')
         # fig, ax = plt.subplots(nrows=nb_source, ncols=nb_dest)
