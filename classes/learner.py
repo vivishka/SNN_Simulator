@@ -52,7 +52,7 @@ class Learner(object):
         learning ? 
     """
 
-    def __init__(self, eta_up=0.1, eta_down=-0.1, tau_up=1, tau_down=1):
+    def __init__(self, eta_up=0.1, eta_down=-0.1, tau_up=1, tau_down=1, mp=False):
         self.layer = None
         self.size = None
         self.eta_up = eta_up
@@ -65,7 +65,8 @@ class Learner(object):
         self.in_spikes = []
         self.out_spikes = []
         self.active = True
-
+        self.mp = mp
+        self.updates = {}
 
         Helper.log('Learner', log.INFO, 'Learner initialized TODO: change log'.format())
 
@@ -159,9 +160,14 @@ class Learner(object):
                     Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
                                format(connection.id, source_n, dest_n, dw))
                     # update weights in source connection
-                    new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
-                    connection.weights[(source_n, dest_n)] = new_w
-
+                    if not self.mp:
+                        new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
+                        connection.weights[(source_n, dest_n)] = new_w
+                    else:
+                        if (connection.id, source_n, dest_n) in self.updates:
+                            self.updates[(connection.id, source_n, dest_n)] += dw
+                        else:
+                            self.updates[(connection.id, source_n, dest_n)] = dw
         self.out_spikes = []
         self.in_spikes = []
         for connection in self.layer.in_connections:
@@ -173,6 +179,7 @@ class Learner(object):
         self.out_spikes = []
         self.buffer_in = copy.deepcopy(self.buffer_in_empty)
         self.buffer_out = []
+        self.updates = {}
 
 
 class LearnerClassifier(Learner):
@@ -199,8 +206,8 @@ class LearnerClassifier(Learner):
     feedback_gain: float
         amount by which the weights leading to duplicate spikes will be decreased or increased if no spikes
     """
-    def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, feedback_gain=0.001):
-        super(LearnerClassifier, self).__init__(eta_up, eta_down, tau_up, tau_down)
+    def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, feedback_gain=0.001, mp=False):
+        super(LearnerClassifier, self).__init__(eta_up, eta_down, tau_up, tau_down, mp=mp)
         self.feedback_gain = feedback_gain
 
     @MeasureTiming('learn_process')
@@ -253,8 +260,8 @@ class SimplifiedSTDP(Learner):
 
         """
 
-    def __init__(self, eta_up=0.1, eta_down=-0.1):
-        super(SimplifiedSTDP, self).__init__(eta_up=eta_up, eta_down=eta_down)
+    def __init__(self, eta_up=0.1, eta_down=-0.1, mp=False):
+        super(SimplifiedSTDP, self).__init__(eta_up=eta_up, eta_down=eta_down, mp=mp)
 
     @MeasureTiming('learn_process')
     def process(self):  # call every batch
@@ -284,60 +291,19 @@ class SimplifiedSTDP(Learner):
                     Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
                                format(connection.id, source_n, dest_n, dw))
                     # update weights in source connection
-                    weight = np.clip(weight + dw, connection.wmin, connection.wmax)
-                    connection.weights[(source_n, dest_n)] = weight
-
+                    if not self.mp:
+                        new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
+                        connection.weights[(source_n, dest_n)] = new_w
+                    else:
+                        if (connection.id, source_n, dest_n) in self.updates:
+                            self.updates[(connection.id, source_n, dest_n)] += dw
+                        else:
+                            self.updates[(connection.id, source_n, dest_n)] = dw
         self.out_spikes = []
         self.in_spikes = []
         for connection in self.layer.in_connections:
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
-
-
-class SimplifiedSTDP_MP(SimplifiedSTDP):
-
-    def __init__(self, eta_up=0.1, eta_down=-0.1):
-        super(SimplifiedSTDP_MP, self).__init__(eta_up=eta_up, eta_down=eta_down)
-        self.updates = {}
-
-    def process(self):  # call every batch
-        # for each experiment in the batch that ends
-        for experiment_index in range(self.layer.sim.batch_size):
-
-            # for each spike emitted by the Ensemble during this experiment
-            for out_s in self.out_spikes[experiment_index]:
-                dest_n = out_s[1]
-
-                # for all the spikes in_s received by the same neuron which emitted out_s
-                for in_s in self.in_spikes[experiment_index][dest_n]:
-                    source_n = in_s[1]
-                    connection = in_s[2]
-                    weight = in_s[3]
-
-                    dt = out_s[0] - in_s[0]
-                    if dt >= 0:
-                        dw = self.eta_up * (weight - connection.wmin) * (connection.wmax - weight)
-                        # dw = self.eta_up
-                    else:
-                        dw = self.eta_down * (weight - connection.wmin) * (connection.wmax - weight)
-                        # dw = self.eta_down
-                    # update weights in source connection
-                    # weight = np.clip(weight + dw, connection.wmin, connection.wmax)
-                    # connection.weights[(source_n, dest_n)] = weight
-
-                    if (connection.id, source_n, dest_n) in self.updates:
-                        self.updates[(connection.id, source_n, dest_n)] += dw
-                    else:
-                        self.updates[(connection.id, source_n, dest_n)] = dw
-
-        self.out_spikes = []
-        self.in_spikes = []
-        for connection in self.layer.in_connections:
-            connection.probe()
-
-    def restore(self):
-        super(SimplifiedSTDP_MP, self).restore()
-        self.updates = {}
 
 # TODO: change weight change after all experiments + average ?
 class Rstdp(Learner):
@@ -373,8 +339,8 @@ class Rstdp(Learner):
             dataset used as input for the network. Labels are used to compare with the output
         """
 
-    def __init__(self, eta_up=0.1, eta_down=-0.1, anti_eta_up=-0.1, anti_eta_down=0.1, wta=True):
-        super(Rstdp, self).__init__(eta_up=eta_up, eta_down=eta_down,)
+    def __init__(self, eta_up=0.1, eta_down=-0.1, anti_eta_up=-0.1, anti_eta_down=0.1, mp=False, wta=True):
+        super(Rstdp, self).__init__(eta_up=eta_up, eta_down=eta_down, mp=mp)
         self.anti_eta_up = anti_eta_up
         self.anti_eta_down = anti_eta_down
         self.dataset = self.layer.sim.dataset
@@ -421,7 +387,14 @@ class Rstdp(Learner):
                     Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
                                format(connection.id, source_n, dest_n, dw))
                     # update weights in source connection
-                    connection.weights[(source_n, dest_n)] = weight + dw
+                    if not self.mp:
+                        new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
+                        connection.weights[(source_n, dest_n)] = new_w
+                    else:
+                        if (connection.id, source_n, dest_n) in self.updates:
+                            self.updates[(connection.id, source_n, dest_n)] += dw
+                        else:
+                            self.updates[(connection.id, source_n, dest_n)] = dw
 
         self.out_spikes = []
         self.in_spikes = []
@@ -429,62 +402,3 @@ class Rstdp(Learner):
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
 
-class RstdpMP(Rstdp):
-    def __init__(self, eta_up=0.001, eta_down=-0.001, anti_eta_up=-0.001, anti_eta_down=0.0001, wta=True):
-        super(RstdpMP, self).__init__(self, eta_up, eta_down, anti_eta_up, anti_eta_down, wta)
-        self.updates = {}
-
-
-    @MeasureTiming('Learning')
-    def process(self):
-        Helper.log('Learner', log.DEBUG, 'Processing rstdp ensemble {0}'.format(self.layer.id))
-        # for each experiment in the batch that ends
-        for experiment_index in range(self.layer.sim.batch_size):
-            Helper.log('Learner', log.DEBUG, 'Processing input cycle {}'.format(experiment_index))
-
-            if not self.out_spikes[experiment_index]:
-                # if no spikes for this experience
-                Helper.log('Learner', log.CRITICAL, 'Not a single spike emitted on cycle {}'.format(experiment_index))
-                # TODO: do something
-                continue
-
-            output_value = self.out_spikes[experiment_index][0][1]
-            target_value = self.dataset.labels[self.dataset.index]
-            # print(output_value, target_value)
-            a_p = self.eta_up if output_value == target_value else self.anti_eta_up
-            a_n = self.eta_down if output_value == target_value else self.anti_eta_down
-
-            # if wta: only the first spike leads to learning
-            # else, each spike received leads to learning
-            out_s_list = self.out_spikes[experiment_index][:1] if self.wta else self.out_spikes[experiment_index]
-            for out_s in out_s_list:
-
-                dest_n = out_s[1]
-                Helper.log('Learner', log.DEBUG, "Processing output spike of neuron {}".format(dest_n))
-
-                # for all the spikes in_s received by the same neuron which emitted out_s
-                for in_s in self.in_spikes[experiment_index][dest_n]:
-                    source_n = in_s[1]
-                    connection = in_s[2]
-                    weight = in_s[3]
-
-                    dt = out_s[0] - in_s[0]
-                    if dt >= 0:
-                        dw = a_p * (weight - connection.wmin) * (connection.wmax - weight)
-                    else:
-                        dw = a_n * (weight - connection.wmin) * (connection.wmax - weight)
-
-                    if (connection.id, source_n, dest_n) in self.updates:
-                        self.updates[(connection.id, source_n, dest_n)] += dw
-                    else:
-                        self.updates[(connection.id, source_n, dest_n)] = dw
-
-        self.out_spikes = []
-        self.in_spikes = []
-        for connection in self.layer.in_connections:
-            connection.probe()
-        Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
-
-    def restore(self):
-        super(RstdpMP, self).restore()
-        self.updates = {}
