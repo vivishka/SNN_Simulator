@@ -252,27 +252,20 @@ class PoolingNeuron(NeuronType):
     is transmitted per input cycle
     Parameters
     ----------
-    **kwargs
-        Same as NeuronType
-        wta is passed using this argument
 
     Attributes
     ----------
-    wta: bool
-        Winner Takes it All mode
     """
 
-    def __init__(self, ensemble, index, **kwargs):
-        super(PoolingNeuron, self).__init__(ensemble, index, **kwargs)
-        self.wta = self.extract_param('wta', False)
+    def __init__(self,):
+        super(PoolingNeuron, self).__init__()
         Helper.log('Neuron', log.DEBUG, ' neuron type: pooling')
 
     def step(self):
         if self.received and not self.inhibited:
             self.received = []
             self.send_spike()
-            if self.wta:
-                self.inhibited = True
+            self.inhibited = True
 
 
 class IFReal(IF):

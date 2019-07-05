@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import logging as log
 from .base import Helper
 from .layer import Ensemble
@@ -92,13 +93,14 @@ class Decoder(Ensemble):
 
         # for every neuron, extracts the time of the first spike
         first_spike_list = [n.spike_times[0][1] for n in self.neuron_list if n.spike_times]
-        if not first_spike_list:
+        if first_spike_list:
+            min_val = min(first_spike_list)
+            if self.absolute_time:
+                min_val = (min_val // self.sim.input_period) * self.sim.input_period
+        else:
+            min_val = None
             Helper.log("Decoder", log.DEBUG, "get first spike: No spike received")
-            return image
 
-        min_val = min(first_spike_list)
-        if self.absolute_time:
-            min_val = (min_val // self.sim.input_period) * self.sim.input_period
         Helper.log("Decoder", log.DEBUG, "get first spike: First spike logged at time {}".format(min_val))
         for row in range(self.size[0]):
             for col in range(self.size[1]):
@@ -147,16 +149,17 @@ class Decoder(Ensemble):
                 graph[row] = value
         else:
             graph = self.decoded_wta[index]
+        t_min = np.min(graph)
+        t_max = self.sim.input_period + 1 * self.sim.dt
+        if t_min == t_max:
+            t_min = 0
+        norm = colors.Normalize(vmin=t_min, vmax=t_max)
         plt.figure()
-        plt.imshow(graph, cmap='gray_r')
+        plt.imshow(graph, cmap='gray_r', norm=norm)
         plt.xlabel('column number')
         plt.ylabel('row number')
         if title is not None:
             plt.title(title)
-        # for row in range(self.size[0]):
-        #     for col in range(self.size[1]):
-        #         if table[row, col] == np.nan:
-        #             plt.plot(row, col, 'bo')
 
     def step(self):
         pass

@@ -106,7 +106,7 @@ class Ensemble(Layer):
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.active_neuron_set = set()
         self.probed_neuron_set = set()
-        self.inhibition = True
+        self.inhibition = False
         self.wta = False
         self.inhibited = False
         self.threshold_adapt = False
