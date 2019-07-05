@@ -201,14 +201,14 @@ class Simulator(object):
         pass
 
     def print_time(self):
-        if __name__ == '__main__':
-            time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
-            print('Time {} / {}, {}:{}:{} left '
-                  .format(int(self.curr_time),
-                          self.duration,
-                          int(time_left // 3600),
-                          int((time_left // 60) % 60),
-                          int(time_left % 60)))
+        # if __name__ == '__main__':
+        time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
+        print('Time {} / {}, {}:{}:{} left '
+              .format(int(self.curr_time),
+                      self.duration,
+                      int(time_left // 3600),
+                      int((time_left // 60) % 60),
+                      int(time_left % 60)))
 
             # self.memory_estimate()
 
@@ -325,12 +325,12 @@ class SimulatorMp(Simulator):
                         finished += 1
                 Helper.log('Simulator', log.INFO, 'worker {} finished, gathering data')
                 time.sleep(0.1)
-            print('all updates processed: size {}'.format(len(all_updates)))
+            # print('all updates processed: size {}'.format(len(all_updates)))
             for worker_id, worker_load in enumerate(self.split):
 
                 # self.copies.append(copy.deepcopy(self.model))
                 data = []
-                # labels = []
+                labels = []
                 for _ in range(self.split[worker_id]):
                     data.append(self.dataset.next())
                     # if(self.dataset.labels):
@@ -366,7 +366,7 @@ class SimulatorMp(Simulator):
             for ens in my_model.objects[Ensemble]:
                 if ens.learner:
                     out = {k: out.get(k, 0) + ens.learner.updates.get(k, 0) for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
-            print('worker {} finished simulating, sending {} updates'.format(id, len(out)))
+            print('worker {} finished simulating'.format(id))
             sim.flush()
             pipe.send(out)
             # print('data sent, waiting updates')

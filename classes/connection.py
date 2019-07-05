@@ -54,7 +54,7 @@ class Connection(SimulationObject):
     objects = []
     con_count = 0
     @MeasureTiming('con_init')
-    def __init__(self, source_l, dest_l, wmin=0, wmax=1, kernel=None, mode=None, *args, **kwargs):
+    def __init__(self, source_l, dest_l, wmin=0, wmax=1, kernel=None, mode=None, real=False, *args, **kwargs):
 
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
@@ -69,8 +69,9 @@ class Connection(SimulationObject):
         self.is_probed = False
         self.probed_values = []
         self.wmin = wmin
-        self.wmax = wmax
+        self.wmax = pow(2, wmax) if real else wmax
         self.size = None
+        self.real = real
         Helper.log('Connection', log.INFO, 'new connection {0} created between layers {1} and {2}'
                    .format(self.id, source_l.id, dest_l.id))
 
@@ -81,15 +82,12 @@ class Connection(SimulationObject):
                 for l in range(len(dest_l.ensemble_list)):
                     # TODO: range check: same depth
                     self.connection_list.append(Connection(source_l.ensemble_list[l], dest_l.ensemble_list[l],
-                                                           self.wmin, self.wmax, kernel, mode, *args, **kwargs))
+                                                           self.wmin, wmax, kernel, mode, real, *args, **kwargs))
             else:
-                # c=0
                 for l_out in dest_l.ensemble_list:
                     for l_in in source_l.ensemble_list:
-                        # print(c)
-                        # c = c + 1
                         self.connection_list.append(Connection(l_in, l_out, self.wmin,
-                                                               self.wmax, kernel, mode, *args, **kwargs))
+                                                               wmax, kernel, mode, real, *args, **kwargs))
 
             self.weights = None
         else:
@@ -103,7 +101,9 @@ class Connection(SimulationObject):
                 kernel_size=kernel,
                 mode=mode,
                 wmin=wmin,
-                wmax=wmax)
+                wmax=self.wmax,
+                real=real
+            )
             self.active = True
             self.connection_list = [self]
             self.size = (source_l.size[1], dest_l.size[0]) #TODO: check
@@ -170,8 +170,15 @@ class Connection(SimulationObject):
         return conv
 
     def update_weight(self, x, y, value):
+        # print(value)
         if self.wmin < self.weights.matrix[x, y] + value < self.wmax:
             self.weights.matrix[x, y] += value
+        if self.real:
+            if abs(value) < 1:
+                value = np.sign(value)
+            value = int(value)
+            if self.wmin < self.weights.matrix[x, y] + value < self.wmax:
+                self.weights.matrix[x, y] += value
 
     def plot(self):
         images = []
@@ -231,3 +238,21 @@ class DiagonalConnection(Connection):
             for col in range(connection.weights.matrix.shape[1]):
                 if col != i:
                     connection.weights[(0, col)] = 0.
+
+
+# class RealConnection(Connection):
+#     def __init__(self, source_l, dest_l, wmin=0, wmax=8, kernel=None, mode=None, *args, **kwargs):
+#         assert(isinstance(wmax, int))
+#         wmax = 2 ^ wmax
+#         super(RealConnection, self).__init__(source_l, dest_l, wmin=wmin, wmax=wmax, kernel=kernel, mode=mode, *args, **kwargs)
+#         if self.active and mode == 'shared':
+#             for i in range(kernel[0]):
+#                 for j in range(kernel[1]):
+#                     self.weights.matrix.kernel[i, j] = int(self.weights.matrix.kernel[i, j])
+#
+#     def update_weight(self, x, y, value):
+#         if abs(value) < 1:
+#             value = np.sign(value)
+#         value = int(value)
+#         if self.wmin < self.weights.matrix[x, y] + value < self.wmax:
+#             self.weights.matrix[x, y] += value

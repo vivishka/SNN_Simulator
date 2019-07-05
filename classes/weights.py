@@ -12,11 +12,12 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, source_dim, dest_dim, kernel_size=None, mode=None, wmin=0, wmax=0.6):
+    def __init__(self, source_dim, dest_dim, kernel_size=None, mode=None, wmin=0, wmax=0.6, real=False):
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
         self.mode = mode  # shared, pooling
+        self.real = real
         if isinstance(kernel_size, int):
             self.kernel_size = (kernel_size, kernel_size)
         elif isinstance(kernel_size, tuple) and len(kernel_size) == 2:
@@ -47,6 +48,7 @@ class Weights(object):
             else:
                 self.init_weight_kernel()
 
+
     def init_weights_dense(self):
         # TODO: perhaps fix weight init
         # tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
@@ -55,6 +57,7 @@ class Weights(object):
         tmp_matrix = tmp_matrix.clip(self.wmin, self.wmax)
         # tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim))
         # tmp_matrix *= (self.max_w - self.min_w) / 15 + (self.max_w - self.min_w) * 0.75
+
         self.matrix = CompactMatrix(tmp_matrix)
 
     def init_weight_kernel(self):
@@ -89,6 +92,10 @@ class Weights(object):
     def init_weight_shared(self):
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)), dtype=object)
         kernel = np.random.randn(*self.kernel_size) * (self.wmax - self.wmin) / 10 + (self.wmax - self.wmin) * 0.8
+        if self.real:
+            for i in range(len(kernel[0])):
+                for j in range(len(kernel[1])):
+                    kernel[i, j] = int(kernel[i, j])
         delta = (self.wmax - self.wmin) * 0.05
         kernel = kernel.clip(self.wmin + delta, self.wmax - delta)
         # kernel = np.random.rand(*self.kernel_size)
@@ -119,7 +126,6 @@ class Weights(object):
                                 Helper.log('Connection',
                                            log.WARNING,
                                            'index ({}, {})out of range in weight matrix'.format(index_x, index_y))
-
         self.matrix = SharedCompactMatrix(mat=tmp_matrix, kernel=kernel)
 
     def init_weight_pooling(self):
