@@ -48,6 +48,7 @@ class Simulator(object):
         self.last_time = time.time()
         self.steptimes = []
         self.connections.sort(key=lambda con: con.id)
+        self.time_enabled = False
         Helper.log('Simulator', log.INFO, 'new simulator created')
 
     @MeasureTiming('sim_run')
@@ -201,14 +202,14 @@ class Simulator(object):
         pass
 
     def print_time(self):
-        # if __name__ == '__main__':
-        time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
-        print('Time {} / {}, {}:{}:{} left '
-              .format(int(self.curr_time),
-                      self.duration,
-                      int(time_left // 3600),
-                      int((time_left // 60) % 60),
-                      int(time_left % 60)))
+        if self.time_enabled:
+            time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
+            print('Time {} / {}, {}:{}:{} left '
+                  .format(int(self.curr_time),
+                          self.duration,
+                          int(time_left // 3600),
+                          int((time_left // 60) % 60),
+                          int(time_left % 60)))
 
             # self.memory_estimate()
 
@@ -220,6 +221,8 @@ class Simulator(object):
     def memory_estimate(self):
         print('Estimated memory size: {}'.format(len(pickle.dumps(self, protocol=pickle.HIGHEST_PROTOCOL))))
 
+    def enable_time(self, state):
+        self.time_enabled = state
 
 class SimulatorMp(Simulator):
     def __init__(self, model, dt=0.01, batch_size=1, input_period=float('inf'), processes=3, dataset=None):
@@ -246,6 +249,7 @@ class SimulatorMp(Simulator):
         self.start = 0
         self.last_time = time.time()
         self.steptimes = []
+        self.time_enabled = False
 
         self.processes = processes
         # init multiprocess
@@ -259,6 +263,7 @@ class SimulatorMp(Simulator):
         self.split = [0 for _ in range(self.processes)]
         self.copies = []
         self.connections.sort(key=lambda con: con.id)
+
         for exp in range(self.batch_size):
             self.pipes.append(mp.Pipe())
             self.split[exp % self.processes] += 1
@@ -390,10 +395,13 @@ class SimulatorMp(Simulator):
 
     def print_time(self):
         # if __name__ == '__main__':
-        time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
-        print('Time {} / {}, {}:{}:{} left '
-              .format(int(self.curr_time),
-                      self.duration,
-                      int(time_left // 3600),
-                      int((time_left // 60) % 60),
-                      int(time_left % 60)))
+        if self.time_enabled:
+            time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
+            print('Time {} / {}, {}:{}:{} left '
+                  .format(int(self.curr_time),
+                          self.duration,
+                          int(time_left // 3600),
+                          int((time_left // 60) % 60),
+                          int(time_left % 60)))
+
+

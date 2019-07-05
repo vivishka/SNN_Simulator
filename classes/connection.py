@@ -84,7 +84,7 @@ class Connection(SimulationObject):
                     # TODO: range check: same depth
                     self.connection_list.append(Connection(source_l=source_l.ensemble_list[l_ind],
                                                            dest_l=l_out,
-                                                           wmin=self.wmin, wmax=self.wmax,
+                                                           wmin=self.wmin, wmax=wmax,
                                                            kernel=kernel, mode=mode,
                                                            first=first, connection=self,
                                                            real=real, *args, **kwargs))
@@ -93,7 +93,7 @@ class Connection(SimulationObject):
                 for l_out in dest_l.ensemble_list:
                     for l_in in source_l.ensemble_list:
                         self.connection_list.append(Connection(source_l=l_in, dest_l=l_out,
-                                                               wmin=self.wmin, wmax=self.wmax,
+                                                               wmin=self.wmin, wmax=wmax,
                                                                kernel=kernel, mode=mode,
                                                                first=first, connection=self,
                                                                real=real, *args, **kwargs))
@@ -111,7 +111,7 @@ class Connection(SimulationObject):
                 kernel_size=kernel,
                 mode=mode,
                 wmin=wmin,
-                wmax=wmax,
+                wmax=self.wmax,
                 **kwargs)
             self.active = True
             self.connection_list = [self]
