@@ -86,7 +86,8 @@ class Connection(SimulationObject):
                                                            dest_l=l_out,
                                                            wmin=self.wmin, wmax=self.wmax,
                                                            kernel=kernel, mode=mode,
-                                                           first=first, connection=self, *args, **kwargs))
+                                                           first=first, connection=self,
+                                                           real=real, *args, **kwargs))
                     first = False
             else:
                 for l_out in dest_l.ensemble_list:
@@ -95,7 +96,7 @@ class Connection(SimulationObject):
                                                                wmin=self.wmin, wmax=self.wmax,
                                                                kernel=kernel, mode=mode,
                                                                first=first, connection=self,
-                                                               *args, **kwargs))
+                                                               real=real, *args, **kwargs))
                         first = False
 
             self.weights = None
@@ -214,13 +215,13 @@ class Connection(SimulationObject):
         fig = plt.figure()
         fig.patch.set_facecolor('xkcd:light blue')
         # fig, ax = plt.subplots(nrows=nb_source, ncols=nb_dest)
-        norm = colors.Normalize(vmin=self.connection_list[0].wmin, vmax=self.connection_list[0].wmax)
+        # norm = colors.Normalize(vmin=self.connection_list[0].wmin, vmax=self.connection_list[0].wmax)
         for source_i in range(nb_source):
             for dest_i in range(nb_dest):
                 con = self.connection_list[dest_i * nb_source + source_i]
                 plt.subplot(nb_source, nb_dest, source_i * nb_dest + dest_i + 1)
                 kernel = con.weights.matrix.get_kernel()
-                plt.imshow(kernel, cmap='gray', norm=norm)
+                plt.imshow(kernel, cmap='gray'  )
                 plt.axis('off')
 
         fig.suptitle("Connection final kernels")
