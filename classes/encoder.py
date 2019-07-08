@@ -51,11 +51,13 @@ class Encoder(Bloc):
     
     objects = []
     
-    def __init__(self, depth, size, in_min, in_max, neuron_type=None):
+    def __init__(self, depth, size, in_min, in_max, delay_max=1, neuron_type=None, spike_all_last=False):
         super(Encoder, self).__init__(depth, size, neuron_type=neuron_type)
         self.in_min = in_min
         self.in_max = in_max
+        self.delay_max = delay_max
         self.record = []
+        self.spike_all_last = spike_all_last
         Encoder.objects.append(self)
 
     def encode(self, data):
@@ -63,6 +65,15 @@ class Encoder(Bloc):
 
     def restore(self):
         self.record = []
+
+    def set_delay(self, data, index, delays):
+        """ Delays is being modified """
+        for row in range(self.size[0]):
+            for col in range(self.size[1]):
+                delay = data[row, col]
+                if self.spike_all_last or delay < self.delay_max:
+                    self.ensemble_list[index].neuron_array[row, col].set_value(delay)
+                delays[row, col, index] = delay
 
 
 class EncoderGFR(Encoder):
@@ -102,9 +113,10 @@ class EncoderGFR(Encoder):
             size=size,
             in_min=in_min,
             in_max=in_max,
+            delay_max=delay_max,
             neuron_type=DelayedNeuron()
+
         )
-        self.delay_max = delay_max
         self.threshold = threshold
         self.gamma = gamma
         Helper.log('Encoder', log.INFO, 'new encoder GFR, layer {0}'.format(self.id))
@@ -149,18 +161,21 @@ class EncoderGFR(Encoder):
 
 
 class EncoderDoG(Encoder):
-    def __init__(self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1, threshold=None, double_filter=True):
+    def __init__(
+            self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1,
+            threshold=None, double_filter=True, spike_all_last=False):
         depth = len(sigma) * (2 if double_filter else 1)
         super(EncoderDoG, self).__init__(
             depth=depth,
             size=size,
             in_min=in_min,
             in_max=in_max,
-            neuron_type=DelayedNeuron()
+            delay_max=delay_max,
+            neuron_type=DelayedNeuron(),
+            spike_all_last=spike_all_last
         )
         self.sigma = sigma  # [(s1,s2), (s3,s4) ...]
         self.kernel_sizes = kernel_sizes  # [5,7...]
-        self.delay_max = delay_max
         self.threshold = threshold
         self.double_filter = double_filter
         self.filters = []
@@ -196,27 +211,6 @@ class EncoderDoG(Encoder):
             data_n = self.thresh_norm(image=data_f)
             self.set_delay(data=data_n, index=index, delays=delays)
 
-            # for k, data in enumerate(data_f):
-            #     i_min = data.min()
-            #     i_max = data.max()
-            #     data_t = (data - i_min) / (i_max - i_min)
-            #     # plt.figure()
-            #     # plt.imshow(data_t, cmap='gray')
-            #     # plt.title('data_t layer ' + str(2 * index + k))
-            #     threshold = np.mean(data_t) * 1. if self.threshold is None else self.threshold
-            #     for row in range(self.size[0]):
-            #         for col in range(self.size[1]):
-            #             if data_t[row, col] >= threshold:
-            #                 # delay = self.delay_max - (1 - self.threshold) * data_t[row, col]
-            #                 delay = self.delay_max * (1 - data_t[row, col]) / (1 - threshold)
-            #                 self.ensemble_list[nb_per_value * index + k].neuron_array[row, col].set_value(delay)
-            #             else:
-            #                 delay = self.delay_max
-            #
-            #             delays[row, col, nb_per_value * index + k] = delay
-            #     # plt.figure()
-            #     # plt.imshow(delays[:,:,k], cmap='gray_r')
-            #     # plt.title('Encoder sequence for layer {}'.format(k))
         self.record.append(delays)
 
     def plot(self, index=-1, layer=0):
@@ -248,13 +242,6 @@ class EncoderDoG(Encoder):
         temporal_image = (1 - temporal_image / temporal_image.max()) * self.delay_max
         return temporal_image
 
-    def set_delay(self, data, index, delays):
-        for row in range(self.size[0]):
-            for col in range(self.size[1]):
-                delay = data[row, col]
-                if delay < self.delay_max:
-                    self.ensemble_list[index].neuron_array[row, col].set_value(delay)
-                delays[row, col, index] = delay
 
 
 class Node(SimulationObject):
