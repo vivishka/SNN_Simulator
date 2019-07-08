@@ -296,4 +296,7 @@ class Node(SimulationObject):
         self.encoder.encode(value)
 
     def restore(self):
-        self.sim.dataset.index = 0
+        try:
+            self.sim.dataset.index = 0
+        except:
+            pass
