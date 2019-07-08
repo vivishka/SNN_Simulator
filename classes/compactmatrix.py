@@ -93,7 +93,6 @@ class CompactMatrix(object):
             return kernel
         for row in range(kernel_size[0]):
             for col in range(kernel_size[1]):
-                # TODO: check if kernel_size[1] for both ?
                 x = source_index_2d[0] + row - (kernel_size[0] - 1) // 2
                 y = source_index_2d[1] + col - (kernel_size[1] - 1) // 2
                 dest_index_1d = Helper.get_index_1d((x, y), length)

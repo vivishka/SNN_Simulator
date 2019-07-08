@@ -103,7 +103,6 @@ class NeuronType(object):
 
     def probe(self):
         for var, probe in self.probes.items():
-            # TODO: check existence
             if var not in 'spike_in, spike_out':
                 self.probed_values[var].append((self.ensemble.sim.curr_time, self.__getattribute__(var)))
 

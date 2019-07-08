@@ -80,8 +80,10 @@ class Connection(SimulationObject):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
             first = True
             if mode == 'pooling':
+                if source_l.depth != dest_l.depth:
+                    Helper.log('Connection', log.CRITICAL, 'different depth for pooling connection')
+                    raise Exception("different depth for pooling connection")
                 for l_ind, l_out in enumerate(dest_l.ensemble_list):
-                    # TODO: range check: same depth
                     self.connection_list.append(Connection(source_l=source_l.ensemble_list[l_ind],
                                                            dest_l=l_out,
                                                            wmin=self.wmin, wmax=wmax,
@@ -115,7 +117,7 @@ class Connection(SimulationObject):
                 **kwargs)
             self.active = True
             self.connection_list = [self]
-            self.size = (source_l.size[1], dest_l.size[0]) #TODO: check
+            self.size = (source_l.size[0], dest_l.size[0])
 
     def register_neuron(self, index_1d):
         """ Registers the index of the source neurons that spiked"""
@@ -172,7 +174,8 @@ class Connection(SimulationObject):
         if self.active:
             for row in range(self.size[0]):
                 for col in range(self.size[1]):
-                    conv += (self.weights[col, row] - self.wmin)*(self.wmax - self.weights[row, col])
+                    weight = self.weights[col, row]
+                    conv += (weight - self.wmin)*(self.wmax - weight)
         else:
             for con in self.connection_list:
                 conv += con.get_convergence()

@@ -37,7 +37,6 @@ class Weights(object):
         #  padding
         #  stride
         #  ALL 2 ALL connection
-        # TODO: all use similar weight init
         self.matrix = None
         if kernel_size is None:
             self.init_weights_dense()
@@ -146,7 +145,6 @@ class Weights(object):
         self.matrix = SharedCompactMatrix(mat=tmp_matrix, kernel=kernel)
 
     def init_weight_pooling(self, model=None):
-        # TODO: range check of dim before this
         if model is not None:
             # no deep copy: can share the index matrix
             self.matrix = copy.copy(model)
