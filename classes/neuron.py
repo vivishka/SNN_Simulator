@@ -270,4 +270,4 @@ class PoolingNeuron(NeuronType):
 class IFReal(IF):
     def __init__(self, threshold=8):
         assert(isinstance(threshold, int))
-        super(IFReal, self).__init__(threshold=2**threshold)
+        super(IFReal, self).__init__(threshold=threshold)

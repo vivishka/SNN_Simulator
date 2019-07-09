@@ -355,7 +355,7 @@ class SimulatorMp(Simulator):
 
     @staticmethod
     def mp_run(pipe, model, data, labels, dt, input_period, id):
-        print("new worker " + str(id))
+        # print("new worker " + str(id))
         Helper.log('Simulator', log.INFO, 'new worker init')
         my_model = copy.deepcopy(model)
         dataset = Dataset()
@@ -364,14 +364,14 @@ class SimulatorMp(Simulator):
             dataset.index = 0
             dataset.data = data
             dataset.labels = labels
-            print('worker {} run sim'.format(id))
+            # print('worker {} run sim'.format(id))
             sim.run(duration=len(data)*input_period)
             Helper.log('Simulator', log.INFO, 'worker {} done, extracting updates'.format(id))
             out = {}
             for ens in my_model.objects[Ensemble]:
                 if ens.learner:
                     out = {k: out.get(k, 0) + ens.learner.updates.get(k, 0) for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
-            print('worker {} finished simulating'.format(id))
+            # print('worker {} finished simulating'.format(id))
             sim.flush()
             pipe.send(out)
             # print('data sent, waiting updates')
