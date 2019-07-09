@@ -256,7 +256,11 @@ class Simulator(object):
 
         percents = f'{100 * (iteration / float(total)):.2f}'
         filled_length = int(round(bar_length * iteration / float(total)))
-        bar = f'{"█" * filled_length}{"▁" * (bar_length - filled_length)}'
+        if platform.system() == 'Windows':
+            bar = f'{"█" * filled_length}{"▁" * (bar_length - filled_length)}'
+        else:
+            bar = f'{"o" * filled_length}{"_" * (bar_length - filled_length)}'
+
         sys.stdout.write(f'\r{prefix} |{bar}| {percents}% {suffix}'),
 
         if iteration == total:
