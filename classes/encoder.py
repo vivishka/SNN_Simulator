@@ -47,6 +47,56 @@ class DelayedNeuron(NeuronType):
         self.active = False
 
 
+def create_dog_filters(kernel_size_list, sigma_list, double_filter):
+    filters = []
+    for index, sigmas in enumerate(sigma_list):
+
+        size = kernel_size_list[index]
+        # create kernel (code from spyketorch)
+        w = size // 2
+        x, y = np.mgrid[-w:w + 1:1, -w:w + 1:1]
+        a = 1.0 / (2 * np.pi)
+        prod = x * x + y * y
+        f1 = (1 / (sigmas[0] * sigmas[0])) * np.exp(-0.5 * (1 / (sigmas[0] * sigmas[0])) * prod)
+        f2 = (1 / (sigmas[1] * sigmas[1])) * np.exp(-0.5 * (1 / (sigmas[1] * sigmas[1])) * prod)
+        dog = a * (f1 - f2)
+        dog_mean = np.mean(dog)
+        dog = dog - dog_mean
+        dog_max = np.max(dog)
+        dog = dog / dog_max
+        filters.append(dog)
+
+        if double_filter:
+            filters.append(dog * -1.)
+
+    return filters
+
+
+def create_gabor_filters(kernel_size, orientation_list, div):
+    filters = []
+    # Code from Spyketorch
+    for orientation in orientation_list:
+        w = kernel_size//2
+        x, y = np.mgrid[-w:w+1:1, -w:w+1:1]
+        lamda = kernel_size * 2 / div
+        sigma = lamda * 0.8
+        sigma_sq = sigma * sigma
+        g = 0.3
+        theta = (orientation * np.pi) / 180
+        Y = y*np.cos(theta) - x*np.sin(theta)
+        X = y*np.sin(theta) + x*np.cos(theta)
+        gabor = np.exp(-(X * X + g * g * Y * Y) / (2 * sigma_sq)) * np.cos(2 * np.pi * X / lamda)
+        gabor_mean = np.mean(gabor)
+        gabor = gabor - gabor_mean
+        gabor_max = np.max(gabor)
+        gabor = gabor / gabor_max
+        filters.append(gabor)
+        plt.figure()
+        plt.imshow(gabor, cmap='gray')
+
+    return filters
+
+
 class Encoder(Bloc):
     
     objects = []
@@ -87,11 +137,11 @@ class EncoderGFR(Encoder):
         The dimension of the value or image
     depth : int
         The number of neuron used to encode a single value. Resolution
-    in_min : float
+    in_min : float or int
         The minimum value of the gaussian firing field
-    in_max : float
+    in_max : float or int
         The maximum value of the gaussian firing field
-    delay_max : float
+    delay_max : float or int
         The maximum delay created by the gaussian field
     threshold: float [0. - 1.]
         the ratio of the delay_max over which the neuron is allowed to fire
@@ -107,7 +157,7 @@ class EncoderGFR(Encoder):
 
     """
 
-    def __init__(self, depth, size, in_min, in_max, delay_max=1, threshold=0.9, gamma=1.5):
+    def __init__(self, depth, size, in_min, in_max, delay_max=1., threshold=0.9, gamma=1.5):
         super(EncoderGFR, self).__init__(
             depth=depth,
             size=size,
@@ -159,12 +209,16 @@ class EncoderGFR(Encoder):
         plt.ylabel('Neuron delay after first')
         plt.title('Encoder sequence')
 
+
 class EncoderFilter(Encoder):
-    def __init__(self, depth, size, in_min, in_max, kernel_size, delay_max=1, neuron_type=None, spike_all_last=False, threshold=None):
+    def __init__(
+            self, depth, size, in_min, in_max, kernel_size, delay_max=1,
+            neuron_type=None, spike_all_last=False, threshold=None):
         super(EncoderFilter, self).__init__(depth, size, in_min, in_max, delay_max, neuron_type, spike_all_last)
         self.filters = []
         self.threshold = threshold
         self.kernel_size = kernel_size
+
     def create_filters(self):
         pass
 
@@ -173,7 +227,6 @@ class EncoderFilter(Encoder):
         temporal_image = np.clip(image-threshold, a_min=0., a_max=None)
         temporal_image = (1 - temporal_image / temporal_image.max()) * self.delay_max
         return temporal_image
-
 
     @staticmethod
     def apply_conv(image, kernel):
@@ -208,86 +261,38 @@ class EncoderFilter(Encoder):
         plt.imshow(self.record[index][:, :, layer], cmap='gray_r')
         plt.title('Encoder sequence for input {} layer {}'.format(index, layer))
 
+
 class EncoderDoG(EncoderFilter):
     def __init__(
             self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1,
             threshold=None, double_filter=True, spike_all_last=False):
         depth = len(sigma) * (2 if double_filter else 1)
         super(EncoderDoG, self).__init__(
-            depth=depth,
-            size=size,
-            in_min=in_min,
-            in_max=in_max,
-            delay_max=delay_max,
-            neuron_type=DelayedNeuron(),
-            spike_all_last=spike_all_last,
-            threshold=threshold
-        )
+            depth=depth, size=size, in_min=in_min, in_max=in_max, delay_max=delay_max,
+            kernel_size=None, neuron_type=DelayedNeuron(),
+            spike_all_last=spike_all_last, threshold=threshold
+            )
         self.sigma = sigma  # [(s1,s2), (s3,s4) ...]
         self.kernel_sizes = kernel_sizes  # [5,7...]
         self.threshold = threshold
         self.double_filter = double_filter
-        self.create_filters()
-    def create_filters(self):
-        for index, sigmas in enumerate(self.sigma):
-
-            size = self.kernel_sizes[index]
-            # create kernel (code from spyketorch)
-            w = size // 2
-            x, y = np.mgrid[-w:w + 1:1, -w:w + 1:1]
-            a = 1.0 / (2 * np.pi)
-            prod = x * x + y * y
-            f1 = (1 / (sigmas[0] * sigmas[0])) * np.exp(-0.5 * (1 / (sigmas[0] * sigmas[0])) * prod)
-            f2 = (1 / (sigmas[1] * sigmas[1])) * np.exp(-0.5 * (1 / (sigmas[1] * sigmas[1])) * prod)
-            dog = a * (f1 - f2)
-            dog_mean = np.mean(dog)
-            dog = dog - dog_mean
-            dog_max = np.max(dog)
-            dog = dog / dog_max
-            self.filters.append(dog)
-
-            if self.double_filter:
-                self.filters.append(dog * -1.)
+        self.filters = create_dog_filters(kernel_size_list=kernel_sizes, sigma_list=sigma, double_filter=double_filter)
 
 
 class EncoderGabor(EncoderFilter):
 
-    def __init__(self, size, orientations, kernel_size, in_min=0, in_max=255, delay_max=0.75, spike_all_last=False, threshold=None, div=4):
+    def __init__(
+            self, size, orientations, kernel_size, in_min=0, in_max=255, delay_max=0.75,
+            spike_all_last=False, threshold=None, div=4):
         depth = len(orientations)
         super(EncoderGabor, self).__init__(
-            depth=depth,
-            size=size,
-            in_min=in_min,
-            in_max=in_max,
-            delay_max=delay_max,
-            neuron_type=DelayedNeuron(),
-            spike_all_last=spike_all_last,
-            threshold=threshold,
-            kernel_size=kernel_size)
+            depth=depth, size=size, in_min=in_min, in_max=in_max, delay_max=delay_max,
+            neuron_type=DelayedNeuron(), spike_all_last=spike_all_last,
+            threshold=threshold, kernel_size=kernel_size)
         self.orientations = orientations
         self.div = div
-        self.create_filters()
+        self.filters = create_gabor_filters(kernel_size=kernel_size, orientation_list=orientations, div=div)
 
-    def create_filters(self):
-        # Code from Spyketorch
-        for orientation in self.orientations:
-            w = self.kernel_size//2
-            x, y = np.mgrid[-w:w+1:1, -w:w+1:1]
-            lamda = self.kernel_size * 2 / self.div
-            sigma = lamda * 0.8
-            sigmaSq = sigma * sigma
-            g = 0.3
-            theta = (orientation * np.pi) / 180
-            Y = y*np.cos(theta) - x*np.sin(theta)
-            X = y*np.sin(theta) + x*np.cos(theta)
-            gabor = np.exp(-(X * X + g * g * Y * Y) / (2 * sigmaSq)) * np.cos(2 * np.pi * X / lamda)
-            gabor_mean = np.mean(gabor)
-            gabor = gabor - gabor_mean
-            gabor_max = np.max(gabor)
-            gabor = gabor / gabor_max
-            self.filters.append(gabor)
-            plt.figure()
-            plt.imshow(gabor, cmap='gray')
 
 class Node(SimulationObject):
     """
@@ -343,5 +348,5 @@ class Node(SimulationObject):
     def restore(self):
         try:
             self.sim.dataset.index = 0
-        except:
+        except AttributeError:
             pass

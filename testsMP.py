@@ -52,7 +52,7 @@ if __name__ == '__main__':
     b1.set_inhibition(True, 2)
     # d1 = Decoder(img_size)
 
-    c1 = Connection(e1, b1, kernel=(5, 5), mode='shared')
+    c1 = Connection(e1, b1, kernel_size=(5, 5), mode='shared')
     cps = []
     for con in c1:
         cps.append(ConnectionProbe(con))
