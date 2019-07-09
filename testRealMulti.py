@@ -112,7 +112,7 @@ if __name__ == '__main__':
     # vprobe = NeuronProbe(target=b1[0], variables='voltage')
 
     # sim.load('tests1.w')
-    epochs = 3
+    epochs = 1
     for epoch in range(epochs):
         print("Training layer 2")
         print("Epoch "+str(epoch))

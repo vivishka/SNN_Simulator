@@ -159,8 +159,56 @@ class EncoderGFR(Encoder):
         plt.ylabel('Neuron delay after first')
         plt.title('Encoder sequence')
 
+class EncoderFilter(Encoder):
+    def __init__(self, depth, size, in_min, in_max, kernel_size, delay_max=1, neuron_type=None, spike_all_last=False, threshold=None):
+        super(EncoderFilter, self).__init__(depth, size, in_min, in_max, delay_max, neuron_type, spike_all_last)
+        self.filters = []
+        self.threshold = threshold
+        self.kernel_size = kernel_size
+    def create_filters(self):
+        pass
 
-class EncoderDoG(Encoder):
+    def thresh_norm(self, image):
+        threshold = np.mean(image) * 1. if self.threshold is None else self.threshold
+        temporal_image = np.clip(image-threshold, a_min=0., a_max=None)
+        temporal_image = (1 - temporal_image / temporal_image.max()) * self.delay_max
+        return temporal_image
+
+
+    @staticmethod
+    def apply_conv(image, kernel):
+        size = kernel.shape[0]
+        w = size // 2
+
+        # Apply kernel to image
+        img_padded = np.zeros((image.shape[0] + 2 * w, image.shape[1] + 2 * w))
+        img_padded[w:image.shape[0]+w, w:image.shape[1]+w] = image
+        img_filtered = np.zeros(image.shape)
+        for row in range(image.shape[0]):
+            for col in range(image.shape[1]):
+                px = 0
+                for k_row in range(size):
+                    for k_col in range(size):
+                        px += img_padded[row + k_row, col + k_col] * kernel[k_row, k_col]
+                img_filtered[row, col] = px
+        return img_filtered
+
+    def encode(self, data):
+        delays = np.zeros((self.size[0], self.size[1], self.depth))
+        for index, kernel in enumerate(self.filters):
+
+            data_f = self.apply_conv(image=data, kernel=kernel)
+            data_n = self.thresh_norm(image=data_f)
+            self.set_delay(data=data_n, index=index, delays=delays)
+
+        self.record.append(delays)
+
+    def plot(self, index=-1, layer=0):
+        plt.figure()
+        plt.imshow(self.record[index][:, :, layer], cmap='gray_r')
+        plt.title('Encoder sequence for input {} layer {}'.format(index, layer))
+
+class EncoderDoG(EncoderFilter):
     def __init__(
             self, size, in_min, in_max, sigma, kernel_sizes, delay_max=1,
             threshold=None, double_filter=True, spike_all_last=False):
@@ -172,15 +220,14 @@ class EncoderDoG(Encoder):
             in_max=in_max,
             delay_max=delay_max,
             neuron_type=DelayedNeuron(),
-            spike_all_last=spike_all_last
+            spike_all_last=spike_all_last,
+            threshold=threshold
         )
         self.sigma = sigma  # [(s1,s2), (s3,s4) ...]
         self.kernel_sizes = kernel_sizes  # [5,7...]
         self.threshold = threshold
         self.double_filter = double_filter
-        self.filters = []
         self.create_filters()
-
     def create_filters(self):
         for index, sigmas in enumerate(self.sigma):
 
@@ -202,47 +249,45 @@ class EncoderDoG(Encoder):
             if self.double_filter:
                 self.filters.append(dog * -1.)
 
-    @MeasureTiming('enc_dog')
-    def encode(self, data):
-        delays = np.zeros((self.size[0], self.size[1], self.depth))
-        for index, kernel in enumerate(self.filters):
 
-            data_f = self.apply_conv(image=data, kernel=kernel)
-            data_n = self.thresh_norm(image=data_f)
-            self.set_delay(data=data_n, index=index, delays=delays)
+class EncoderGabor(EncoderFilter):
 
-        self.record.append(delays)
+    def __init__(self, size, orientations, kernel_size, in_min=0, in_max=255, delay_max=0.75, spike_all_last=False, threshold=None, div=4):
+        depth = len(orientations)
+        super(EncoderGabor, self).__init__(
+            depth=depth,
+            size=size,
+            in_min=in_min,
+            in_max=in_max,
+            delay_max=delay_max,
+            neuron_type=DelayedNeuron(),
+            spike_all_last=spike_all_last,
+            threshold=threshold,
+            kernel_size=kernel_size)
+        self.orientations = orientations
+        self.div = div
+        self.create_filters()
 
-    def plot(self, index=-1, layer=0):
-        plt.figure()
-        plt.imshow(self.record[index][:, :, layer], cmap='gray_r')
-        plt.title('Encoder sequence for input {} layer {}'.format(index, layer))
-
-    @staticmethod
-    def apply_conv(image, kernel):
-        size = kernel.shape[0]
-        w = size // 2
-
-        # Apply kernel to image
-        img_padded = np.zeros((image.shape[0] + 2 * w, image.shape[1] + 2 * w))
-        img_padded[w:image.shape[0]+w, w:image.shape[1]+w] = image
-        img_filtered = np.zeros(image.shape)
-        for row in range(image.shape[0]):
-            for col in range(image.shape[1]):
-                px = 0
-                for k_row in range(size):
-                    for k_col in range(size):
-                        px += img_padded[row + k_row, col + k_col] * kernel[k_row, k_col]
-                img_filtered[row, col] = px
-        return img_filtered
-
-    def thresh_norm(self, image):
-        threshold = np.mean(image) * 1. if self.threshold is None else self.threshold
-        temporal_image = np.clip(image-threshold, a_min=0., a_max=None)
-        temporal_image = (1 - temporal_image / temporal_image.max()) * self.delay_max
-        return temporal_image
-
-
+    def create_filters(self):
+        # Code from Spyketorch
+        for orientation in self.orientations:
+            w = self.kernel_size//2
+            x, y = np.mgrid[-w:w+1:1, -w:w+1:1]
+            lamda = self.kernel_size * 2 / self.div
+            sigma = lamda * 0.8
+            sigmaSq = sigma * sigma
+            g = 0.3
+            theta = (orientation * np.pi) / 180
+            Y = y*np.cos(theta) - x*np.sin(theta)
+            X = y*np.sin(theta) + x*np.cos(theta)
+            gabor = np.exp(-(X * X + g * g * Y * Y) / (2 * sigmaSq)) * np.cos(2 * np.pi * X / lamda)
+            gabor_mean = np.mean(gabor)
+            gabor = gabor - gabor_mean
+            gabor_max = np.max(gabor)
+            gabor = gabor / gabor_max
+            self.filters.append(gabor)
+            plt.figure()
+            plt.imshow(gabor, cmap='gray')
 
 class Node(SimulationObject):
     """

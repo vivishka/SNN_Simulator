@@ -43,6 +43,7 @@ class Simulator(object):
         self.prop_time = 0
         self.batch_size = batch_size
         self.nb_batches = 0
+        self.curr_batch = 0
         self.duration = -1
         self.start = 0
         self.last_time = time.time()
@@ -64,10 +65,13 @@ class Simulator(object):
             node.step()
 
         self.start = time.time()
+        if self.time_enabled:
+            Simulator.print_progress(0, self.nb_batches, 'Simulation progress: ', 'complete, 0:0:0 left')
         # runs for the specified number of steps
         self.curr_time = 0
         for curr_batch in range(self.nb_batches):
             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(curr_batch))
+            self.curr_batch = curr_batch
             for curr_input in range(self.batch_size):
                 Helper.log('Simulator', log.DEBUG, 'next input {0}'.format(curr_input))
                 for curr_step in range(int(self.input_period / self.dt)):
@@ -204,12 +208,17 @@ class Simulator(object):
     def print_time(self):
         if self.time_enabled:
             time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
-            print('Time {} / {}, {}:{}:{} left '
-                  .format(int(self.curr_time),
-                          self.duration,
-                          int(time_left // 3600),
-                          int((time_left // 60) % 60),
-                          int(time_left % 60)))
+            # print('Time {} / {}, {}:{}:{} left '
+            #       .format(int(self.curr_time),
+            #               self.duration,
+            #               int(time_left // 3600),
+            #               int((time_left // 60) % 60),
+            #               int(time_left % 60)))
+            Simulator.print_progress(self.curr_batch, self.nb_batches, 'Simulation progress: ', 'complete, {}:{}:{} left'.format(
+                int(time_left // 3600),
+                int((time_left // 60) % 60),
+                int(time_left % 60))
+                                       )
 
             # self.memory_estimate()
 
@@ -223,6 +232,36 @@ class Simulator(object):
 
     def enable_time(self, state):
         self.time_enabled = state
+
+    # Print iterations progress
+    @staticmethod
+    def print_progress(iteration, total, prefix='', suffix='', decimals=1, bar_length=100):
+        """
+        Call in a loop to create terminal progress bar
+        @params:
+            iteration   - Required  : current iteration (Int)
+            total       - Required  : total iterations (Int)
+            prefix      - Optional  : prefix string (Str)
+            suffix      - Optional  : suffix string (Str)
+            decimals    - Optional  : positive number of decimals in percent complete (Int)
+            bar_length  - Optional  : character length of bar (Int)
+        """
+        str_format = "{0:." + str(decimals) + "f}"
+        # percents = str_format.format(100 * (iteration / float(total)))
+        # filled_length = int(round(bar_length * iteration / float(total)))
+        # bar = '█' * filled_length + '-' * (bar_length - filled_length)
+
+        # sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+        # sys.stdout.write('\x1b[2K\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix))
+
+        percents = f'{100 * (iteration / float(total)):.2f}'
+        filled_length = int(round(bar_length * iteration / float(total)))
+        bar = f'{"█" * filled_length}{"▁" * (bar_length - filled_length)}'
+        sys.stdout.write(f'\r{prefix} |{bar}| {percents}% {suffix}'),
+
+        if iteration == total:
+            sys.stdout.write('\n')
+        sys.stdout.flush()
 
 class SimulatorMp(Simulator):
     def __init__(self, model, dt=0.01, batch_size=1, input_period=float('inf'), processes=3, dataset=None):
@@ -245,6 +284,7 @@ class SimulatorMp(Simulator):
         self.prop_time = 0
         self.batch_size = batch_size
         self.nb_batches = 0
+        self.curr_batch = 0
         self.duration = -1
         self.start = 0
         self.last_time = time.time()
@@ -271,7 +311,7 @@ class SimulatorMp(Simulator):
     @MeasureTiming('sim_run')
     def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
         self.duration = duration
-        n_batches = int(duration // self.batch_size)
+        self.nb_batches = int(duration // self.batch_size)
 
         Helper.log('Simulator', log.INFO, 'simulation start')
         self.nb_step = int(duration / self.dt)
@@ -283,6 +323,8 @@ class SimulatorMp(Simulator):
         #    node.step()
 
         self.start = time.time()
+        # if self.time_enabled:
+        #     Simulator.print_progress(0, self.nb_batches, 'Simulation progress: ', 'complete, 0:0:0 left')
         # runs for the specified number of steps
         self.workers = []
         for worker_id, worker_load in enumerate(self.split):
@@ -307,13 +349,15 @@ class SimulatorMp(Simulator):
                                 )
             self.workers[worker_id].start()
 
-        for batch in range(n_batches):
+        for batch in range(self.nb_batches):
             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(batch))
             # print("next batch")
             # self.print_time()
             # Setup workers
-
-
+            self.curr_batch = batch + 1
+            self.curr_time = (1 + batch) * self.batch_size * self.input_period
+            # self.print_time()
+            self.print_time()
             Helper.log('Simulator', log.INFO, 'All workers sent')
             # update when worker finished
             finished = 0
@@ -346,10 +390,10 @@ class SimulatorMp(Simulator):
             for con in self.connections:
                 con.probe()
 
-            self.curr_time = (1 + batch) * self.batch_size * self.input_period
-            self.print_time()
+
             self.steptimes.append(time.time() - self.last_time)
             self.last_time = time.time()
+
         for worker in self.workers:
             worker.kill()
 
@@ -393,15 +437,15 @@ class SimulatorMp(Simulator):
 
         # print("worker done")
 
-    def print_time(self):
-        # if __name__ == '__main__':
-        if self.time_enabled:
-            time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
-            print('Time {} / {}, {}:{}:{} left '
-                  .format(int(self.curr_time),
-                          self.duration,
-                          int(time_left // 3600),
-                          int((time_left // 60) % 60),
-                          int(time_left % 60)))
-
-
+    # def print_time(self):
+    #     # if __name__ == '__main__':
+    #     if self.time_enabled:
+    #         time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
+    #         print('Time {} / {}, {}:{}:{} left '
+    #               .format(int(self.curr_time),
+    #                       self.duration,
+    #                       int(time_left // 3600),
+    #                       int((time_left // 60) % 60),
+    #                       int(time_left % 60)))
+    #
+    #
