@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import logging as log
 from .base import Helper
-from .layer import Ensemble
+from .layer import Ensemble, Bloc
 from .neuron import NeuronType
 
 
@@ -188,3 +188,74 @@ class DecoderClassifier(Decoder):
             for cat in dec_cat:
                 cor_mat[self.dataset.labels[index], cat] += 1/self.dataset.pop_cats[self.dataset.labels[index]]
         return cor_mat
+
+
+class DigitSpikeTorch(Decoder):
+
+    def __init__(self, size):
+        super(DigitSpikeTorch, self).__init__(size)
+        self.first_time = None
+        self.voltage_list = []
+        self.highest_voltage = 0.
+
+    # from .connection import Connection
+    def receive_spike(self, targets, source_c):
+        if self.first_time is None or self.first_time == self.sim.curr_time:
+            voltage = source_c.source_e.first_voltage
+            self.voltage_list.append(voltage)
+            if voltage > self.highest_voltage:
+                self.first_time = self.sim.curr_time
+                self.highest_voltage = voltage
+#                 TODO: why first voltage is 0 ?
+
+
+class DecoderSpikeTorch(Bloc):
+
+    def __init__(self, size):
+        super(DecoderSpikeTorch, self).__init__(depth=10, size=size, neuron_type=NeuronType())
+        for i in range(10):
+            ens = DigitSpikeTorch(size=size)
+            ens.bloc = self
+            self.ensemble_list[i] = ens
+            # TODO: store more and sort by most relevent
+
+    def get_value(self):
+        mode = 'unit'
+        digit = None
+        first_time = float('inf')
+        highest_voltage = 0
+        if mode == 'unit':
+            for i, digit_ens in enumerate(self.ensemble_list):
+                if digit_ens.first_time is not None and \
+                        digit_ens.first_time <= first_time and \
+                        digit_ens.highest_voltage > highest_voltage:
+                    digit = i
+                    highest_voltage = digit_ens.highest_voltage
+                    first_time = digit_ens.first_time
+        elif mode == 'mean':
+            for i, digit_ens in enumerate(self.ensemble_list):
+                if digit_ens.first_time is not None and \
+                        digit_ens.first_time <= first_time and \
+                        np.mean(digit_ens.voltage_list) > highest_voltage:
+                    digit = i
+                    highest_voltage = np.mean(digit_ens.voltage_list)
+                    first_time = digit_ens.first_time
+        elif mode == 'k_highest':
+            k = 20
+            digit_occurence = [0 for _ in range(10)]
+            digit_voltage_list = []
+            for i, digit_ens in enumerate(self.ensemble_list):
+                if digit_ens.voltage_list:
+                    for voltage in digit_ens.voltage_list:
+                        digit_voltage_list.append((voltage, i))
+
+            digit_voltage_list.sort(key=lambda t: t[0], reverse=True)
+
+            if len(digit_voltage_list) < k:
+                k = len(digit_voltage_list)
+
+            for i in range(k):
+                digit_occurence[digit_voltage_list[i][1]] += 1
+            return digit_occurence
+
+        return digit
