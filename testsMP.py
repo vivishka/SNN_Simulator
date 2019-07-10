@@ -36,7 +36,7 @@ if __name__ == '__main__':
     # img_size = (12, 12)
     first_image = np.random.randint(0, 59999-20000)
     print("init dataset image {}".format(first_image))
-    image_dataset = FileDataset(filename, first_image, size=img_size, length=5)
+    image_dataset = FileDataset(filename, first_image, size=img_size, length=10000)
     # image_dataset = PatternGeneratorDataset(index=0, size=img_size, nb_images=300, nb_features=9)
     model = Network()
     # e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     e1 = EncoderGabor(size=img_size, kernel_size=5, orientations=[45+22.5, 90+22.5, 135+22.5, 180+22.5], spike_all_last=True, div=2)
     # plt.show()
     n1 = Node(e1, image_dataset, 1, 0)
-    b1 = Bloc(8, img_size, IF(threshold=1.8), SimplifiedSTDP(
+    b1 = Bloc(15, img_size, IF(threshold=1.8), SimplifiedSTDP(
         eta_up=0.003,
         eta_down=-0.003,
         mp=True
@@ -52,17 +52,17 @@ if __name__ == '__main__':
     b1.set_inhibition(True, 2)
     # d1 = Decoder(img_size)
 
-    c1 = Connection(e1, b1, kernel_size=(5, 5), mode='shared')
-    cps = []
-    for con in c1:
-        cps.append(ConnectionProbe(con))
-    np1 = NeuronProbe(b1[0], "spike_out")
-    # c2 = Connection(b1, d1, kernel=1, mode)
+    c1 = Connection(e1, b1, kernel_size=5, mode='shared')
+    # c2 = Connection(b1, d1, kernel=1)
+    # cps = []
+    # for con in c1:
+    cp1 = ConnectionProbe(c1[0])
+    # np1 = NeuronProbe(b1[0], "spike_out")
 
-    # sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=50, processes=3)
-    sim = Simulator(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=1)
+    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=200, processes=12)
+    # sim = Simulator(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=1)
     sim.enable_time(True)
-    # sim.load('tests.w')
+    # sim.load('testsML.w')
     sim.run(len(image_dataset.data))
     # image_dataset.plot(-1)
     # e1.plot(layer=4)
@@ -70,12 +70,37 @@ if __name__ == '__main__':
     c1.plot_all_kernels()
     #  plot weight history
     # for cp in cps:
-    #     cp.plot()
-    sim.save('tests.w')
-    np1.plot('spike_out')
-    for index in range(image_dataset.length):
-        image_dataset.plot(index)
-        e1.plot(index, 2)
+    cp1.plot()
+    sim.save('testsML1.w')
+    sim.flush()
+    model.restore()
+    #########################################################################################
+    b1.set_inhibition(False, None)
+    b1p = Bloc(15, (14, 14), IF(threshold=1))
+    c1p = Connection(b1, b1p, kernel_size=2, mode='pooling')
+
+    b2 = Bloc(45, size=(14, 14), neuron_type=IF(threshold=1.8), learner=SimplifiedSTDP(
+        eta_up=0.003,
+        eta_down=-0.003,
+        mp=True
+    ))
+    b2.set_inhibition(True, 1)
+    c2 = Connection(b1p, b2, kernel_size=3, mode='shared')
+
+    cp2 = ConnectionProbe(c2[0])
+    image_dataset = FileDataset(filename, first_image, size=img_size, length=-1)
+    sim.run(len(image_dataset.data))
+    # sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=50, processes=3)
+    # for cp in cps:
+
+    cp2.plot()
+    c2.plot_all_kernels(10, 10)
+    sim.save('testsML2.w')
+
+    # np1.plot('spike_out')
+    # for index in range(image_dataset.length):
+    #     image_dataset.plot(index)
+    #     e1.plot(index, 2)
     Helper.print_timings()
     sim.plot_steptimes()
     plt.show()

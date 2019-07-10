@@ -91,8 +91,6 @@ def create_gabor_filters(kernel_size, orientation_list, div):
         gabor_max = np.max(gabor)
         gabor = gabor / gabor_max
         filters.append(gabor)
-        plt.figure()
-        plt.imshow(gabor, cmap='gray')
 
     return filters
 

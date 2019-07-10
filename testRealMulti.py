@@ -100,8 +100,8 @@ if __name__ == '__main__':
               )
     b3.set_inhibition(wta=True, radius=1)
 
-    c2 = Connection(b1, b2, kernel=(2, 2), mode='pooling')
-    c3 = Connection(b2, b3, kernel=(3, 3), mode='shared')
+    c2 = Connection(b1, b2, kernel_size=(2, 2), mode='pooling')
+    c3 = Connection(b2, b3, kernel_size=(3, 3), mode='shared')
     # c4 = Connection(b2, d1, kernel=(2, 2), mode='pooling')
 
     cps = []
