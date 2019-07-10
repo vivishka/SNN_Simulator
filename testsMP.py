@@ -44,23 +44,23 @@ if __name__ == '__main__':
     e1 = EncoderGabor(size=img_size, kernel_size=5, orientations=[45+22.5, 90+22.5, 135+22.5, 180+22.5], spike_all_last=True, div=2)
     # plt.show()
     n1 = Node(e1, image_dataset, 1, 0)
-    b1 = Bloc(8, img_size, IF(threshold=1.8), SimplifiedSTDP(
+    b1 = Bloc(15, img_size, IF(threshold=1.8), SimplifiedSTDP(
         eta_up=0.003,
         eta_down=-0.003,
         mp=True
     ))
     b1.set_inhibition(True, 2)
-    # d1 = Decoder(img_size)
+    d1 = Decoder(img_size)
 
-    c1 = Connection(e1, b1, kernel_size=(5, 5), mode='shared')
+    c1 = Connection(e1, b1, kernel=(5, 5), mode='shared')
+    c2 = Connection(b1, d1, kernel=1)
     cps = []
     for con in c1:
         cps.append(ConnectionProbe(con))
-    np1 = NeuronProbe(b1[0], "spike_out")
-    # c2 = Connection(b1, d1, kernel=1, mode)
+    # np1 = NeuronProbe(b1[0], "spike_out")
 
-    # sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=50, processes=3)
-    sim = Simulator(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=1)
+    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=50, processes=3)
+    # sim = Simulator(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=1)
     sim.enable_time(True)
     # sim.load('tests.w')
     sim.run(len(image_dataset.data))
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     # for cp in cps:
     #     cp.plot()
     sim.save('tests.w')
-    np1.plot('spike_out')
+    # np1.plot('spike_out')
     for index in range(image_dataset.length):
         image_dataset.plot(index)
         e1.plot(index, 2)

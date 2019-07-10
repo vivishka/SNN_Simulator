@@ -66,7 +66,7 @@ class Simulator(object):
 
         self.start = time.time()
         if self.time_enabled:
-            Simulator.print_progress(0, self.nb_batches, 'Simulation progress: ', 'complete, 0:0:0 left')
+            Simulator.print_progress(0, self.nb_batches, 'Simulation progress: ', 'complete, 0:0:0 left', bar_length=30)
         # runs for the specified number of steps
         self.curr_time = 0
         for curr_batch in range(self.nb_batches):
@@ -218,7 +218,7 @@ class Simulator(object):
                 int(time_left // 3600),
                 int((time_left // 60) % 60),
                 int(time_left % 60))
-                                       )
+                                     , bar_length=30)
 
             # self.memory_estimate()
 
