@@ -317,10 +317,6 @@ class Node(SimulationObject):
             The number of neuron used to code one value
         input : float or callable function
             The value to convert to spikes
-        period : float
-            Time between 2 input changes
-        next_period : float
-            Time when of next input change
         active: bool
             will it change the values when the time reaches the threshold
 
@@ -330,7 +326,8 @@ class Node(SimulationObject):
     def __init__(self, encoder, *args, **kwargs):
         super(Node, self).__init__()
         Node.objects.append(self)
-        self.encoder = encoder
+        self.encoder_list = encoder if isinstance(encoder, list) else [encoder]
+        assert all([isinstance(enc, Encoder) for enc in self.encoder_list])
         self.args = args
         self.kwargs = kwargs
         Helper.log('Encoder', log.INFO, 'new node created')
@@ -343,7 +340,8 @@ class Node(SimulationObject):
         else:
             value = self.sim.dataset
         Helper.log('Encoder', log.INFO, 'Node sending next data')
-        self.encoder.encode(value)
+        for encoder in self.encoder_list:
+            encoder.encode(value)
 
     def restore(self):
         try:
