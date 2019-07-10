@@ -71,7 +71,7 @@ class Simulator(object):
         self.curr_time = 0
         for curr_batch in range(self.nb_batches):
             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(curr_batch))
-            self.curr_batch = curr_batch
+            self.curr_batch = curr_batch + 1
             for curr_input in range(self.batch_size):
                 Helper.log('Simulator', log.DEBUG, 'next input {0}'.format(curr_input))
                 for curr_step in range(int(self.input_period / self.dt)):
