@@ -206,7 +206,6 @@ class DigitSpikeTorch(Decoder):
             if voltage > self.highest_voltage:
                 self.first_time = self.sim.curr_time
                 self.highest_voltage = voltage
-#                 TODO: why first voltage is 0 ?
 
 
 class DecoderSpikeTorch(Bloc):
@@ -217,7 +216,8 @@ class DecoderSpikeTorch(Bloc):
             ens = DigitSpikeTorch(size=size)
             ens.bloc = self
             self.ensemble_list[i] = ens
-            # TODO: store more and sort by most relevent
+            # TODO:  overwrite reset to store previous
+            # TODO: fix None bug
 
     def get_value(self):
         mode = 'unit'

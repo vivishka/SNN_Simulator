@@ -79,8 +79,9 @@ class FileDataset(Dataset):
         if self.length < 0:
             temp = file.readlines()
             for string in temp:
-                self.data.append(np.array(string[2:].split(',')).astype(np.uint8).reshape(self.size))
-                self.labels.append(np.array(string[0]).astype(np.uint8))
+                string_vect = np.array(string.split(','))
+                self.data.append(string_vect[1:].astype(float).reshape(self.size))
+                self.labels.append(string_vect[0].astype(float))
         else:
             # self.file.seek(2 * (self.size[0]*self.size[1] - 1), 1)
             for _ in range(self.index):
@@ -92,8 +93,9 @@ class FileDataset(Dataset):
                     file.__next__()
             for line in range(self.length):
                 string = file.readline()
-                self.data.append(np.array(string[2:].split(',')).astype(np.uint8).reshape(self.size))
-                self.labels.append(np.array(string[0]).astype(np.uint8))
+                string_vect = np.array(string.split(','))
+                self.data.append(string_vect[1:].astype(float).reshape(self.size))
+                self.labels.append(string_vect[0].astype(float))
 
         file.close()
         Helper.log('Dataset', log.INFO, 'reading file done')
