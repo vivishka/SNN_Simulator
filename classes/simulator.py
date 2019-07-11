@@ -50,6 +50,7 @@ class Simulator(object):
         self.steptimes = []
         self.connections.sort(key=lambda con: con.id)
         self.time_enabled = False
+        self.autosave = None
         Helper.log('Simulator', log.INFO, 'new simulator created')
 
     @MeasureTiming('sim_run')
@@ -66,14 +67,14 @@ class Simulator(object):
 
         self.start = time.time()
         if self.time_enabled:
-            Simulator.print_progress(0, self.nb_batches, 'Simulation progress: ', 'complete, 0:0:0 left', bar_length=30)
+            Helper.print_progress(0, self.nb_batches, 'Simulation progress: ', 'complete, 0:0:0 left', bar_length=30)
         # runs for the specified number of steps
         self.curr_time = 0
         for curr_batch in range(self.nb_batches):
             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(curr_batch))
             self.curr_batch = curr_batch + 1
             for curr_input in range(self.batch_size):
-                Helper.log('Simulator', log.DEBUG, 'next input {0}'.format(curr_input))
+                Helper.log('Simuslator', log.DEBUG, 'next input {0}'.format(curr_input))
                 for curr_step in range(int(self.input_period / self.dt)):
                     self.curr_time += self.dt
                     Helper.log('Simulator', log.DEBUG, 'next step {0}'.format(curr_step))
@@ -84,9 +85,12 @@ class Simulator(object):
 
                 self.steptimes.append(time.time() - self.last_time)
                 self.last_time = time.time()
+            if self.autosave:
+                self.save(self.autosave)
             Helper.log('Simulator', log.DEBUG, 'end of batch: applying learning')
             self.learn()
             self.print_time()
+
 
             # if monitor_connection:
                 # conv_coeff = monitor_connection.get_convergence()
@@ -214,7 +218,7 @@ class Simulator(object):
             #               int(time_left // 3600),
             #               int((time_left // 60) % 60),
             #               int(time_left % 60)))
-            Simulator.print_progress(self.curr_batch, self.nb_batches, 'Simulation progress: ', 'complete, {}:{}:{} left'.format(
+            Helper.print_progress(self.curr_batch, self.nb_batches, 'Simulation progress: ', 'complete, {}:{}:{} left'.format(
                 int(time_left // 3600),
                 int((time_left // 60) % 60),
                 int(time_left % 60))
@@ -233,39 +237,7 @@ class Simulator(object):
     def enable_time(self, state):
         self.time_enabled = state
 
-    # Print iterations progress
-    @staticmethod
-    def print_progress(iteration, total, prefix='', suffix='', decimals=1, bar_length=100):
-        """
-        Call in a loop to create terminal progress bar
-        @params:
-            iteration   - Required  : current iteration (Int)
-            total       - Required  : total iterations (Int)
-            prefix      - Optional  : prefix string (Str)
-            suffix      - Optional  : suffix string (Str)
-            decimals    - Optional  : positive number of decimals in percent complete (Int)
-            bar_length  - Optional  : character length of bar (Int)
-        """
-        str_format = "{0:." + str(decimals) + "f}"
-        # percents = str_format.format(100 * (iteration / float(total)))
-        # filled_length = int(round(bar_length * iteration / float(total)))
-        # bar = '█' * filled_length + '-' * (bar_length - filled_length)
 
-        # sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
-        # sys.stdout.write('\x1b[2K\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix))
-
-        percents = f'{100 * (iteration / float(total)):.2f}'
-        filled_length = int(round(bar_length * iteration / float(total)))
-        if platform.system() == 'Windows':
-            bar = f'{"█" * filled_length}{"▁" * (bar_length - filled_length)}'
-        else:
-            bar = f'{"o" * filled_length}{"_" * (bar_length - filled_length)}'
-
-        sys.stdout.write(f'\r{prefix} |{bar}| {percents}% {suffix}'),
-
-        if iteration == total:
-            sys.stdout.write('\n')
-        sys.stdout.flush()
 
 class SimulatorMp(Simulator):
     def __init__(self, model, dt=0.01, batch_size=1, input_period=float('inf'), processes=3, dataset=None):
@@ -294,7 +266,7 @@ class SimulatorMp(Simulator):
         self.last_time = time.time()
         self.steptimes = []
         self.time_enabled = False
-
+        self.autosave = None
         self.processes = processes
         # init multiprocess
         Helper.log('Simulator', log.INFO, 'Init multiprocess')
@@ -390,7 +362,8 @@ class SimulatorMp(Simulator):
                     #     labels.append(self.dataset.labels[self.dataset.index])
 
                 self.pipes[worker_id][0].send([all_updates, (data, labels)])
-
+            if self.autosave:
+                self.save(self.autosave)
             for con in self.connections:
                 con.probe()
 

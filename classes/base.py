@@ -2,6 +2,7 @@ import numpy as np
 import logging as log
 import sys
 import time
+import platform
 sys.dont_write_bytecode = True
 
 
@@ -101,6 +102,38 @@ class Helper(object):
         for key in Helper.timings.keys():
             print("{}: {}, {}".format(key,  Helper.nb_called[key], Helper.timings[key]))
 
+    @staticmethod
+    def print_progress(iteration, total, prefix='', suffix='', decimals=1, bar_length=100):
+        """
+        Call in a loop to create terminal progress bar
+        @params:
+            iteration   - Required  : current iteration (Int)
+            total       - Required  : total iterations (Int)
+            prefix      - Optional  : prefix string (Str)
+            suffix      - Optional  : suffix string (Str)
+            decimals    - Optional  : positive number of decimals in percent complete (Int)
+            bar_length  - Optional  : character length of bar (Int)
+        """
+        str_format = "{0:." + str(decimals) + "f}"
+        # percents = str_format.format(100 * (iteration / float(total)))
+        # filled_length = int(round(bar_length * iteration / float(total)))
+        # bar = '█' * filled_length + '-' * (bar_length - filled_length)
+
+        # sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+        # sys.stdout.write('\x1b[2K\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix))
+
+        percents = f'{100 * (iteration / float(total)):.2f}'
+        filled_length = int(round(bar_length * iteration / float(total)))
+        if platform.system() == 'Windows':
+            bar = f'{"█" * filled_length}{"▁" * (bar_length - filled_length)}'
+        else:
+            bar = f'{"o" * filled_length}{"_" * (bar_length - filled_length)}'
+
+        sys.stdout.write(f'\r{prefix} |{bar}| {percents}% {suffix}'),
+
+        if iteration == total:
+            sys.stdout.write('\n')
+        sys.stdout.flush()
 
 class MeasureTiming(object):
 

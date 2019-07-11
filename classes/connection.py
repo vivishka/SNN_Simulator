@@ -83,6 +83,7 @@ class Connection(SimulationObject):
                 if source_l.depth != dest_l.depth:
                     Helper.log('Connection', log.CRITICAL, 'different depth for pooling connection')
                     raise Exception("different depth for pooling connection")
+                Helper.print_progress(0, len(dest_l.ensemble_list), "Init connection ", bar_length=30)
                 for l_ind, l_out in enumerate(dest_l.ensemble_list):
                     self.connection_list.append(Connection(source_l=source_l.ensemble_list[l_ind],
                                                            dest_l=l_out,
@@ -90,8 +91,11 @@ class Connection(SimulationObject):
                                                            kernel_size=kernel_size, mode=mode,
                                                            first=first, connection=self,
                                                            real=real, *args, **kwargs))
+                    Helper.print_progress(l_ind, len(dest_l.ensemble_list), "Init connection ", bar_length=30)
                     first = False
             else:
+                Helper.print_progress(0, len(dest_l.ensemble_list) * len(source_l.ensemble_list), "Init connection ", bar_length=30)
+                i=0
                 for l_out in dest_l.ensemble_list:
                     for l_in in source_l.ensemble_list:
                         self.connection_list.append(Connection(source_l=l_in, dest_l=l_out,
@@ -99,8 +103,9 @@ class Connection(SimulationObject):
                                                                kernel_size=kernel_size, mode=mode,
                                                                first=first, connection=self,
                                                                real=real, *args, **kwargs))
+                        i += 1
+                        Helper.print_progress(i, len(dest_l.ensemble_list) * len(source_l.ensemble_list), "Init connection ", bar_length=30)
                         first = False
-
             self.weights = None
         else:
             source_l.out_connections.append(self)
