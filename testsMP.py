@@ -36,7 +36,7 @@ if __name__ == '__main__':
     # img_size = (12, 12)
     first_image = np.random.randint(0, 59999-20000)
     print("init dataset image {}".format(first_image))
-    image_dataset = FileDataset(filename, first_image, size=img_size, length=10000)
+    image_dataset = FileDataset(filename, first_image, size=img_size, length=100)
     # image_dataset = PatternGeneratorDataset(index=0, size=img_size, nb_images=300, nb_features=9)
     model = Network()
     # e1 = EncoderDoG(sigma=[(3/9, 6/9)],  # (7/9, 14/9), (13/6, 26/9)],
@@ -59,10 +59,11 @@ if __name__ == '__main__':
     cp1 = ConnectionProbe(c1[0])
     # np1 = NeuronProbe(b1[0], "spike_out")
 
-    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=200, processes=12)
+    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=100, processes=12)
     # sim = Simulator(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=1)
     sim.enable_time(True)
     # sim.load('testsML.w')
+    sim.autosave='testsML1.w'
     sim.run(len(image_dataset.data))
     # image_dataset.plot(-1)
     # e1.plot(layer=4)
@@ -71,7 +72,6 @@ if __name__ == '__main__':
     #  plot weight history
     # for cp in cps:
     cp1.plot()
-    sim.save('testsML1.w')
     sim.flush()
     model.restore()
     #########################################################################################
@@ -88,14 +88,14 @@ if __name__ == '__main__':
     c2 = Connection(b1p, b2, kernel_size=3, mode='shared')
 
     cp2 = ConnectionProbe(c2[0])
-    image_dataset = FileDataset(filename, first_image, size=img_size, length=-1)
+    image_dataset = FileDataset(filename, first_image, size=img_size, length=100)
+    sim.autosave='testsML2.w'
     sim.run(len(image_dataset.data))
     # sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=50, processes=3)
     # for cp in cps:
 
     cp2.plot()
     c2.plot_all_kernels(10, 10)
-    sim.save('testsML2.w')
 
     # np1.plot('spike_out')
     # for index in range(image_dataset.length):

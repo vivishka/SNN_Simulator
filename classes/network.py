@@ -30,7 +30,6 @@ class Network(object):
         Helper.log('Network', log.INFO, 'new network created')
 
     def build(self):
-
         for attr, value in self.objects.items():
             self.objects[attr] = list(set(self.objects[attr] + attr.get_objects()))
             attr.flush()
