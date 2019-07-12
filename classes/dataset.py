@@ -8,7 +8,7 @@ sys.dont_write_bytecode = True
 
 class Dataset(object):
 
-    def __init__(self, index=0):
+    def __init__(self, index=-1):
         self.index = index
         self.data = []
         self.labels = []
@@ -21,6 +21,7 @@ class Dataset(object):
         pass
 
     def next(self):
+        self.index += 1
         try:
             out = self.data[self.index]
             Helper.log('Dataset', log.INFO, 'next data : index {0}, value {1}'.format(self.index, out))
@@ -29,7 +30,6 @@ class Dataset(object):
             out = self.data[self.index]
             Helper.log('Dataset', log.ERROR, 'reading out of range of dataset ! (index {} with max {} )'
                        .format(self.index, len(self.data)))
-        self.index += 1
         return out
 
     def get(self, index):
@@ -75,13 +75,13 @@ class FileDataset(Dataset):
     def load(self):
         Helper.log('Dataset', log.INFO, 'reading file')
         file = open(self.path, 'r')
-        file.__next__()  # skip first line
+        # file.__next__()  # skip first line
         if self.length < 0:
             temp = file.readlines()
             for string in temp:
                 string_vect = np.array(string.split(','))
                 self.data.append(string_vect[1:].astype(float).reshape(self.size))
-                self.labels.append(string_vect[0].astype(float))
+                self.labels.append(string_vect[0].astype(int))
         else:
             # self.file.seek(2 * (self.size[0]*self.size[1] - 1), 1)
             for _ in range(self.index):
@@ -95,8 +95,13 @@ class FileDataset(Dataset):
                 string = file.readline()
                 string_vect = np.array(string.split(','))
                 self.data.append(string_vect[1:].astype(float).reshape(self.size))
-                self.labels.append(string_vect[0].astype(float))
+                self.labels.append(string_vect[0].astype(int))
 
+        self.n_cats = len(set(self.labels))
+        self.pop_cats = np.zeros(self.n_cats)
+        for cat in range(self.n_cats):
+            self.pop_cats[cat] = self.labels.count(cat)
+        Helper.log('Dataset', log.INFO, 'Dataset contains {} categories'.format(self.n_cats))
         file.close()
         Helper.log('Dataset', log.INFO, 'reading file done')
 

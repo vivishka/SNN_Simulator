@@ -171,7 +171,7 @@ class EncoderGFR(Encoder):
 
     def encode(self, values):
         sigma = (self.in_max - self.in_min) / (self.depth - 2.0) / self.gamma
-        sequence = []
+        sequence = np.zeros((self.size[1], self.depth))
         for ens_index, ens in enumerate(self.ensemble_list):
 
             mu = self.in_min + (ens_index + 1 - 1.5) * ((self.in_max - self.in_min) / (self.depth - 2.0))
@@ -182,7 +182,7 @@ class EncoderGFR(Encoder):
                 elif isinstance(values, (list, tuple)):
                     value = values[index]
                 elif isinstance(values, np.ndarray):
-                    value = values[index // self.size[1], index % self.size[0]]
+                    value = values[index // self.size[1], index % self.size[1]]
                 else:
                     raise Exception("unsupported input format")
 
@@ -191,22 +191,29 @@ class EncoderGFR(Encoder):
                 if delay < self.threshold:
                     neuron.set_value(delay)
                     neuron.step()
-                    sequence.append(delay)
+                    sequence[index, ens_index] = delay
                 else:
-                    sequence.append(self.delay_max)
+                    sequence[index, ens_index] = self.delay_max
 
         self.record.append(sequence)
 
     def step(self):
         pass
 
-    def plot(self):
-        plt.figure()
-        plt.imshow(self.record, cmap='gray_r')
-        plt.xlabel('input number')
-        plt.ylabel('Neuron delay after first')
-        plt.title('Encoder sequence')
-
+    def plot(self, index=None):
+        if index:
+            plt.figure()
+            plt.imshow([seq[index] for seq in self.record], cmap='gray_r')
+            plt.xlabel('Neuron index')
+            plt.ylabel('Input number')
+            plt.title('Data {}: Neuron delay after fastest'.format(index))
+        else:
+            for ens in range(self.size[1]):
+                plt.figure()
+                plt.imshow([seq[ens] for seq in self.record], cmap='gray_r')
+                plt.xlabel('Neuron index')
+                plt.ylabel('Input number')
+                plt.title('Data {}: Neuron delay after fastest'.format(ens))
 
 class EncoderFilter(Encoder):
     def __init__(

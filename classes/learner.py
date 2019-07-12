@@ -343,11 +343,13 @@ class Rstdp(Learner):
         super(Rstdp, self).__init__(eta_up=eta_up, eta_down=eta_down, mp=mp)
         self.anti_eta_up = anti_eta_up
         self.anti_eta_down = anti_eta_down
-        self.dataset = self.layer.sim.dataset
+        self.dataset = None
         self.wta = wta
 
     @MeasureTiming('Learning')
     def process(self):
+        if not self.dataset:
+            self.dataset = self.layer.sim.dataset
         Helper.log('Learner', log.DEBUG, 'Processing rstdp ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
         for experiment_index in range(self.layer.sim.batch_size):
