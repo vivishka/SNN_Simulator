@@ -64,11 +64,12 @@ class VectorDataset(Dataset):
 
 class FileDataset(Dataset):
 
-    def __init__(self, path, index=0, size=(28, 28), length=-1):
+    def __init__(self, path, index=0, size=(28, 28), length=-1, randomized=False):
         super(FileDataset, self).__init__(index)
         self.size = (1, size) if isinstance(size, int ) else size
         self.path = path
         self.length = length
+        self.randomized = randomized
         self.load()
 
     @MeasureTiming('file_load')
@@ -96,6 +97,12 @@ class FileDataset(Dataset):
                 string_vect = np.array(string.split(','))
                 self.data.append(string_vect[1:].astype(float).reshape(self.size))
                 self.labels.append(string_vect[0].astype(int))
+
+        if self.randomized:
+            random_indexes = np.arange(len(self.data))
+            np.random.shuffle(random_indexes)
+            self.data = [self.data[index] for index in random_indexes]
+            self.labels = [self.labels[index] for index in random_indexes]
 
         self.n_cats = len(set(self.labels))
         self.pop_cats = np.zeros(self.n_cats)
