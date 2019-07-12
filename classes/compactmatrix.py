@@ -120,6 +120,11 @@ class CompactMatrix(object):
                 mat.append(data[2])
         return mat
 
+    def saturate_weights(self, wmin, wmax, threshold):
+        for row in self.matrix:
+            for col, target in enumerate(row):
+                row[col] = target[:-1] + (wmin if target[-1] < threshold else wmax,)
+
 
 class SharedCompactMatrix(CompactMatrix):
     """
@@ -184,6 +189,11 @@ class SharedCompactMatrix(CompactMatrix):
             for data in row:
                 mat.append(data)
         return mat
+
+    def saturate_weights(self, wmin, wmax, threshold):
+        for row in self.kernel.shape[0]:
+            for col in self.kernel.shape[1]:
+                self.kernel[row, col] = wmin if self.kernel[row, col] < threshold else wmax
 
 
 class DenseCompactMatrix(CompactMatrix):

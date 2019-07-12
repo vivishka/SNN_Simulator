@@ -66,7 +66,7 @@ class FileDataset(Dataset):
 
     def __init__(self, path, index=0, size=(28, 28), length=-1):
         super(FileDataset, self).__init__(index)
-        self.size = size
+        self.size = (1, size) if isinstance(size, int ) else size
         self.path = path
         self.length = length
         self.load()

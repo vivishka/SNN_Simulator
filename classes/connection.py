@@ -245,6 +245,12 @@ class Connection(SimulationObject):
                     kernel = weights[dest_i, source_i]
                     self.connection_list[dest_i * nb_source + source_i].weights.matrix.kernel = kernel
 
+    def saturate_weights(self, threshold=None):
+        if threshold is None:
+            threshold = (self.wmax + self.wmin) / 2
+        for con in self.connection_list:
+            con.weights.matrix.saturate_weights(wmin=self.wmin, wmax=self.wmax, threshold=threshold)
+
 
 class DiagonalConnection(Connection):
     
