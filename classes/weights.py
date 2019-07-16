@@ -13,7 +13,12 @@ class Weights(object):
     the 2nd or 2nd and 3rd are for the index of the neuron
     """
 
-    def __init__(self, source_dim, dest_dim, kernel_size=None, mode=None, wmin=0, wmax=0.6, real=False, **kwargs):
+    def __init__(
+            self, source_dim, dest_dim,
+            kernel_size=None, mode=None,
+            wmin=0, wmax=0.6, mu = 0.8, sigma=0.05,
+            real=False, **kwargs):
+
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
@@ -32,6 +37,8 @@ class Weights(object):
         self.dest_dim = dest_dim  # (x,y)
         self.wmin = wmin
         self.wmax = wmax
+        self.mu = mu
+        self.sigma = sigma
 
         # TODO: if source_dim != dest dim
         #  padding
@@ -56,18 +63,26 @@ class Weights(object):
             else:
                 self.init_weight_kernel()
 
-    def init_weights_dense(self):
-        # TODO: perhaps fix weight init
-        # tmp_matrix = np.random.rand(np.prod(source_dim), np.prod(dest_dim)) * 2. / np.sqrt(np.prod(dest_dim))
-        tmp_matrix = np.random.randn(np.prod(self.source_dim), np.prod(self.dest_dim)) * \
-                     (self.wmax - self.wmin) / 15 + (self.wmax - self.wmin) * 0.50
-        tmp_matrix = tmp_matrix.clip(self.wmin, self.wmax)
-        # tmp_matrix *= (self.max_w - self.min_w) / 15 + (self.max_w - self.min_w) * 0.75
+    def generate_random_matrix(self, dim = None):
+        if dim is None:
+            mat = np.random.rand()
+        elif isinstance(dim, int):
+            mat = np.random.randn(dim)
+        else:
+            mat = np.random.randn(*dim)
+        delta = self.wmax - self.wmin
+        mat = mat * (self.sigma * delta) + (self.mu * delta)
+        # prevents weights being stuck in saturation from the start
+        mat = mat.clip(self.wmin + 0.01 * delta, self.wmax - 0.01 * delta)
+        return mat
 
+    def init_weights_dense(self):
+        tmp_matrix = self.generate_random_matrix((np.prod(self.source_dim), np.prod(self.dest_dim)))
         self.matrix = DenseCompactMatrix(tmp_matrix)
 
     def init_weight_kernel(self):
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)))
+        self.mu *= 2. / np.prod(self.kernel_size)
         # for every source neuron
         for source_row in range(self.source_dim[0]):
             for source_col in range(self.source_dim[1]):
@@ -86,8 +101,7 @@ class Weights(object):
 
                             # check if fuckuped
                             if 0 <= index_x < tmp_matrix.shape[0] and 0 <= index_y < tmp_matrix.shape[1]:
-                                weight = np.clip(Helper.init_weight() * 2. / np.prod(self.kernel_size),
-                                                 a_min=self.wmin, a_max=self.wmax)
+                                weight = self.generate_random_matrix()
                                 tmp_matrix[(index_x, index_y)] = weight
                             else:
                                 Helper.log('Connection',
@@ -97,13 +111,12 @@ class Weights(object):
         self.matrix = CompactMatrix(tmp_matrix)
 
     def init_weight_shared(self, model=None):
-        kernel = np.random.randn(*self.kernel_size) * (self.wmax - self.wmin) / 10 + (self.wmax - self.wmin) * 0.8
+        kernel = self.generate_random_matrix(self.kernel_size)
+        # kernel = np.random.randn(*self.kernel_size) * (self.wmax - self.wmin) / 10 + (self.wmax - self.wmin) * 0.8
         if self.real:
             for i in range(len(kernel[0])):
                 for j in range(len(kernel[1])):
                     kernel[i, j] = int(kernel[i, j])
-        delta = (self.wmax - self.wmin) * 0.05
-        kernel = kernel.clip(self.wmin + delta, self.wmax - delta)
 
         if model is not None:
             # no deep copy: can share the index matrix
@@ -112,9 +125,7 @@ class Weights(object):
             return
 
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)), dtype=object)
-        # kernel = np.random.rand(*self.kernel_size)
         # TODO: normalization
-        # tmp_kernel = np.arange(self.kernel_size[0] * self.kernel_size[1]).reshape(self.kernel_size)
 
         # for every source neuron
         for source_row in range(self.source_dim[0]):
