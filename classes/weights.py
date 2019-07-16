@@ -15,9 +15,9 @@ class Weights(object):
 
     def __init__(
             self, source_dim, dest_dim,
-            kernel_size=None, mode=None,
-            wmin=0, wmax=0.6, mu = 0.8, sigma=0.05,
-            real=False, **kwargs):
+            kernel_size=None, mode=None, real=False,
+            wmin=0, wmax=0.6, mu=0.8, sigma=0.05,
+            **kwargs):
 
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}

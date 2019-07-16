@@ -54,7 +54,11 @@ class Connection(SimulationObject):
     objects = []
     con_count = 0
     @MeasureTiming('con_init')
-    def __init__(self, source_l, dest_l, wmin=0, wmax=1, kernel_size=None, mode=None, real=False, *args, **kwargs):
+    def __init__(
+            self, source_l, dest_l,
+            wmin=0, wmax=1, mu=0.8, sigma=0.5,
+            kernel_size=None, mode=None, real=False,
+            *args, **kwargs):
 
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
         Connection.objects.append(self)
@@ -88,6 +92,7 @@ class Connection(SimulationObject):
                     self.connection_list.append(Connection(source_l=source_l.ensemble_list[l_ind],
                                                            dest_l=l_out,
                                                            wmin=self.wmin, wmax=wmax,
+                                                           mu=mu, sigma=sigma,
                                                            kernel_size=kernel_size, mode=mode,
                                                            first=first, connection=self,
                                                            real=real, *args, **kwargs))
@@ -100,6 +105,7 @@ class Connection(SimulationObject):
                     for l_in in source_l.ensemble_list:
                         self.connection_list.append(Connection(source_l=l_in, dest_l=l_out,
                                                                wmin=self.wmin, wmax=wmax,
+                                                               mu=mu, sigma=sigma,
                                                                kernel_size=kernel_size, mode=mode,
                                                                first=first, connection=self,
                                                                real=real, *args, **kwargs))
@@ -117,8 +123,8 @@ class Connection(SimulationObject):
                 dest_dim=self.dest_e.size,
                 kernel_size=kernel_size,
                 mode=mode,
-                wmin=wmin,
-                wmax=self.wmax,
+                wmin=wmin, wmax=wmax,
+                mu=mu, sigma=sigma,
                 **kwargs)
             self.active = True
             self.connection_list = [self]
