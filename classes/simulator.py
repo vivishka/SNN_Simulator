@@ -151,6 +151,7 @@ class Simulator(object):
         for bloc in self.blocs:
             bloc.apply_threshold_adapt()
 
+        # TODO: node should be placed before the step:
         for node in self.nodes:
             node.step()
 

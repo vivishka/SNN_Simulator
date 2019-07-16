@@ -29,7 +29,6 @@ class CompactMatrix(object):
         self.size = len(mat.nonzero()[0])
         self.sparse = True
         self.matrix = []
-
         for i in range(self.shape[0]):
             row = []
             for j in range(self.shape[1]):
@@ -217,7 +216,6 @@ class DenseCompactMatrix(CompactMatrix):
         super(DenseCompactMatrix, self).__init__(mat)
         self.size = np.prod(self.shape)
         self.sparse = False
-
         # change matrix to dense
         self.matrix = np.ndarray(self.shape, dtype=tuple)
         for i in range(self.shape[0]):

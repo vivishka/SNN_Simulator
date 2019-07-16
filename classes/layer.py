@@ -242,6 +242,7 @@ class Ensemble(Layer):
         for neuron in self.neuron_list:
             neuron.restore()
         self.inhibited = False
+        self.threshold_adapt = False
         self.first_voltage = 0
         self.first_neuron = None
         # self.threshold_adapt = False
