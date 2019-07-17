@@ -6,13 +6,14 @@ from .connection import *
 from .neuron import NeuronType
 from .layer import Ensemble
 from .encoder import Node, Encoder
-from .learner import *
+# from .learner import *
 from .dataset import *
 import sys
 import platform
 import time
 import copy
 sys.dont_write_bytecode = True
+
 
 # if __name__ == '__main__':
 class Simulator(object):
@@ -26,19 +27,16 @@ class Simulator(object):
         super(Simulator, self).__init__()
         self.model = model
         self.dataset = dataset
+        self.ensembles = []
+        self.blocs = []
+        self.connections = []
+        self.nodes = []
         self.nb_step = 0
         self.input_period = input_period
         self.next_reset = input_period
         self.dt = dt
         self.step_nb = 0
         self.curr_time = 0
-        model.build()
-        model.set_sim(self)
-        self.objects = model.get_all_objects()
-        self.ensembles = self.objects[Ensemble]
-        self.blocs = self.objects[Bloc]
-        self.connections = self.objects[Connection]
-        self.nodes = self.objects[Node]
         self.step_time = 0
         self.prop_time = 0
         self.batch_size = batch_size
@@ -48,13 +46,22 @@ class Simulator(object):
         self.start = 0
         self.last_time = time.time()
         self.steptimes = []
-        self.connections.sort(key=lambda con: con.id)
         self.time_enabled = False
         self.autosave = None
         Helper.log('Simulator', log.INFO, 'new simulator created')
 
+    def build(self):
+        self.model.build()
+        self.model.set_sim(self)
+        self.ensembles = self.model.objects[Ensemble]
+        self.blocs = self.model.objects[Bloc]
+        self.connections = self.model.objects[Connection]
+        self.nodes = self.model.objects[Node]
+        self.connections.sort(key=lambda con: con.id)
+
     @MeasureTiming('sim_run')
     def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
+        self.build()
         self.duration = duration
         Helper.log('Simulator', log.INFO, 'simulation start')
         self.nb_step = int(duration / self.dt)
@@ -91,16 +98,6 @@ class Simulator(object):
             self.learn()
             self.print_time()
 
-
-            # if monitor_connection:
-                # conv_coeff = monitor_connection.get_convergence()
-                # if conv_coeff < convergence_threshold:
-                #     converged = True
-                #     Helper.log('Simulator', log.INFO, 'Connection weight converged, ending simulation at step {} '
-                #                .format(self.step_nb))
-        # if monitor_connection and not converged:
-        #     Helper.log('Simulator', log.WARNING, 'Connection weight did not converged, final convergence {} '
-        #                .format(conv_coeff))
         end = time.time()
 
         Helper.log('Simulator', log.INFO, 'simulating ended')
@@ -113,7 +110,6 @@ class Simulator(object):
         """
         for every steps, evaluate inputs, then ensembles, then propagate spikes
         """
-
 
         # Ensembles
         Helper.log('Simulator', log.DEBUG, 'simulating ensembles')
@@ -184,30 +180,24 @@ class Simulator(object):
 
     def load(self, file):
         ext = file.split('.')[-1]
-        if ext == 'w':
-            with open(file, 'rb') as savefile:
-                Helper.log('Simulator', log.INFO, 'loading weights ...')
-                data = pickle.load(savefile)
-                for con in data:
-                    for receptor in self.connections:
-                        Helper.log('Simulator', log.INFO, 'loading weight matrix connection {}'.format(con[0]))
-                        # Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con[1].matrix.size))
-                        if receptor.id == con[0]:
-                            receptor.weights = con[1]
-                            break
-                    # if not isinstance(self.connections[con[0]], DiagonalConnection) \
-                    #         and self.connections[con[0]].mode != 'pooling' \
-                    #         and self.connections[con[0]].active:
-
-                Helper.log('Simulator', log.INFO, 'done')
-        elif ext == 'npy':
-            for connextion in self.connections:
-                pass
-        else:
+        if ext != 'w':
             Helper.log('Simulator', log.ERROR, 'unknown extension for file {}'.format(file))
+            raise ValueError('unknown extension')
+
+        with open(file, 'rb') as savefile:
+            Helper.log('Simulator', log.INFO, 'loading weights ...')
+            data = pickle.load(savefile)
+            for con in data:
+                for receptor in self.connections:
+                    Helper.log('Simulator', log.INFO, 'loading weight matrix connection {}'.format(con[0]))
+                    # Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con[1].matrix.size))
+                    if receptor.id == con[0]:
+                        receptor.weights = con[1]
+                        break
+
+            Helper.log('Simulator', log.INFO, 'done')
 
     def flush(self):
-
         pass
 
     def print_time(self):
@@ -219,11 +209,12 @@ class Simulator(object):
             #               int(time_left // 3600),
             #               int((time_left // 60) % 60),
             #               int(time_left % 60)))
-            Helper.print_progress(self.curr_batch, self.nb_batches, 'Simulation progress: ', 'complete, {}:{}:{} left'.format(
-                int(time_left // 3600),
-                int((time_left // 60) % 60),
-                int(time_left % 60))
-                                     , bar_length=30)
+            Helper.print_progress(
+                self.curr_batch, self.nb_batches,
+                'Simulation progress: ', 'complete, {}:{}:{} left'.format(
+                    int(time_left // 3600),
+                    int((time_left // 60) % 60),
+                    int(time_left % 60)), bar_length=30)
 
             # self.memory_estimate()
 
@@ -237,7 +228,6 @@ class Simulator(object):
 
     def enable_time(self, state):
         self.time_enabled = state
-
 
 
 class SimulatorMp(Simulator):
@@ -368,7 +358,6 @@ class SimulatorMp(Simulator):
             for con in self.connections:
                 con.probe()
 
-
             self.steptimes.append(time.time() - self.last_time)
             self.last_time = time.time()
 
@@ -392,7 +381,8 @@ class SimulatorMp(Simulator):
             out = {}
             for ens in my_model.objects[Ensemble]:
                 if ens.learner:
-                    out = {k: out.get(k, 0) + ens.learner.updates.get(k, 0) for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
+                    out = {k: out.get(k, 0) + ens.learner.updates.get(k, 0)
+                           for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
             # print('worker {} finished simulating'.format(id))
             sim.flush()
             pipe.send(out)

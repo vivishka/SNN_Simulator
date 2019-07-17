@@ -23,15 +23,15 @@ class Network(object):
             Encoder: [],
             Decoder: []
         }
-        # self.__ensembles = self.objects[Ensemble]
-        # self.__nodes = self.objects[Node]
-        # self.__connections = self.objects[Connection]
         Helper.log('Network', log.INFO, 'new network created')
 
     def build(self):
-        for attr, value in self.objects.items():
-            self.objects[attr] = list(set(self.objects[attr] + attr.get_objects()))
-            attr.flush()
+        for object_class, stored_object_list in self.objects.items():
+            new_object_list = object_class.get_objects()
+            for new_object in new_object_list:
+                if new_object not in self.objects[object_class]:
+                    self.objects[object_class].append(new_object)
+            object_class.flush()
 
         Helper.log('Network', log.INFO, 'network built')
 
@@ -39,9 +39,6 @@ class Network(object):
         for attr, value in self.objects.items():
             for obj in value:
                 obj.sim = sim
-
-    def get_all_objects(self):
-        return self.objects
 
     def restore(self):
         for attr, value in self.objects.items():
