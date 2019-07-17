@@ -106,12 +106,12 @@ class Ensemble(Layer):
         self.neuron_array = np.ndarray(self.size, dtype=object)
         self.active_neuron_set = set()
         self.probed_neuron_set = set()
+        self.inhibited = False
         self.inhibition = False
         self.wta = False
-        self.inhibited = False
+        self.k_wta_level = 1
+        self.first_neur_volt_list = []
         self.threshold_adapt = False
-        self.first_neuron = None
-        self.first_voltage = 0
         if learner is not None:
             self.learner = learner
             self.learner.set_layer(self)
@@ -148,20 +148,24 @@ class Ensemble(Layer):
                 neuron.step()
             self.active_neuron_set.clear()
 
-            # if WTA, only propagates the neuron which spiked first with highest voltage
-            if self.wta and self.first_neuron is not None:
+            # if WTA, only propagates the neurons which spiked first with highest voltage
+            if self.wta and self.first_neur_volt_list:
+                # if wta and a spike emitted
                 self.inhibited = True
-                # print('first_neuron: digit {} with {:.3f}v at {:.3f}'
-                #       .format(self.index//20, self.first_voltage, self.sim.curr_time))
-                self.bloc.propagate_inhibition(Helper.get_index_2d(self.first_neuron, self.size[1]))
+                self.first_neur_volt_list.sort(key=lambda t: t[1])
+                k_winners = self.first_neur_volt_list[:self.k_wta_level]
+                self.first_neur_volt_list = []
+                for winner_index, winner_voltage in k_winners:
 
-                # propagates the first neuron to spike
-                for con in self.out_connections:
-                    con.register_neuron(self.first_neuron)
+                    self.bloc.propagate_inhibition(Helper.get_index_2d(winner_index, self.size[1]))
 
-                # learning only on the first spike
-                if self.learner is not None:
-                    self.learner.out_spike(self.first_neuron)
+                    # propagates the first neuron to spike
+                    for con in self.out_connections:
+                        con.register_neuron(winner_index)
+
+                    # learning only on the first spike
+                    if self.learner is not None:
+                        self.learner.out_spike(winner_index)
 
                 # The first spike of each ens will trigger the threshold adaptation
                 if self.threshold_adapt:
@@ -169,9 +173,10 @@ class Ensemble(Layer):
 
     # <inhibition region>
 
-    def set_inhibition(self, wta=True):
+    def set_inhibition(self, wta=True, k_wta_level=1):
         self.inhibition = True
         self.wta = wta
+        self.k_wta_level = k_wta_level
 
     def inhibit(self, index_2d_n, radius):
         if radius[0] == -1:
@@ -191,15 +196,12 @@ class Ensemble(Layer):
 
     def create_spike(self, index_1d):
         if self.wta:
-            # stores the first neuron to spike
-            # if several neurons spike during this step, keep the one with the highest voltage
+            # stores the first neurons to spike
             voltage = self.neuron_list[index_1d].voltage
-            if voltage > self.first_voltage:
-                self.first_voltage = voltage
-                self.first_neuron = index_1d
+            self.first_neur_volt_list.append((index_1d, voltage))
 
         else:
-            # Iif only lateral inhibition and no global ens inhibition
+            # if only lateral inhibition and no global ens inhibition
             if self.inhibition:
                 self.bloc.propagate_inhibition(Helper.get_index_2d(index_1d, self.size[1]))
 
@@ -232,8 +234,7 @@ class Ensemble(Layer):
         for neuron in self.neuron_list:
             neuron.reset()
         self.inhibited = False
-        self.first_voltage = 0
-        self.first_neuron = None
+        self.first_neur_volt_list = []
 
     def restore(self):
         if self.learner is not None:
@@ -243,11 +244,7 @@ class Ensemble(Layer):
             neuron.restore()
         self.inhibited = False
         self.threshold_adapt = False
-        self.first_voltage = 0
-        self.first_neuron = None
-        # self.threshold_adapt = False
-        # self.inhibition = False
-        # self.wta = False
+        self.first_neur_volt_list = []
 
     def __getitem__(self, index):
         if isinstance(index, int):
@@ -278,7 +275,7 @@ class Bloc(Layer):
         Size / number of neurons of the ensemble
     neuron_type : NeuronType
         instanced NeuronType that every neuron of the Ensemble will copy
-    learner: Learner
+    learner: Learner or None
         instanced Learner
     *args, **args: list, Dict
         Arguments passed to initialize the Ensembles
@@ -322,7 +319,7 @@ class Bloc(Layer):
             self.ensemble_list.append(ens)
         Helper.log('Layer', log.INFO, 'layer type : bloc of size {0}'.format(depth))
 
-    def set_inhibition(self, wta=True, radius=None):
+    def set_inhibition(self, wta=True, radius=None, k_wta_level=1):
         if radius is not None:
             self.inhibition_radius = (radius, radius) if isinstance(radius, int) else radius
         else:
@@ -330,7 +327,7 @@ class Bloc(Layer):
 
         for ens in self.ensemble_list:
             Helper.log('Layer', log.INFO, 'ensemble {0} inhibited'.format(ens.id))
-            ens.set_inhibition(wta=wta)
+            ens.set_inhibition(wta=wta, k_wta_level=k_wta_level)
 
     def propagate_inhibition(self, index_2d_n):
         for ens in self.ensemble_list:
