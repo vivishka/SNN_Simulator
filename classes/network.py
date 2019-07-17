@@ -26,16 +26,12 @@ class Network(object):
         # self.__ensembles = self.objects[Ensemble]
         # self.__nodes = self.objects[Node]
         # self.__connections = self.objects[Connection]
-        self.n_learners = 0
         Helper.log('Network', log.INFO, 'new network created')
 
     def build(self):
         for attr, value in self.objects.items():
             self.objects[attr] = list(set(self.objects[attr] + attr.get_objects()))
             attr.flush()
-        for ens in self.objects[Ensemble]:
-            if ens.learner:
-                self.n_learners += 1
 
         Helper.log('Network', log.INFO, 'network built')
 

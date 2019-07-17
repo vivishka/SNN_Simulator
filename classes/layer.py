@@ -337,7 +337,7 @@ class Bloc(Layer):
             ens.inhibit(index_2d_n, self.inhibition_radius)
             Helper.log('Layer', log.INFO, 'ensemble {0} inhibited by propagation'.format(ens.id))
 
-    def activate_threshold_adapt(self, t_targ, th_min, n_th1, n_th2):
+    def set_threshold_adapt(self, t_targ, th_min, n_th1, n_th2):
         self.threshold_adapt = True
         self.t_targ = t_targ
         self.th_min = th_min
@@ -387,15 +387,28 @@ class Bloc(Layer):
             for neuron in ens.neuron_list:
                 neuron.threshold = new_th
 
-    def restore(self):
-        if self.learner is not None:
-            self.learner.restore()
+    def stop_inhibition(self):
+        for ens in self.ensemble_list:
+            ens.inhibition = False
+            ens.wta = False
+
+    def stop_learner(self):
+        self.learner = None
+        for ens in self.ensemble_list:
+            ens.learner = None
+
+    def stop_threshold_adapt(self):
         self.threshold_adapt = False
         self.t_targ = None
         self.th_min = None
         self.n_th1 = None
         self.n_th2 = None
         self.layer_time = None
+
+    def restore(self):
+        if self.learner is not None:
+            self.learner.restore()
+        self.stop_threshold_adapt()
 
     def __getitem__(self, index):
         return self.ensemble_list[index]
