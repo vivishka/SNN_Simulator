@@ -165,7 +165,11 @@ class Simulator(object):
 
     def save(self, file):
         with open(file, 'wb') as savefile:
-            data = []
+            data = {
+                'connection': [],
+                'threshold': {}
+            }
+            # save connection weights
             Helper.log('Simulator', log.INFO, 'saving weights ...')
             for index, con in enumerate(self.connections):
                 if not isinstance(con, DiagonalConnection) \
@@ -173,7 +177,12 @@ class Simulator(object):
                         and con.active:
                     Helper.log('Simulator', log.INFO, 'saving weight matrix connection {}'.format(index))
                     Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con.weights.matrix.size))
-                    data.append((con.id, con.weights))
+                    data['connection'].append((con.id, con.weights))
+
+            # save thresholds
+            for ens in self.ensembles:
+                if ens.neuron_list and hasattr(ens.neuron_list[0], 'threshold'):
+                    data['threshold'][ens.id] = ens.neuron_list[0].threshold
 
             pickle.dump(data, savefile, pickle.HIGHEST_PROTOCOL)
             Helper.log('Simulator', log.INFO, 'done')
@@ -187,7 +196,9 @@ class Simulator(object):
         with open(file, 'rb') as savefile:
             Helper.log('Simulator', log.INFO, 'loading weights ...')
             data = pickle.load(savefile)
-            for con in data:
+
+            # load connections
+            for con in data['connection']:
                 for receptor in self.connections:
                     Helper.log('Simulator', log.INFO, 'loading weight matrix connection {}'.format(con[0]))
                     # Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con[1].matrix.size))
@@ -195,7 +206,14 @@ class Simulator(object):
                         receptor.weights = con[1]
                         break
 
-            Helper.log('Simulator', log.INFO, 'done')
+            # load thresholds
+            for ens_id, threshold in data['threshold'].items():
+                for ens in self.ensembles:
+                    if ens.id == ens_id:
+                        for neuron in ens.neuron_list:
+                            neuron.threshold = threshold
+
+            Helper.log('Simulator', log.INFO, 'loading done')
 
     def flush(self):
         pass
