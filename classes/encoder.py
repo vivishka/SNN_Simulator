@@ -155,14 +155,15 @@ class EncoderGFR(Encoder):
 
     """
 
-    def __init__(self, depth, size, in_min, in_max, delay_max=1., threshold=0.9, gamma=1.5):
+    def __init__(self, depth, size, in_min, in_max, delay_max=1., threshold=0.9, gamma=1.5, spike_all_last=False):
         super(EncoderGFR, self).__init__(
             depth=depth,
             size=size,
             in_min=in_min,
             in_max=in_max,
             delay_max=delay_max,
-            neuron_type=DelayedNeuron()
+            neuron_type=DelayedNeuron(),
+            spike_all_last=spike_all_last
 
         )
         self.threshold = threshold
@@ -193,6 +194,9 @@ class EncoderGFR(Encoder):
                     neuron.step()
                     sequence[index, ens_index] = delay
                 else:
+                    if self.spike_all_last:
+                        neuron.set_value(self.threshold)
+                        neuron.step()
                     sequence[index, ens_index] = self.delay_max
 
         self.record.append(sequence)
