@@ -405,7 +405,7 @@ class Bloc(Layer):
     def restore(self):
         if self.learner is not None:
             self.learner.restore()
-        self.stop_threshold_adapt()
+        # self.stop_threshold_adapt()
 
     def __getitem__(self, index):
         return self.ensemble_list[index]

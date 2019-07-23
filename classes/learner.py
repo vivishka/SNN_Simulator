@@ -339,16 +339,18 @@ class Rstdp(Learner):
             dataset used as input for the network. Labels are used to compare with the output
         """
 
-    def __init__(self, eta_up=0.1, eta_down=-0.1, anti_eta_up=-0.1, anti_eta_down=0.1, mp=False, wta=True):
+    def __init__(self, eta_up=0.1, eta_down=-0.1, anti_eta_up=-0.1, anti_eta_down=0.1, mp=False, wta=True, size_cat=None):
         super(Rstdp, self).__init__(eta_up=eta_up, eta_down=eta_down, mp=mp)
         self.anti_eta_up = anti_eta_up
         self.anti_eta_down = anti_eta_down
         self.dataset = None
         self.wta = wta
+        self.size_cat = size_cat
 
     @MeasureTiming('Learning')
     def process(self):
         if not self.dataset:
+            self.n_cat = self.layer.sim.dataset.n_cats
             self.dataset = self.layer.sim.dataset
         Helper.log('Learner', log.DEBUG, 'Processing rstdp ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
@@ -360,8 +362,10 @@ class Rstdp(Learner):
                 Helper.log('Learner', log.CRITICAL, 'Not a single spike emitted on cycle {}'.format(experiment_index))
                 # TODO: do something
                 continue
-
-            output_value = self.out_spikes[experiment_index][0][1]
+            if self.size_cat:
+                output_value = int(self.out_spikes[experiment_index][0][1]//self.size_cat)
+            else:
+                output_value = self.out_spikes[experiment_index][0][1]
             target_value = self.dataset.labels[self.dataset.index]
             # print(output_value, target_value)
             a_p = self.eta_up if output_value == target_value else self.anti_eta_up

@@ -65,7 +65,7 @@ class Connection(SimulationObject):
         self.id = Connection.con_count
         Connection.con_count += 1
         self.connection_list = []
-        self.mode = mode  # shared, pooling
+        self.mode = mode  # shared, pooling, split
         self.active = False
         self.in_neurons_spiking = []
         self.source_e = source_l

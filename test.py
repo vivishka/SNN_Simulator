@@ -29,7 +29,7 @@ n_out = 2
 # data_size = (1, 4)
 data_size = 4
 # image_dataset = PatternGeneratorDataset(index=0, size=img_size, nb_images=nb_data, nb_features=9)
-path = 'datasets/iris/iris.csv'
+path = 'datasets/iris.csv'
 iris_dataset = FileDataset(path=path, index=-1, size=data_size, length=nb_data, randomized=True)
 
 e1 = EncoderGFR(depth=20, size=data_size,
