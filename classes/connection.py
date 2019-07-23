@@ -241,14 +241,35 @@ class Connection(SimulationObject):
         fig.suptitle("Connection final kernels")
 
     def load(self, weights):
-        if weights.shape[-2:] != self.connection_list[0].weights.kernel_size:
-            Helper.log('Connection', log.ERROR, 'wrong size of kernel when loading')
-            raise Exception("Wrong size of kernel when loading")
-        if not self.active:
-            nb_source = len(self.source_e.ensemble_list)
-            nb_dest = len(self.dest_e.ensemble_list)
+        nb_source = len(self.source_e.ensemble_list)
+        nb_dest = len(self.dest_e.ensemble_list)
 
-            if nb_source != weights.shape[1] or nb_dest != weights.shape[0]:
+        if len(weights.shape) != 4:
+            raise ValueError("not enough dimensions to the weight array")
+
+        if nb_source != weights.shape[1] or nb_dest != weights.shape[0]:
+            raise ValueError("Wrong number of source / dest ensemble")
+
+        if self.active:
+            raise ValueError('Can only load on parent connection')
+
+
+        if self.connection_list[0].weights.mode == 'shared':
+
+            if weights.shape[-2:] != self.connection_list[0].weights.kernel_size:
+                Helper.log('Connection', log.ERROR, 'wrong size of kernel weights')
+                raise ValueError("Wrong size of kernel when loading")
+
+            for source_i in range(nb_source):
+                for dest_i in range(nb_dest):
+                    kernel = weights[dest_i, source_i]
+                    self.connection_list[dest_i * nb_source + source_i].weights.matrix.kernel = kernel
+
+        elif self.connection_list[0].weights.kernel_size is None:
+
+            if weights.shape[-2] != len(self.connection_list[0].source_e.neuron_list) \
+                    or weights.shape[-1] != len(self.connection_list[0].dest_e.neuron_list):
+                Helper.log('Connection', log.ERROR, 'wrong number of weight')
                 raise Exception("Wrong number of weight when loading")
 
             for source_i in range(nb_source):
