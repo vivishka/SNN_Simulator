@@ -303,6 +303,92 @@ class EncoderGabor(EncoderFilter):
         self.filters = create_gabor_filters(kernel_size=kernel_size, orientation_list=orientations, div=div)
 
 
+class EncoderLinear(Encoder):
+    """
+    Creates a list of array to encode values into spikes
+    Needs a Node that will provide values
+
+    Parameters
+    ---------
+    size: int or (int, int)
+        The dimension of the value or image
+    depth : int
+        The number of neuron used to encode a single value. Resolution
+    in_min : float or int
+        The minimum value of the gaussian firing field
+    in_max : float or int
+        The maximum value of the gaussian firing field
+    delay_max : float or int
+        The maximum delay created by the gaussian field
+    threshold: float [0. - 1.]
+        the ratio of the delay_max over which the neuron is allowed to fire
+    gamma : float
+        Parameter that influences the width of gaussian field
+
+    Attributes
+    ----------
+    size: int or (int, int)
+        The dimension of the value or image
+    depth : int
+        The number of neuron used to encode a single value. Resolution
+
+    """
+
+    def __init__(self, size, in_min=0, in_max=1, delay_max=1.):
+        super(EncoderLinear, self).__init__(
+            depth=1,
+            size=size,
+            in_min=in_min,
+            in_max=in_max,
+            delay_max=delay_max,
+            neuron_type=DelayedNeuron(),
+            spike_all_last=False
+
+        )
+        Helper.log('Encoder', log.INFO, 'new encoder Linear, layer {0}'.format(self.id))
+
+    def encode(self, values):
+        sequence = np.zeros((self.size[1], self.depth))
+        ens = self.ensemble_list[0]
+
+        for index, neuron in enumerate(ens.neuron_list):
+
+            if isinstance(values, (int, float)):
+                value = values
+            elif isinstance(values, (list, tuple)):
+                value = values[index]
+            elif isinstance(values, np.ndarray):
+                value = values[index // self.size[1], index % self.size[1]]
+            else:
+                raise Exception("unsupported input format")
+
+            delay = (1 - (value - self.in_min) / (self.in_max - self.in_min)) * self.delay_max
+
+            neuron.set_value(delay)
+            neuron.step()
+            sequence[index, 0] = delay
+
+        self.record.append(sequence)
+
+    def step(self):
+        pass
+
+    def plot(self, index=None):
+        if index:
+            plt.figure()
+            plt.imshow([seq[index] for seq in self.record], cmap='gray_r')
+            plt.xlabel('Neuron index')
+            plt.ylabel('Input number')
+            plt.title('Data {}: Neuron delay after fastest'.format(index))
+        else:
+            for ens in range(self.size[1]):
+                plt.figure()
+                plt.imshow([seq[ens] for seq in self.record], cmap='gray_r')
+                plt.xlabel('Neuron index')
+                plt.ylabel('Input number')
+                plt.title('Data {}: Neuron delay after fastest'.format(ens))
+
+
 class Node(SimulationObject):
     """
         input source of the system, feeds the value an encoder
