@@ -53,6 +53,7 @@ class NeuronLog(NeuronType):
 
 
 class Decoder(Ensemble):
+    # TODO: change decoder achi to be a module of layer, not
     """
     Ensemble used to store and decode the train of spikes from other neurons
     Uses NeuronLog type for logging
