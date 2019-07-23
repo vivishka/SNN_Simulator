@@ -29,18 +29,18 @@ if __name__ == '__main__':
 
     filename = 'datasets/iris.csv'
     data_size = (1, 4)
-    epochs1 = 200
-    epochs2 = 200
+    epochs1 = 100
+    epochs2 = 100
 
     en1 = 10
     n1 = 50
-    n2 = 3
+    n2 = 30
 
     image_dataset = FileDataset(filename, -1, size=data_size, length=-1, randomized=True)
 
     model = Network()
 
-    sim = Simulator(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=1)
+    sim = Simulator(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=150)
     sim.enable_time(True)
 
     ################################################ Layer 1 train
@@ -50,15 +50,15 @@ if __name__ == '__main__':
     node = Node(e1, image_dataset, 1, 0)
     b1 = Bloc(depth=1, size=n1, neuron_type=IF(threshold=4),
               learner=SimplifiedSTDP(
-                  eta_up=0.03,
+                  eta_up=0.05,
                   eta_down=-0.08,
                   # anti_eta_up=-0.01,
                   # anti_eta_down=0.01,
                   # soft=True
               )
               )
-    b1.set_inhibition(wta=True, radius=None, k_wta_level=3)
-    # b1.set_threshold_adapt(0.4, 2, 0.05, 0)
+    b1.set_inhibition(wta=False, radius=None, k_wta_level=5)
+    b1.set_threshold_adapt(0.4, 2, 0.05, 0)
 
     c1 = Connection(e1, b1, mu=0.6, sigma=0.05)
 
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     # for con in c1:
     #     cps1.append(ConnectionProbe(con))
 
-    # cps1 = ConnectionProbe(c1)
+    cps1 = ConnectionProbe(c1)
 
     sim.autosave='iris1.w'
     # sim.load('iris1_f.w')
@@ -77,12 +77,12 @@ if __name__ == '__main__':
     sim.run(len(image_dataset.data) * epochs1)
     ################################################ Layer 1 post-process
     print(c1.get_convergence()/n1)
-    c1.saturate_weights(0.6)
+    c1.saturate_weights(0.8)
     sim.save('iris1_f.w')
 
     # for con in cps1:
     #     con.plot()
-    # cps1.plot()
+    cps1.plot()
     # np1.plot('voltage')
     # np1.plot('spike_out')
     # tp1.plot('threshold')
@@ -101,13 +101,12 @@ if __name__ == '__main__':
     b2 = Bloc(depth=1, size=n2, neuron_type=IF(threshold=1), learner=Rstdp(
         eta_up=0.08,
         eta_down=-0.08,
-        anti_eta_up=-0.02,
-        anti_eta_down=0.02,
-        wta=False
+        anti_eta_up=-0.03,
+        anti_eta_down=0.03,
+        size_cat=10
     ))
     b2.set_inhibition(wta=True)
-    # b2.set_threshold_adapt(0.5, 0.8, 0.005, 0)
-
+    b2.set_threshold_adapt(0.6, 0.8, 0.005, 0)
 
     c2 = Connection(b1, b2, mu=0.6, sigma = 0.05)
 
@@ -115,15 +114,16 @@ if __name__ == '__main__':
     for con in c2:
         cps2.append(ConnectionProbe(con))
 
-    np2 = NeuronProbe(b2[0], ["spike_out", "voltage"])
-    tp2 = NeuronProbe(b2[0][0], 'threshold')
+    # np2 = NeuronProbe(b2[0], ["spike_out", "voltage"])
+    # tp2 = NeuronProbe(b2[0][0], 'threshold')
 
     sim.autosave = 'iris2.w'
     # sim.load('iris2_f.w')
     sim.run(len(image_dataset.data) * epochs2)
     ################################################ Layer 2 post-process
-    print(c2.get_convergence()/n2)
-    c2.saturate_weights(0.5)
+    for con in c2:
+        print(con.get_convergence())
+        con.saturate_weights(0.8)
     sim.save('iris2_f.w')
 
     for con in cps2:
@@ -145,10 +145,10 @@ if __name__ == '__main__':
     # b2.stop_inhibition()
     b2.stop_threshold_adapt()
 
-    d1 = DecoderClassifier(size=n2, dataset=image_dataset)
+    d1 = DecoderClassifier(size=3, dataset=image_dataset)
     d2 = DecoderClassifier(size=n1, dataset=image_dataset)
 
-    c3 = Connection(b2, d1, kernel_size=1)
+    c3 = Connection(b2, d1, kernel_size=1, mode='split')
     c4 = Connection(b1, d2, kernel_size=1)
 
     sim.run(len(image_dataset.data))

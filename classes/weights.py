@@ -22,7 +22,7 @@ class Weights(object):
         super(Weights, self).__init__()
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
-        self.mode = mode  # shared, pooling
+        self.mode = mode  # shared, pooling, split
         self.real = real
         if isinstance(kernel_size, int):
             self.kernel_size = (kernel_size, kernel_size)
@@ -60,6 +60,12 @@ class Weights(object):
                     self.init_weight_pooling(model=kwargs['connection'].connection_list[0].weights.matrix)
                 else:
                     self.init_weight_pooling()
+            elif mode == 'split':
+                if 'first' in kwargs and not kwargs['first']:
+                    # First: optimisation: copy the index matrix across all connections from the same blocks
+                    self.init_weight_split(model=kwargs['connection'].connection_list[0].weights.matrix)
+                else:
+                    self.init_weight_split()
             else:
                 self.init_weight_kernel()
 
@@ -173,6 +179,18 @@ class Weights(object):
                         #     if 0 <= index_x < tmp_matrix.shape[0] and 0 <= index_y < tmp_matrix.shape[1]:
                         tmp_matrix[(index_x, index_y)] = 1
 
+        self.matrix = CompactMatrix(mat=tmp_matrix)
+
+    def init_weight_split(self, model=None):
+        if model is not None:
+            # no deep copy: can share the index matrix
+            self.matrix = copy.copy(model)
+            return
+
+        tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)))
+        offset = int(self.source_dim[1]//self.dest_dim[1])
+        for dest in range(self.dest_dim[1]):
+            tmp_matrix[dest * offset:(dest + 1) * offset, dest] = 1
         self.matrix = CompactMatrix(mat=tmp_matrix)
 
     # @MeasureTiming('get_weight')

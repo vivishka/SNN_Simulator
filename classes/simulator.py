@@ -175,8 +175,8 @@ class Simulator(object):
                 if not isinstance(con, DiagonalConnection) \
                         and con.mode != 'pooling' \
                         and con.active:
-                    Helper.log('Simulator', log.INFO, 'saving weight matrix connection {}'.format(index))
-                    Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con.weights.matrix.size))
+                    # Helper.log('Simulator', log.INFO, 'saving weight matrix connection {}'.format(index))
+                    # Helper.log('Simulator', log.INFO, 'matrix size {}'.format(con.weights.matrix.size))
                     data['connection'].append((con.id, con.weights))
 
             # save thresholds

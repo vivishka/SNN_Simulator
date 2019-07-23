@@ -190,10 +190,10 @@ class DecoderClassifier(Decoder):
         return cor_mat
 
 
-class DigitSpikeTorch(Decoder):
+class DigitSpykeTorch(Decoder):
 
     def __init__(self, size):
-        super(DigitSpikeTorch, self).__init__(size)
+        super(DigitSpykeTorch, self).__init__(size)
         self.first_time = None
         self.voltage_list = []
         self.highest_voltage = 0.
@@ -208,23 +208,24 @@ class DigitSpikeTorch(Decoder):
                 self.highest_voltage = voltage
 
 
-class DecoderSpikeTorch(Bloc):
+class DecoderSpykeTorch(Bloc):
 
-    def __init__(self, size):
-        super(DecoderSpikeTorch, self).__init__(depth=10, size=size, neuron_type=NeuronType())
-        for i in range(10):
-            ens = DigitSpikeTorch(size=size)
+    def __init__(self, size, n_cat, mode='unit', k=None):
+        super(DecoderSpykeTorch, self).__init__(depth=n_cat, size=size, neuron_type=NeuronType())
+        for i in range(n_cat):
+            ens = DigitSpykeTorch(size=size)
             ens.bloc = self
             self.ensemble_list[i] = ens
+            self.mode = mode
+            self.k = k
             # TODO:  overwrite reset to store previous
             # TODO: fix None bug
 
     def get_value(self):
-        mode = 'unit'
         digit = None
         first_time = float('inf')
         highest_voltage = 0
-        if mode == 'unit':
+        if self.mode == 'unit':
             for i, digit_ens in enumerate(self.ensemble_list):
                 if digit_ens.first_time is not None and \
                         digit_ens.first_time <= first_time and \
@@ -232,7 +233,7 @@ class DecoderSpikeTorch(Bloc):
                     digit = i
                     highest_voltage = digit_ens.highest_voltage
                     first_time = digit_ens.first_time
-        elif mode == 'mean':
+        elif self.mode == 'mean':
             for i, digit_ens in enumerate(self.ensemble_list):
                 if digit_ens.first_time is not None and \
                         digit_ens.first_time <= first_time and \
@@ -240,8 +241,7 @@ class DecoderSpikeTorch(Bloc):
                     digit = i
                     highest_voltage = np.mean(digit_ens.voltage_list)
                     first_time = digit_ens.first_time
-        elif mode == 'k_highest':
-            k = 20
+        elif self.mode == 'k_highest':
             digit_occurence = [0 for _ in range(10)]
             digit_voltage_list = []
             for i, digit_ens in enumerate(self.ensemble_list):
@@ -251,11 +251,12 @@ class DecoderSpikeTorch(Bloc):
 
             digit_voltage_list.sort(key=lambda t: t[0], reverse=True)
 
-            if len(digit_voltage_list) < k:
-                k = len(digit_voltage_list)
-
-            for i in range(k):
+            for i in range(min(self.k, len(digit_voltage_list))):
                 digit_occurence[digit_voltage_list[i][1]] += 1
             return digit_occurence
 
         return digit
+
+
+
+
