@@ -274,8 +274,11 @@ class Connection(SimulationObject):
 
             for source_i in range(nb_source):
                 for dest_i in range(nb_dest):
-                    kernel = weights[dest_i, source_i]
-                    self.connection_list[dest_i * nb_source + source_i].weights.matrix.kernel = kernel
+                    w = weights[dest_i, source_i]
+                    matrix = self.connection_list[dest_i * nb_source + source_i].weights.matrix
+                    for row in range(matrix.shape[0]):
+                        for col in range(matrix.shape[1]):
+                            matrix[row, col] = w[row, col]
 
     def saturate_weights(self, threshold=None):
         if threshold is None:
