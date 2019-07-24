@@ -188,6 +188,7 @@ class Simulator(object):
             Helper.log('Simulator', log.INFO, 'done')
 
     def load(self, file):
+        self.build()
         ext = file.split('.')[-1]
         if ext != 'w':
             Helper.log('Simulator', log.ERROR, 'unknown extension for file {}'.format(file))
@@ -259,12 +260,6 @@ class SimulatorMp(Simulator):
         self.dt = dt
         self.step_nb = 0
         self.curr_time = 0
-        model.build()
-        self.objects = model.get_all_objects()
-        self.ensembles = self.objects[Ensemble]
-        self.blocs = self.objects[Bloc]
-        self.connections = self.objects[Connection]
-        self.nodes = self.objects[Node]
         self.step_time = 0
         self.prop_time = 0
         self.batch_size = batch_size
@@ -287,14 +282,23 @@ class SimulatorMp(Simulator):
         self.pipes = []
         self.split = [0 for _ in range(self.processes)]
         self.copies = []
-        self.connections.sort(key=lambda con: con.id)
 
         for exp in range(self.batch_size):
             self.pipes.append(mp.Pipe())
             self.split[exp % self.processes] += 1
 
+    def build(self):
+        self.model.build()
+        # self.model.set_sim(self) do not set sim yet (will be done in worker)
+        self.ensembles = self.model.objects[Ensemble]
+        self.blocs = self.model.objects[Bloc]
+        self.connections = self.model.objects[Connection]
+        self.nodes = self.model.objects[Node]
+        self.connections.sort(key=lambda con: con.id)
+
     @MeasureTiming('sim_run')
     def run(self, duration,  monitor_connection=None, convergence_threshold=0.01):
+        self.build()
         self.duration = duration
         self.nb_batches = int(duration // self.batch_size)
 
@@ -307,19 +311,17 @@ class SimulatorMp(Simulator):
         # for node in self.nodes:
         #    node.step()
 
-        self.start = time.time()
         # if self.time_enabled:
         #     Simulator.print_progress(0, self.nb_batches, 'Simulation progress: ', 'complete, 0:0:0 left')
         # runs for the specified number of steps
         self.workers = []
         for worker_id, worker_load in enumerate(self.split):
 
-            # self.copies.append(copy.deepcopy(self.model))
             data = []
             labels = []
             for _ in range(self.split[worker_id]):
                 data.append(self.dataset.next())
-                # labels.append(self.dataset.labels[self.dataset.index])
+                labels.append(self.dataset.labels[self.dataset.index])
 
             self.workers.append(mp.Process(target=self.mp_run,
                                            args=(self.pipes[worker_id][1],
@@ -334,6 +336,7 @@ class SimulatorMp(Simulator):
                                 )
             self.workers[worker_id].start()
 
+        self.start = time.time()
         for batch in range(self.nb_batches):
             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(batch))
             # print("next batch")
@@ -367,8 +370,8 @@ class SimulatorMp(Simulator):
                 labels = []
                 for _ in range(self.split[worker_id]):
                     data.append(self.dataset.next())
-                    # if(self.dataset.labels):
-                    #     labels.append(self.dataset.labels[self.dataset.index])
+                    if self.dataset.labels:
+                        labels.append(self.dataset.labels[self.dataset.index])
 
                 self.pipes[worker_id][0].send([all_updates, (data, labels)])
             if self.autosave:
@@ -389,6 +392,8 @@ class SimulatorMp(Simulator):
         my_model = copy.deepcopy(model)
         dataset = Dataset()
         sim = Simulator(model=my_model, dataset=dataset, dt=dt, input_period=input_period)
+        for con in my_model.objects[Connection]:
+            con.is_probed = False
         while True:
             dataset.index = 0
             dataset.data = data
