@@ -8,8 +8,9 @@ sys.dont_write_bytecode = True
 
 class Dataset(object):
 
-    def __init__(self, index=-1):
-        self.index = index
+    def __init__(self, start_index=0):
+        self.start_index = start_index
+        self.index = -1
         self.data = []
         self.labels = []
         self.n_cats = None
@@ -64,9 +65,9 @@ class VectorDataset(Dataset):
 
 class FileDataset(Dataset):
 
-    def __init__(self, path, index=0, size=(28, 28), length=-1, randomized=False):
-        super(FileDataset, self).__init__(index)
-        self.size = (1, size) if isinstance(size, int ) else size
+    def __init__(self, path, start_index=0, size=(28, 28), length=-1, randomized=False):
+        super(FileDataset, self).__init__(start_index)
+        self.size = (1, size) if isinstance(size, int) else size
         self.path = path
         self.length = length
         self.randomized = randomized
@@ -84,12 +85,10 @@ class FileDataset(Dataset):
                 self.data.append(string_vect[1:].astype(float).reshape(self.size))
                 self.labels.append(string_vect[0].astype(int))
         else:
-            # self.file.seek(2 * (self.size[0]*self.size[1] - 1), 1)
-            for _ in range(self.index):
+            for _ in range(self.start_index):
                 try:
                     file.__next__()
                 except ValueError:
-                    self.index = 0
                     file.seek(0, 0)
                     file.__next__()
             for line in range(self.length):
