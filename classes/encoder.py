@@ -397,41 +397,25 @@ class Node(SimulationObject):
 
         Parameters
         ---------
-        decoder: Encoder
-            The number of neuron used to encode one value
-        input : float or callable function
-            The value to convert to spikes. can change with time
-        period : float
-            The time between 2 input changes
-        *args, **kwargs
-            The list and dict of arguments passed to the input function
+        encoder: Encoder or List
+            Encoders fed by the node
 
         Attributes
         ----------
-        size: NeuronType
-            The number of neuron used to code one value
-        input : float or callable function
-            The value to convert to spikes
-        active: bool
-            will it change the values when the time reaches the threshold
 
         """
     objects = []
 
-    def __init__(self, encoder, *args, **kwargs):
+    def __init__(self, encoder):
         super(Node, self).__init__()
         Node.objects.append(self)
         self.encoder_list = encoder if isinstance(encoder, list) else [encoder]
         assert all([isinstance(enc, Encoder) for enc in self.encoder_list])
-        self.args = args
-        self.kwargs = kwargs
         Helper.log('Encoder', log.INFO, 'new node created')
 
     def step(self):
         if isinstance(self.sim.dataset, Dataset):
             value = self.sim.dataset.next()
-        elif callable(self.sim.dataset):
-            value = self.sim.dataset(*self.args, **self.kwargs)
         else:
             value = self.sim.dataset
         Helper.log('Encoder', log.INFO, 'Node sending next data')

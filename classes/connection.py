@@ -263,7 +263,6 @@ class Connection(SimulationObject):
         if self.active:
             raise ValueError('Can only load on parent connection')
 
-
         if self.connection_list[0].weights.mode == 'shared':
 
             if weights.shape[-2:] != self.connection_list[0].weights.kernel_size:
