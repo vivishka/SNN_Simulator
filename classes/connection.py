@@ -192,6 +192,16 @@ class Connection(SimulationObject):
                 conv += con.get_convergence()
         return conv
 
+    def plot_convergence(self):
+        conv = np.zeros(len(self.connection_list[0].probed_values))
+
+        for con in self.connection_list:
+            for index, weights in enumerate(con.probed_values):
+                for w in weights:
+                    conv[index] += (w - self.wmin)*(self.wmax - w)
+        plt.figure()
+        plt.plot(conv)
+
     def update_weight(self, x, y, value):
         # print(value)
         if self.wmin < self.weights.matrix[x, y] + value < self.wmax:

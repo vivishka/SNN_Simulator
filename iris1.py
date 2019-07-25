@@ -40,7 +40,8 @@ if __name__ == '__main__':
 
     model = Network()
 
-    sim = Simulator(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=1)
+    # sim = Simulator(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=1)
+    sim = SimulatorMp(model=model, dataset=image_dataset, dt=0.05, input_period=1, batch_size=25, processes=3)
     sim.enable_time(True)
 
     ################################################ Layer 1 train
@@ -55,6 +56,7 @@ if __name__ == '__main__':
                   # anti_eta_up=-0.01,
                   # anti_eta_down=0.01,
                   # soft=True
+                  mp=True
               )
               )
     b1.set_inhibition(wta=True, radius=None, k_wta_level=3)
@@ -72,12 +74,12 @@ if __name__ == '__main__':
     # cps1 = ConnectionProbe(c1)
 
     sim.autosave='iris1.w'
-    # sim.load('iris1_f.w')
+    sim.load('iris1.w')
 
     sim.run(len(image_dataset.data) * epochs1)
     ################################################ Layer 1 post-process
     print(c1.get_convergence()/n1)
-    c1.saturate_weights(0.6)
+    c1.saturate_weights(0.8)
     sim.save('iris1_f.w')
 
     # for con in cps1:
@@ -104,6 +106,7 @@ if __name__ == '__main__':
         anti_eta_up=-0.02,
         anti_eta_down=0.02,
         wta=False
+
     ))
     b2.set_inhibition(wta=True)
     # b2.set_threshold_adapt(0.5, 0.8, 0.005, 0)
@@ -121,9 +124,10 @@ if __name__ == '__main__':
     sim.autosave = 'iris2.w'
     # sim.load('iris2_f.w')
     sim.run(len(image_dataset.data) * epochs2)
+    sim.run(len(image_dataset.data) * epochs2)
     ################################################ Layer 2 post-process
     print(c2.get_convergence()/n2)
-    c2.saturate_weights(0.5)
+    c2.saturate_weights(0.8)
     sim.save('iris2_f.w')
 
     for con in cps2:

@@ -8,14 +8,14 @@ sys.dont_write_bytecode = True
 
 class Dataset(object):
 
-    def __init__(self, start_index=0):
+    def __init__(self, start_index=0, randomized=False):
         self.start_index = start_index
         self.index = -1
         self.data = []
         self.labels = []
         self.n_cats = None
         self.pop_cats = []
-
+        self.randomized = randomized
         Helper.log('Dataset', log.INFO, 'new dataset initialized')
 
     def load(self):
@@ -27,6 +27,8 @@ class Dataset(object):
             out = self.data[self.index]
             Helper.log('Dataset', log.INFO, 'next data : index {0}, value {1}'.format(self.index, out))
         except IndexError:
+            if self.randomized:
+                self.randomize()
             self.index = 0
             out = self.data[self.index]
             Helper.log('Dataset', log.ERROR, 'reading out of range of dataset ! (index {} with max {} )'
@@ -43,11 +45,16 @@ class Dataset(object):
         elif value == 'Labels' or value == 'All':
             plt.plot(self.labels)
 
+    def randomize(self):
+        random_indexes = np.arange(len(self.data))
+        np.random.shuffle(random_indexes)
+        self.data = [self.data[index] for index in random_indexes]
+        self.labels = [self.labels[index] for index in random_indexes]
 
 class VectorDataset(Dataset):
 
-    def __init__(self, index=0, size=50, generator=None):
-        super(VectorDataset, self).__init__(index)
+    def __init__(self, index=0, size=50, generator=None, randomized=False):
+        super(VectorDataset, self).__init__(index, randomized=randomized)
         self.size = size
         self.generator = generator
         self.load()
@@ -65,12 +72,14 @@ class VectorDataset(Dataset):
 
 class FileDataset(Dataset):
 
+    def __init__(self, path, index=0, size=(28, 28), length=-1, randomized=False):
+        super(FileDataset, self).__init__(index, randomized=randomized)
+        self.size = (1, size) if isinstance(size, int ) else size
     def __init__(self, path, start_index=0, size=(28, 28), length=-1, randomized=False):
         super(FileDataset, self).__init__(start_index)
         self.size = (1, size) if isinstance(size, int) else size
         self.path = path
         self.length = length
-        self.randomized = randomized
         self.load()
 
     @MeasureTiming('file_load')
@@ -98,10 +107,7 @@ class FileDataset(Dataset):
                 self.labels.append(string_vect[0].astype(int))
 
         if self.randomized:
-            random_indexes = np.arange(len(self.data))
-            np.random.shuffle(random_indexes)
-            self.data = [self.data[index] for index in random_indexes]
-            self.labels = [self.labels[index] for index in random_indexes]
+            self.randomize()
 
         self.n_cats = len(set(self.labels))
         self.pop_cats = np.zeros(self.n_cats)
