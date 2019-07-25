@@ -69,8 +69,6 @@ class Simulator(object):
         self.nb_batches = int(duration) // self.batch_size
         # starts the input nodes
         Helper.log('Simulator', log.INFO, 'nodes init')
-        for node in self.nodes:
-            node.step()
 
         self.start = time.time()
         if self.time_enabled:
@@ -81,6 +79,7 @@ class Simulator(object):
             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(curr_batch))
             self.curr_batch = curr_batch + 1
             for curr_input in range(self.batch_size):
+                self.start_cycle()
                 Helper.log('Simuslator', log.DEBUG, 'next input {0}'.format(curr_input))
                 for curr_step in range(int(self.input_period / self.dt)):
                     self.curr_time += self.dt
@@ -147,7 +146,7 @@ class Simulator(object):
         for bloc in self.blocs:
             bloc.apply_threshold_adapt()
 
-        # TODO: node should be placed before the step:
+    def start_cycle(self):
         for node in self.nodes:
             node.step()
 
