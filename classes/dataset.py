@@ -51,10 +51,11 @@ class Dataset(object):
         self.data = [self.data[index] for index in random_indexes]
         self.labels = [self.labels[index] for index in random_indexes]
 
+
 class VectorDataset(Dataset):
 
-    def __init__(self, index=0, size=50, generator=None, randomized=False):
-        super(VectorDataset, self).__init__(index, randomized=randomized)
+    def __init__(self, start_index=0, size=50, generator=None, randomized=False):
+        super(VectorDataset, self).__init__(start_index=start_index, randomized=randomized)
         self.size = size
         self.generator = generator
         self.load()
@@ -72,11 +73,8 @@ class VectorDataset(Dataset):
 
 class FileDataset(Dataset):
 
-    def __init__(self, path, index=0, size=(28, 28), length=-1, randomized=False):
-        super(FileDataset, self).__init__(index, randomized=randomized)
-        self.size = (1, size) if isinstance(size, int ) else size
     def __init__(self, path, start_index=0, size=(28, 28), length=-1, randomized=False):
-        super(FileDataset, self).__init__(start_index)
+        super(FileDataset, self).__init__(start_index=start_index, randomized=randomized)
         self.size = (1, size) if isinstance(size, int) else size
         self.path = path
         self.length = length
@@ -107,6 +105,7 @@ class FileDataset(Dataset):
                 self.labels.append(string_vect[0].astype(int))
 
         if self.randomized:
+            # pass
             self.randomize()
 
         self.n_cats = len(set(self.labels))
