@@ -176,18 +176,18 @@ class Decoder(Ensemble):
 
 class DecoderClassifier(Decoder):
 
-    def __init__(self, size, dataset):
+    def __init__(self, size):
         super(DecoderClassifier, self).__init__(size)
-        self.dataset = dataset
 
     def get_correlation_matrix(self):
-        cor_mat = np.zeros((self.dataset.n_cats, self.size[1]))
-        nb_exp = len(self.decoded_wta)
+        cor_mat = np.zeros((self.sim.dataset.n_cats, self.size[1]))
+        # nb_exp = len(self.decoded_wta)
         for index, result in enumerate(self.decoded_wta):
             #  gets all the neurons index that spiked first
             dec_cat = [i for i, v in enumerate(result.tolist()[0]) if v == 0]
             for cat in dec_cat:
-                cor_mat[self.dataset.labels[index%len(self.dataset.labels)], cat] += 1#/self.dataset.pop_cats[self.dataset.labels[index%len(self.dataset.labels)]]
+                cor_mat[self.sim.dataset.labels[index%len(self.sim.dataset.labels)], cat] += 1
+                # /self.dataset.pop_cats[self.dataset.labels[index%len(self.dataset.labels)]]
         return cor_mat
 
 
