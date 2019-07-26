@@ -384,6 +384,11 @@ class Bloc(Layer):
             for neuron in ens.neuron_list:
                 neuron.threshold = new_th
 
+    def set_threshold(self, new_th):
+        for ens in self.ensemble_list:
+            for neuron in ens.neuron_list:
+                neuron.threshold = new_th
+
     def stop_inhibition(self):
         for ens in self.ensemble_list:
             ens.inhibition = False

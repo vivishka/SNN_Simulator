@@ -43,12 +43,21 @@ def GFR(data, depth, in_min=0, in_max=1, out_max=1, gamma=1.5):
 
 
 # mnist = tf.keras.datasets.mnist
-iris = pd.read_csv('iris.csv')
-x_train, x_test, y_train, y_test = train_test_split(iris.iloc[:, 1:5], iris["species"], test_size=0.33,)
+iris_train = pd.read_csv('datasets/iris/iris - train.csv')
+iris_test = pd.read_csv('datasets/iris/iris - test.csv')
+
+# x_train, x_test, y_train, y_test = train_test_split(iris.iloc[:, 1:5], iris["species"], test_size=0.33,)
+x_train = iris_train.iloc[:, 1:5]
+y_train = iris_train["species"]
+
+x_test = iris_test.iloc[:, 1:5]
+y_test = iris_test["species"]
+
+
 
 numClasses = 3
 depth_in = 10
-depth_out = 1
+depth_out = 10
 output_size = numClasses * depth_out
 # (x_train, y_train),(x_test, y_test) = mnist.load_data()
 
