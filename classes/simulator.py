@@ -5,7 +5,7 @@ import pickle
 from .connection import *
 from .neuron import NeuronType
 from .layer import Ensemble
-from .encoder import Node, Encoder
+from .encoder import Encoder
 # from .learner import *
 from .dataset import *
 import sys
@@ -30,7 +30,7 @@ class Simulator(object):
         self.ensembles = []
         self.blocs = []
         self.connections = []
-        self.nodes = []
+        self.encoders = []
         self.nb_step = 0
         self.input_period = input_period
         self.next_reset = input_period
@@ -56,7 +56,7 @@ class Simulator(object):
         self.ensembles = self.model.objects[Ensemble]
         self.blocs = self.model.objects[Bloc]
         self.connections = self.model.objects[Connection]
-        self.nodes = self.model.objects[Node]
+        self.encoders = self.model.objects[Encoder]
         self.connections.sort(key=lambda con: con.id)
 
     @MeasureTiming('sim_run')
@@ -67,8 +67,6 @@ class Simulator(object):
         self.nb_step = int(duration / self.dt)
         Helper.log('Simulator', log.INFO, 'total steps: {0}'.format(self.nb_step))
         self.nb_batches = int(duration) // self.batch_size
-        # starts the input nodes
-        Helper.log('Simulator', log.INFO, 'nodes init')
 
         self.start = time.time()
         if self.time_enabled:
@@ -147,8 +145,13 @@ class Simulator(object):
             bloc.apply_threshold_adapt()
 
     def start_cycle(self):
-        for node in self.nodes:
-            node.step()
+        if isinstance(self.dataset, Dataset):
+            value = self.dataset.next()
+        else:
+            value = self.dataset
+
+        for enc in self.encoders:
+            enc.encode(value)
 
     def learn(self):
         for ensemble in self.ensembles:
@@ -292,7 +295,7 @@ class SimulatorMp(Simulator):
         self.ensembles = self.model.objects[Ensemble]
         self.blocs = self.model.objects[Bloc]
         self.connections = self.model.objects[Connection]
-        self.nodes = self.model.objects[Node]
+        self.ensembles = self.model.objects[Ensemble]
         self.connections.sort(key=lambda con: con.id)
 
     @MeasureTiming('sim_run')
@@ -304,11 +307,6 @@ class SimulatorMp(Simulator):
         Helper.log('Simulator', log.INFO, 'simulation start')
         self.nb_step = int(duration / self.dt)
         Helper.log('Simulator', log.INFO, 'total steps: {0}'.format(self.nb_step))
-
-        # starts the input nodes
-        Helper.log('Simulator', log.INFO, 'nodes init')
-        # for node in self.nodes:
-        #    node.step()
 
         # if self.time_enabled:
         #     Simulator.print_progress(0, self.nb_batches, 'Simulation progress: ', 'complete, 0:0:0 left')

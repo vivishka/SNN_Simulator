@@ -219,6 +219,7 @@ class EncoderGFR(Encoder):
                 plt.ylabel('Input number')
                 plt.title('Data {}: Neuron delay after fastest'.format(ens))
 
+
 class EncoderFilter(Encoder):
     def __init__(
             self, depth, size, in_min, in_max, kernel_size, delay_max=1,
@@ -312,25 +313,17 @@ class EncoderLinear(Encoder):
     ---------
     size: int or (int, int)
         The dimension of the value or image
-    depth : int
-        The number of neuron used to encode a single value. Resolution
     in_min : float or int
         The minimum value of the gaussian firing field
     in_max : float or int
         The maximum value of the gaussian firing field
     delay_max : float or int
         The maximum delay created by the gaussian field
-    threshold: float [0. - 1.]
-        the ratio of the delay_max over which the neuron is allowed to fire
-    gamma : float
-        Parameter that influences the width of gaussian field
 
     Attributes
     ----------
     size: int or (int, int)
         The dimension of the value or image
-    depth : int
-        The number of neuron used to encode a single value. Resolution
 
     """
 
@@ -387,43 +380,3 @@ class EncoderLinear(Encoder):
                 plt.xlabel('Neuron index')
                 plt.ylabel('Input number')
                 plt.title('Data {}: Neuron delay after fastest'.format(ens))
-
-
-class Node(SimulationObject):
-    """
-        input source of the system, feeds the value an encoder
-
-        can use several sub nodes to code for a single value
-
-        Parameters
-        ---------
-        encoder: Encoder or List
-            Encoders fed by the node
-
-        Attributes
-        ----------
-
-        """
-    objects = []
-
-    def __init__(self, encoder):
-        super(Node, self).__init__()
-        Node.objects.append(self)
-        self.encoder_list = encoder if isinstance(encoder, list) else [encoder]
-        assert all([isinstance(enc, Encoder) for enc in self.encoder_list])
-        Helper.log('Encoder', log.INFO, 'new node created')
-
-    def step(self):
-        if isinstance(self.sim.dataset, Dataset):
-            value = self.sim.dataset.next()
-        else:
-            value = self.sim.dataset
-        Helper.log('Encoder', log.INFO, 'Node sending next data')
-        for encoder in self.encoder_list:
-            encoder.encode(value)
-
-    def restore(self):
-        try:
-            self.sim.dataset.index = 0
-        except AttributeError:
-            pass

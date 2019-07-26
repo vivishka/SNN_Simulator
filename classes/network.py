@@ -2,7 +2,7 @@ import logging as log
 from .base import Helper
 from .connection import Connection
 from .layer import Ensemble, Bloc
-from .encoder import Node, Encoder
+from .encoder import Encoder
 from .decoder import Decoder
 import sys
 sys.dont_write_bytecode = True
@@ -18,7 +18,6 @@ class Network(object):
         self.objects = {
             Ensemble: [],
             Bloc: [],
-            Node: [],
             Connection: [],
             Encoder: [],
             Decoder: []
