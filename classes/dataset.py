@@ -121,6 +121,17 @@ class FileDataset(Dataset):
         plt.imshow(self.data[index], cmap='gray')
         plt.title('Source image input '+str(index))
 
+    def normalize(self):
+        array = np.array(self.data)
+        for col in range(array.shape[-1]):
+            column = array[:, 0, col]
+            min_val = np.min(column)
+            max_val = np.max(column)
+            array[:, 0, col] = (column - min_val) / (max_val - min_val)
+
+        for row in range(array.shape[0]):
+            self.data[row] = array[row]
+
 
 class PatternGeneratorDataset(Dataset):
 

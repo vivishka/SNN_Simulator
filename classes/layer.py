@@ -389,6 +389,12 @@ class Bloc(Layer):
             for neuron in ens.neuron_list:
                 neuron.threshold = new_th
 
+    def set_learner(self, learner):
+        self.learner = learner
+        for ens in self.ensemble_list:
+            ens.learner = copy.deepcopy(learner)
+            ens.learner.set_layer(ens)
+
     def stop_inhibition(self):
         for ens in self.ensemble_list:
             ens.inhibition = False
