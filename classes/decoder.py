@@ -187,8 +187,7 @@ class DecoderClassifier(Decoder):
             #  gets all the neurons index that spiked first
             dec_cat = [i for i, v in enumerate(result.tolist()[0]) if v == 0]
             for cat in dec_cat:
-                cor_mat[self.dataset.labels[(index )% len(self.dataset.labels)], cat] += \
-                    1/self.dataset.pop_cats[self.dataset.labels[index%len(self.dataset.labels)]]
+                cor_mat[self.dataset.labels[index%len(self.dataset.labels)], cat] += 1#/self.dataset.pop_cats[self.dataset.labels[index%len(self.dataset.labels)]]
         return cor_mat
 
 
