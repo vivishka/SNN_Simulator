@@ -67,7 +67,7 @@ if __name__ == '__main__':
     n1 = 50
     n2 = 10
 
-    n_proc = 3
+    n_proc = 8
 
     iris_ann_generator.run(en1, n1, n2)
 
@@ -83,8 +83,8 @@ if __name__ == '__main__':
     train = FileDataset('datasets/iris/iris - train.csv', 1, size=data_size, length=120, randomized=True)
     test = FileDataset('datasets/iris/iris - test.csv', 1, size=data_size, length=30)
 
-    t1 = np.linspace(0.6, 1.3, 10)
-    t2 = np.linspace(0.6, 1.3, 10)
+    t1 = np.linspace(0, 2, 35)
+    t2 = np.linspace(0, 2, 35)
     success_map = np.zeros((len(t1), len(t2)))
     th_list = np.zeros((len(t1) * len(t2), 2))
     succ_list = np.zeros(len(t1) * len(t2))
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     c2.load(np.load('c2.npy'))
     b2.set_inhibition(wta=True, radius=(0, 0))
 
-    d1 = DecoderClassifier(size=3, dataset=train)
+    d1 = DecoderClassifier(size=3)
 
     c3 = Connection(b2, d1, kernel_size=1, mode='split')
 
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     fig = plt.figure()
     np.save('th_map.npy', success_map)
     plt.imshow(success_map, cmap='gray', extent=[t1[0], t1[-1], t2[-1], t2[0]])
-    # plt.imsave('success_map.png', arr=success_map, cmap='gray', format='png')
+    plt.imsave('success_map.png', arr=success_map, cmap='gray', format='png')
 
     sim.dataset = test
     d1.dataset = test
