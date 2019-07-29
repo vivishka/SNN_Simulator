@@ -84,7 +84,7 @@ class FileDataset(Dataset):
     def load(self):
         Helper.log('Dataset', log.INFO, 'reading file')
         file = open(self.path, 'r')
-        # file.__next__()  # skip first line
+        file.__next__()  # skip first line
         if self.length < 0:
             temp = file.readlines()
             for string in temp:
