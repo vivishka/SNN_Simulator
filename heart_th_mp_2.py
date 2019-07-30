@@ -69,7 +69,7 @@ if __name__ == '__main__':
     n1 = 200
     dec1 = 10
 
-    n_proc = 16
+    n_proc = 12
 
     heart_ann_generator_2.run(en1, n1, dec1)
 
@@ -83,8 +83,8 @@ if __name__ == '__main__':
     train = FileDataset('datasets/heart/heart - train.csv', size=data_size, randomized=True)
     test = FileDataset('datasets/heart/heart - test.csv', size=data_size)
 
-    t1 = np.linspace(0, 2, 35)
-    t2 = np.linspace(0, 4, 70)
+    t1 = np.linspace(0, 4, 100)
+    t2 = np.linspace(0, 2, 100)
     success_map = np.zeros((len(t1), len(t2)))
     th_list = np.zeros((len(t1) * len(t2), 2))
     succ_list = np.zeros(len(t1) * len(t2))
@@ -152,7 +152,7 @@ if __name__ == '__main__':
 
     fig = plt.figure()
     np.save('th_map.npy', success_map)
-    plt.imshow(success_map, cmap='gray', extent=[t1[0], t1[-1], t2[-1], t2[0]])
+    plt.imshow(success_map, cmap='gray', extent=[t1[0], t1[-1], t2[-1], t2[0]], aspect='auto')
     plt.imsave('success_map.png', arr=success_map, cmap='gray', format='png')
 
     sim.dataset = test
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     sim.run(len(test.data))
     confusion = d1.get_correlation_matrix()
     success = 0
-    for i in range(3):
+    for i in range(2):
         success += confusion[i, i] / len(test.data)
     print(confusion)
     print(success)
