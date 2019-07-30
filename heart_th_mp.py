@@ -19,6 +19,7 @@ from classes.learner import *
 import time
 import copy
 import math
+import pickle
 import multiprocessing as mp
 
 
@@ -68,7 +69,7 @@ if __name__ == '__main__':
     n2 = 100
     dec1 = 10
 
-    n_proc = 15
+    n_proc = 3
 
     # heart_ann_generator.run(en1, n1, n2, dec1)
 
@@ -86,7 +87,7 @@ if __name__ == '__main__':
 
     t1 = np.linspace(0.5, 2, 10)
     t2 = np.linspace(0.5, 2, 10)
-    t3 = np.linspace(0.5, 2, 10)
+    t3 = np.linspace(0, 0.8, 10)
 
     ths = np.ndarray((len(t1), len(t2), len(t3)), dtype=object)
     for i1, th1 in enumerate(t1):
@@ -165,11 +166,13 @@ if __name__ == '__main__':
         print([t1[t1max[imax]], t2[t2max[imax]], t3[t3max[imax]], np.amax(success_map)])
 
     np.save('th_map.npy', success_map)
+    with open("th_map.th", "wb") as file:
+        pickle.dump([success_map, t1, t2, t3], file)
     for i3 in range(len(t3)):
         fig = plt.figure()
-        plt.imshow(success_map[i3], cmap='gray', extent=[t1[0], t1[-1], t2[-1], t2[0]])
+        plt.imshow(success_map[:, :, i3], cmap='gray', extent=[t1[0], t1[-1], t2[-1], t2[0]])
         plt.title(str(t3[i3]))
-    plt.imsave('success_map.png', arr=success_map, cmap='gray', format='png')
+    # plt.imsave('success_map.png', arr=success_map, cmap='gray', format='png')
 
     sim.dataset = test
     d1.dataset = test

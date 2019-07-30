@@ -62,7 +62,7 @@ def to_gfr_weights(weights, depth, l1, l2):
 def sat_reg(weight_matrix):
     return 0.0001 * K.sum(K.abs(weight_matrix - 0) * K.abs(weight_matrix - 1))
 
-def run(depth_in=5, n1=200, n2=150, depth_out=10):
+def run(depth_in=5, n1=200, depth_out=10):
 
     # mnist = tf.keras.datasets.mnist
     heart_train = pd.read_csv('datasets/heart/heart - train.csv')
@@ -109,16 +109,6 @@ def run(depth_in=5, n1=200, n2=150, depth_out=10):
                     ))
     model.add(Spiking_BRelu())
     model.add(keras.layers.Dropout(0.2))
-    model.add(Dense(n2,
-                    use_bias=False,
-                    # bias_initializer=keras.initializers.Constant(value=-1),
-                    # bias_constraint= keras.constraints.MinMaxNorm(min_value=-1., max_value=-1.0, rate=1.0, axis=0),
-                    # kernel_constraint=NonNeg(),
-                    # kernel_regularizer=regularizers.l1(0.00001)
-                    # kernel_regularizer=sat_reg
-                    ))
-    model.add(Spiking_BRelu())
-    # model.add(keras.layers.Dropout(0.2))
     model.add(Dense(output_size,
                     use_bias=False,
                     # bias_initializer=keras.initializers.Constant(value=-1),
@@ -163,7 +153,6 @@ def run(depth_in=5, n1=200, n2=150, depth_out=10):
 
     c1 = weights[0].reshape((1, 1) + weights[0].shape)
     c2 = weights[1].reshape((1, 1) + weights[1].shape)
-    c3 = weights[2].reshape((1, 1) + weights[2].shape)
 
 
 
@@ -172,8 +161,7 @@ def run(depth_in=5, n1=200, n2=150, depth_out=10):
     c = c1
     np.save('c1', to_gfr_weights(c1, depth_in, 13, n1))
     np.save('c2', c2)
-    np.save('c3', c3)
 
 
 if __name__ == '__main__':
-    run(10,200,100,10)
+    run(10, 200, 10)

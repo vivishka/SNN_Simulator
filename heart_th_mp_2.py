@@ -54,37 +54,37 @@ def test_mp(queue, thresholds, model, dataset):
 
 
 
+mpl_logger = log.getLogger('matplotlib')
+mpl_logger.setLevel(log.WARNING)
 
 
 
 if __name__ == '__main__':
 
-    import iris_ann_generator
+    import heart_ann_generator_2
 
     start = time.time()
 
-    en1 = 10
-    n1 = 50
-    n2 = 10
+    en1 = 20
+    n1 = 200
+    dec1 = 10
 
-    n_proc = 3
+    n_proc = 16
 
-    iris_ann_generator.run(en1, n1, n2)
-
-
-    mpl_logger = log.getLogger('matplotlib')
-    mpl_logger.setLevel(log.WARNING)
-
-    filename = 'datasets/iris.csv'
-    data_size = 4
+    heart_ann_generator_2.run(en1, n1, dec1)
 
 
 
-    train = FileDataset('datasets/iris/iris - train.csv', size=data_size, randomized=True)
-    test = FileDataset('datasets/iris/iris - test.csv', size=data_size)
+    # filename = 'datasets/heart.csv'
+    data_size = 13
+
+
+
+    train = FileDataset('datasets/heart/heart - train.csv', size=data_size, randomized=True)
+    test = FileDataset('datasets/heart/heart - test.csv', size=data_size)
 
     t1 = np.linspace(0, 2, 35)
-    t2 = np.linspace(0, 2, 35)
+    t2 = np.linspace(0, 4, 70)
     success_map = np.zeros((len(t1), len(t2)))
     th_list = np.zeros((len(t1) * len(t2), 2))
     succ_list = np.zeros(len(t1) * len(t2))
@@ -104,12 +104,12 @@ if __name__ == '__main__':
     c1 = Connection(e1, b1, mu=0.6, sigma=0.05)
     c1.load(np.load('c1.npy'))
 
-    b2 = Bloc(depth=1, size=n2 * 3, neuron_type=IF(threshold=0))
+    b2 = Bloc(depth=1, size=dec1 * 2, neuron_type=IF(threshold=0))
     c2 = Connection(b1, b2, mu=0.6, sigma=0.05)
     c2.load(np.load('c2.npy'))
     b2.set_inhibition(wta=True, radius=(0, 0))
 
-    d1 = DecoderClassifier(size=3)
+    d1 = DecoderClassifier(size=2)
 
     c3 = Connection(b2, d1, kernel_size=1, mode='split')
 

@@ -67,7 +67,7 @@ if __name__ == '__main__':
     n1 = 50
     n2 = 10
 
-    n_proc = 8
+    n_proc = 3
 
     iris_ann_generator.run(en1, n1, n2)
 
@@ -80,8 +80,8 @@ if __name__ == '__main__':
 
 
 
-    train = FileDataset('datasets/iris/iris - train.csv', 1, size=data_size, length=120, randomized=True)
-    test = FileDataset('datasets/iris/iris - test.csv', 1, size=data_size, length=30)
+    train = FileDataset('datasets/iris/iris - train.csv', size=data_size, randomized=True)
+    test = FileDataset('datasets/iris/iris - test.csv', size=data_size)
 
     t1 = np.linspace(0, 2, 35)
     t2 = np.linspace(0, 2, 35)

@@ -23,3 +23,5 @@ main.py
 # Ignore weights
 *.w
 *.npy
+
+scratch\.py
