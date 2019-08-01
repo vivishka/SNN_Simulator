@@ -83,8 +83,8 @@ if __name__ == '__main__':
     train = FileDataset('datasets/iris/iris - train.csv', size=data_size, randomized=True)
     test = FileDataset('datasets/iris/iris - test.csv', size=data_size)
 
-    t1 = np.linspace(0, 2, 35)
-    t2 = np.linspace(0, 2, 35)
+    t1 = np.linspace(0, 2, 3)
+    t2 = np.linspace(0, 2, 3)
     success_map = np.zeros((len(t1), len(t2)))
     th_list = np.zeros((len(t1) * len(t2), 2))
     succ_list = np.zeros(len(t1) * len(t2))
@@ -170,14 +170,14 @@ if __name__ == '__main__':
 
 
     post_training_epochs = 100
-    simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc)
+    simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc, input_period=1, batch_size=50)
     for epoch in range(post_training_epochs):
         b1.set_learner(Rstdp(eta_up=0.002,
                              eta_down=-0.002,
                              anti_eta_up=-0.001,
                              anti_eta_down=0.001,
                              mp=True))
-        simtrain.run(len(simtrain.dataset.data))
+        simtrain.run(len(train.data))
         model.restore()
         sim.run(len(test.data))
         print(d1.get_correlation_matrix())

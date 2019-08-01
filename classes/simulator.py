@@ -252,7 +252,7 @@ class Simulator(object):
 
 
 class SimulatorMp(Simulator):
-    def __init__(self, model, dt=0.01, batch_size=1, input_period=float('inf'), processes=3, dataset=None):
+    def __init__(self, model, dt=0.01, batch_size=1, input_period=1, processes=3, dataset=None):
         super(Simulator, self).__init__()
         self.model = model
         self.dataset = dataset
