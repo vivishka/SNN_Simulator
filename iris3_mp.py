@@ -173,14 +173,25 @@ if __name__ == '__main__':
     acc = np.zeros(post_training_epochs)
     conv = np.zeros(post_training_epochs)
     simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc, input_period=1, batch_size=50)
-    for epoch in range(post_training_epochs):
-        b1.set_learner(Rstdp(eta_up=0.005,
+    L1 = Rstdp(eta_up=0.005,
+                             eta_down=-0.005,
+                             anti_eta_up=-0.001,
+                             anti_eta_down=0.001,
+                             mp=True)
+    L2 = Rstdp(eta_up=0.005,
                              eta_down=-0.005,
                              anti_eta_up=-0.0015,
                              anti_eta_down=0.0015,
-                             mp=True))
+                             mp=True)
+    c1.wmax = 0.4
+    c2.wmax = 0.4
+    for epoch in range(post_training_epochs):
+        b1.set_learner(L1)
+        b2.set_learner(L2)
         simtrain.run(len(train.data))
         model.restore()
+        b1.stop_learner()
+        b2.stop_learner()
         sim.run(len(test.data))
         # print(d1.get_correlation_matrix())
         # print(d1.get_accuracy())
