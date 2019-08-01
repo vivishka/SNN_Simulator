@@ -276,10 +276,13 @@ class SimulatorMp(Simulator):
         self.processes = processes
         # init multiprocess
         Helper.log('Simulator', log.INFO, 'Init multiprocess')
-        # if platform.system() == 'Windows':
-        #     mp.set_start_method('spawn')
-        # else:
-        #     mp.set_start_method('fork')
+        try:
+            if platform.system() == 'Windows':
+                mp.set_start_method('spawn')
+            else:
+                mp.set_start_method('fork')
+        except:
+            pass
         self.workers = []
         self.pipes = []
         self.split = [0 for _ in range(self.processes)]

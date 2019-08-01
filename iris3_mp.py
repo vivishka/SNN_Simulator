@@ -182,6 +182,7 @@ if __name__ == '__main__':
         sim.run(len(test.data))
         print(d1.get_correlation_matrix())
         print(d1.get_accuracy())
+
         model.restore()
 
 
