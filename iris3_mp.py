@@ -138,7 +138,7 @@ if __name__ == '__main__':
             if not queues[worker_id].empty():
                 finished += 1
 
-                succ_list[math.ceil(len(th_list)/n_proc) * worker_id:math.ceil(len(th_list)/n_proc) * (worker_id+1)] =\
+                succ_list[math.ceil(len(th_list)/n_proc) * worker_id:math.ceil(len(th_list)/n_proc) * (worker_id+1)] = \
                     queues[worker_id].get(False)
             else:
                 time.sleep(0.1)
@@ -167,6 +167,25 @@ if __name__ == '__main__':
         success += confusion[i, i] / len(test.data)
     print(confusion)
     print(success)
+
+
+    post_training_epochs = 100
+    simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc)
+    for epoch in range(post_training_epochs):
+        b1.set_learner(Rstdp(eta_up=0.002,
+                             eta_down=-0.002,
+                             anti_eta_up=-0.001,
+                             anti_eta_down=0.001,
+                             mp=True))
+        simtrain.run(len(simtrain.dataset.data))
+        model.restore()
+        sim.run(len(test.data))
+        print(d1.get_correlation_matrix())
+        print(d1.get_accuracy())
+        model.restore()
+
+
+
     print('total time')
     print(int(time.time()-start))
     plt.show()
