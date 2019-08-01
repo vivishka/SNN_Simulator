@@ -67,7 +67,7 @@ if __name__ == '__main__':
     n1 = 50
     n2 = 10
 
-    n_proc = 3
+    n_proc = 16
 
     iris_ann_generator.run(en1, n1, n2)
 
@@ -83,8 +83,8 @@ if __name__ == '__main__':
     train = FileDataset('datasets/iris/iris - train.csv', size=data_size, randomized=True)
     test = FileDataset('datasets/iris/iris - test.csv', size=data_size)
 
-    t1 = np.linspace(0, 2, 3)
-    t2 = np.linspace(0, 2, 3)
+    t1 = np.linspace(0, 2, 50)
+    t2 = np.linspace(0, 2, 50)
     success_map = np.zeros((len(t1), len(t2)))
     th_list = np.zeros((len(t1) * len(t2), 2))
     succ_list = np.zeros(len(t1) * len(t2))
@@ -169,22 +169,27 @@ if __name__ == '__main__':
     print(success)
 
 
-    post_training_epochs = 100
+    post_training_epochs = 200
+    acc = np.zeros(post_training_epochs)
+    conv = np.zeros(post_training_epochs)
     simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc, input_period=1, batch_size=50)
     for epoch in range(post_training_epochs):
-        b1.set_learner(Rstdp(eta_up=0.002,
-                             eta_down=-0.002,
-                             anti_eta_up=-0.001,
-                             anti_eta_down=0.001,
+        b1.set_learner(Rstdp(eta_up=0.005,
+                             eta_down=-0.005,
+                             anti_eta_up=-0.0015,
+                             anti_eta_down=0.0015,
                              mp=True))
         simtrain.run(len(train.data))
         model.restore()
         sim.run(len(test.data))
-        print(d1.get_correlation_matrix())
-        print(d1.get_accuracy())
+        # print(d1.get_correlation_matrix())
+        # print(d1.get_accuracy())
+        conv[epoch] = c1.get_convergence() + c2.get_convergence()
+        acc[epoch] = d1.get_accuracy()
 
         model.restore()
-
+    plt.plot(conv)
+    plt.plot(acc)
 
 
     print('total time')
