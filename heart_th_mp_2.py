@@ -65,8 +65,8 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    en1 = 20
-    n1 = 200
+    en1 = 15
+    n1 = 150
     dec1 = 10
 
     n_proc = 12

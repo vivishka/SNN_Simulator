@@ -16,7 +16,7 @@ from keras.layers import Dense
 from keras.optimizers import Adadelta
 from keras.constraints import NonNeg
 from whetstone.layers import Spiking_BRelu, Softmax_Decode, key_generator
-from whetstone.callbacks import SimpleSharpener, WhetstoneLogger
+from whetstone.callbacks import SimpleSharpener, WhetstoneLogger, AdaptiveSharpener, ScheduledSharpener
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
@@ -106,9 +106,10 @@ def run(depth_in=5, n1=200, depth_out=10):
                     # kernel_constraint=NonNeg(),
                     # kernel_regularizer=regularizers.l1(0.00001)
                     # kernel_regularizer=sat_reg
+                    kernel_initializer='glorot_normal'
                     ))
     model.add(Spiking_BRelu())
-    model.add(keras.layers.Dropout(0.2))
+    model.add(keras.layers.Dropout(0.6))
     model.add(Dense(output_size,
                     use_bias=False,
                     # bias_initializer=keras.initializers.Constant(value=-1),
@@ -118,21 +119,24 @@ def run(depth_in=5, n1=200, depth_out=10):
                     # kernel_regularizer=sat_reg
                     ))
     model.add(Spiking_BRelu())
+    # model.add(keras.layers.Dropout(0.3))
     model.add(Softmax_Decode(key))
 
-    simple = SimpleSharpener(start_epoch=5, steps=10, epochs=True, bottom_up=True)
+    simple = SimpleSharpener(start_epoch=10, steps=15, epochs=True, bottom_up=True)
+    scheduled = ScheduledSharpener([(5, 25), (25, 45)])
+    adaptive = AdaptiveSharpener(min_init_epochs=5)
 
     # Create a new directory to save the logs in.
     log_dir = './simple_logs'
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    # logger = WhetstoneLogger(logdir=log_dir, sharpener=simple)
+    # logger = WhetstoneLogger(logdir=log_dir, sharpener=adaptive)
 
-    model.compile(loss='categorical_crossentropy', optimizer=Adadelta(lr=4.0, rho=0.95, epsilon=1e-8, decay=0.0), metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=Adadelta(lr=8, rho=0.70, epsilon=1e-8, decay=0.00005), metrics=['accuracy'])
     model.summary()
     time.sleep(0.1)
-    model.fit(x_train, y_train, batch_size=5, epochs=500, callbacks=[simple, ])
+    model.fit(x_train, y_train, batch_size=10, epochs=41, callbacks=[simple ,])
 
     weights = []
     bias = []
@@ -144,24 +148,31 @@ def run(depth_in=5, n1=200, depth_out=10):
         # b = np.array(b).clip(-1., 1.)
         w = np.array(w).clip(0., 1.)
         weights.append(w)
-        print(w)
+        # print(w)
         # print(b)
-
-    print(model.evaluate(x_test, y_test))
+    result = model.evaluate(x_test, y_test)
+    print(result)
     y_pred = model.predict(x_test)
     print(confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1)))
 
     c1 = weights[0].reshape((1, 1) + weights[0].shape)
     c2 = weights[1].reshape((1, 1) + weights[1].shape)
 
-
-
-
-
     c = c1
     np.save('c1', to_gfr_weights(c1, depth_in, 13, n1))
     np.save('c2', c2)
+    return result[1]
 
 
 if __name__ == '__main__':
-    run(10, 200, 10)
+    n = 20
+    acc = np.zeros(n)
+    for i in range(n):
+        print("Step: " + str(i))
+        acc[i] = run(15, 150, 10)
+        print("mean acc:")
+        print(acc[:i].mean())
+    print("accuracies:")
+    print(acc)
+    print("mean:")
+    print(acc.mean())
