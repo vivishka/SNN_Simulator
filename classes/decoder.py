@@ -184,11 +184,20 @@ class DecoderClassifier(Decoder):
         # nb_exp = len(self.decoded_wta)
         for index, result in enumerate(self.decoded_wta):
             #  gets all the neurons index that spiked first
-            dec_cat = [i for i, v in enumerate(result.tolist()[0]) if v == 0]
-            for cat in dec_cat:
-                cor_mat[self.sim.dataset.labels[index%len(self.sim.dataset.labels)], cat] += 1
+            dec_cats = [i for i, v in enumerate(result.tolist()[0]) if v == 0]
+            for cat in dec_cats:
+                cor_mat[self.sim.dataset.labels[index % len(self.sim.dataset.labels)], cat] += 1
                 # /self.dataset.pop_cats[self.dataset.labels[index%len(self.dataset.labels)]]
         return cor_mat
+
+    def get_accuracy(self):
+        correct = 0
+        for index, result in enumerate(self.decoded_wta):
+            dec_cats = [i for i, v in enumerate(result.tolist()[0]) if v == 0]
+            label = self.sim.dataset.labels[index % len(self.sim.dataset.labels)]
+            if len(dec_cats) == 1 and dec_cats[0] == label:
+                correct += 1
+        return correct / len(self.decoded_wta)
 
 
 class DigitSpykeTorch(Decoder):
