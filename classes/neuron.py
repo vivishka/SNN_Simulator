@@ -12,22 +12,24 @@ class NeuronType(object):
 
     Parameters
     ----------
-    * args : list
-        same
-    **kwargs: dict
-        The dictionary of arguments passed to initialize the neuron parameters
+    :param args : Arguments passed to initialize the neuron parameters
+    :type args: list
+    :param kwargs: Arguments passed to initialize the neuron parameters
+    :type kwargs: dict
 
     Attributes
     ----------
-    ensemble: Ensemble
-        ensemble this neuron belongs to
-    index: (int, int)
-        index Ensemble
-    param: {str:object}
-        The dictionary of arguments passed to initialize the neurons
+    :ivar ensemble: ensemble this neuron belongs to
+    :type ensemble: Ensemble
+    :ivar index_1d: Ensemble index of neuron_list
+    :type index_1d: int
+    :ivar index_2d: Ensemble index of neuron_array
+    :type index_2d: (int, int)
+    :ivar param: The dictionary of arguments passed to initialize the neurons
         Stores the index (in 1D or 2D) of the neuron in the ensemble
-    received: [(int, float)]
-        List of received spikes containing (index, weight)
+    :type param: dict of str:obj
+    :ivar received: received spikes containing (index, weight)
+    :type received: list of (int, float)
     inhibited: bool
         is the neurons simulated
         self.learner
@@ -55,8 +57,7 @@ class NeuronType(object):
         self.probes = {}
         self.nb_in = 0
         self.nb_out = 0
-
-        # Helper.log('Neuron', log.DEBUG, '{0} of layer {1} created'.format(self.index, self.ensemble.id))
+        self.voltage = 0
 
     def set_ensemble(self, ensemble, index_2d):
         self.ensemble = ensemble
@@ -129,20 +130,15 @@ class LIF(NeuronType):
 
     Parameters
     ----------
-    threshold: float
-        when voltage exceeds it, a spike is emitted
-    tau: float
-        rate of the neuron
+    :param threshold: when voltage exceeds it, a spike is emitted
+    :param threshold: float
+    :param tau: decay rate of the voltage
+    :type tau: float
 
     Attributes
     ----------
-    voltage: float
-        internal state of the neuron
-        increase when input, decay exponentially
-    threshold: float
-        neuron parameter, when voltage exceeds it, a spike is emitted
-    tau: float
-        neuron parameter, decay rate of the neuron
+    :ivar voltage: internal state of the neuron, increase when input, decay exponentially
+    :type voltage: float
     """
 
     def __init__(self, threshold=1, tau=1):
@@ -154,6 +150,10 @@ class LIF(NeuronType):
 
     # @MeasureTiming('neur_step')
     def step(self):
+        """
+        When not inhibited, a neuron will step when it receive a spike
+        or every simulation step if probed
+        """
         if self.inhibited:
             return
 
@@ -180,34 +180,27 @@ class LIF(NeuronType):
                 self.probe()
 
     def reset(self):
-        super().reset()
+        super(LIF, self).reset()
         self.voltage = 0
 
     def restore(self):
-        super().restore()
+        super(LIF, self).restore()
         self.voltage = 0
 
 
 class IF(NeuronType):
     """
-    LIF implementation of a neuron
+    IF implementation of a neuron
 
     Parameters
     ----------
-    threshold: float
-        when voltage exceeds it, a spike is emitted
-    tau: float
-        rate of the neuron
+    :param threshold: when voltage exceeds it, a spike is emitted
+    :param threshold: float
 
     Attributes
     ----------
-    voltage: float
-        internal state of the neuron
-        increase when input, decay exponentially
-    threshold: float
-        neuron parameter, when voltage exceeds it, a spike is emitted
-    tau: float
-        neuron parameter, decay rate of the neuron
+    :ivar voltage: internal state of the neuron, increase when input, decay exponentially
+    :type voltage: float
     """
 
     def __init__(self, threshold=1, tau=1):
@@ -240,7 +233,7 @@ class IF(NeuronType):
                 self.probe()
 
     def reset(self):
-        super().reset()
+        super(IF, self).reset()
         self.voltage = 0
 
 

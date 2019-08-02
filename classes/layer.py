@@ -2,6 +2,8 @@ import numpy as np
 import copy
 import logging as log
 from .base import SimulationObject, Helper, MeasureTiming
+from .neuron import NeuronType
+from .connection import Connection
 from .learner import Learner
 import sys
 sys.dont_write_bytecode = True
@@ -11,22 +13,16 @@ class Layer(SimulationObject):
     """
     Layer cannot be instanced by itself, it can be a Block or an Ensemble
 
-    Parameters
-    ---------
-
-
-    Attributes
-    ----------
-    ensemble_list: list[Ensemble]
-        if Block: the list of Ensembles inside, if Ensemble: itself
-    learner: Learner
-        Leaner can be linked to the layer and will train the incoming connections
-    out_connections: list[Connection]
-        outbound Connections
-    in_connections: list[Connection]
-        inbound Connections
-    id: int
-        global index of the layer
+    :ivar ensemble_list: if Block: the list of Ensembles inside, if Ensemble: itself
+    :type ensemble_list: list of Ensemble
+    :ivar learner: for training the incoming connections, is unique per layer
+    :type learner: Learner
+    :ivar out_connections: outbound Connections
+    :type out_connections: list of Connection
+    :ivar in_connections: inbound Connections
+    :type in_connections: list of Connection
+    :ivar id: global index of the layer
+    :type id: int
     """
     layer_count = 0
 
@@ -44,52 +40,51 @@ class Layer(SimulationObject):
 class Ensemble(Layer):
     """
     An ensemble is an array of neurons. It is mostly used to represent a layer
-    it can be a 1D or 2D array
+    it can be a 1D vector or a 2D array
 
     Parameters
     ---------
-    size: int or (int, int)
-        Size / number of neurons of the ensemble
-    neuron_type : NeuronType
-        instanced NeuronType that every neuron of the Ensemble will copy
-    bloc: Bloc
-        Blocks in which this Ensemble belongs to
-    index: int
-        index of the Ensemble in the Block
-    learner: Learner or None
-        instanced Learner
-    *args, **kwargs:
-        Arguments passed to initialize the neurons
+    :param size: Size / number of neurons of the ensemble
+    :type size: int or (int, int)
+    :param neuron_type : instanced NeuronType that every neuron of the Ensemble will copy
+    :type neuron_type: NeuronType
+    :param bloc: Blocks in which this Ensemble belongs to
+    :type bloc: Bloc
+    :param index: index of the Ensemble in the Block
+    :type index: int
+    :param learner: instanced Learner
+    :type learner: Learner or None
+    :param kwargs: Arguments passed to initialize the neurons
+    :type kwargs: dict
 
     Attributes
     ----------
-    bloc: Bloc
-        Blocks in which this Ensemble belongs to
-    index: int:
-        index of the Ensemble in the Block
-    size: (int, int)
-        Size of the ensemble, if the given parameter was an int, the size is (1, n)
-    neuron_list: [NeuronType]
-        List of initialized neurons, accessible by int
-    neuron_array: np.ndarray[NeuronType]
-        2D array of the neurons, accessible by (int, int)
-    active_neuron_set: set(NeuronType)
-        set of the neurons which received a spike and should be simulated the next step
-    probed_neuron_set: set(NeuronType)
-        set of the neurons which are probed and should be simulated every step
-    inhibition: bool
-        True if the ensemble triggers inhibition when one of its neuron spikes
-    wta: bool
-        winner takes all inhibition mode
-        only one neuron can spike per ensemble per input cycle
-    inhibited: bool
-        if True, will not be simulated until the end of the cycle
-    threshold_adapt: bool
-        adapt the threshold depending on received / emitted spikes
-    first_neuron: int
-        index of the first neuron to spike this cycle
-    first_voltage:
-        voltage of the first neuron to spike this cycle, used to determine highest voltage if double spike
+    :ivar bloc: Blocks in which this Ensemble belongs to
+    :type bloc: Bloc
+    :ivar index: index of the Ensemble in the Block
+    :type index: int
+    :ivar size: Size of the ensemble, if the given parameter was an int, the size is (1, n)
+    :type size: (int, int)
+    :ivar neuron_list: List of initialized neurons, accessible by int
+    :type neuron_list: list of NeuronType
+    :ivar neuron_array: 2D array of the neurons, accessible by (int, int)
+    :type neuron_array: ndarray of NeuronType
+    :ivar active_neuron_set: set of the neurons which received a spike and should be simulated the next step
+    :type active_neuron_set: set of NeuronType
+    :ivar probed_neuron_set: set of the neurons which are probed and should be simulated every step
+    :type probed_neuron_set: set of NeuronType
+    :ivar inhibited: if True, will not be simulated until the end of the cycle
+    :type inhibited: bool
+    :ivar inhibition: True if the ensemble triggers inhibition when one of its neuron spikes
+    :type inhibition: bool
+    :ivar wta: winner takes all inhibition mode, only one neuron can spike per ensemble per input cycle
+    :type wta: bool
+    :ivar k_wta_level: the k first neurons are allowed to spike
+    :type k_wta_level: int
+    :ivar first_neur_volt_list: index and voltage of the first neurons to spike this cycle
+    :type first_neur_volt_list: list of (int, float)
+    :ivar threshold_adapt: adapt the threshold depending on received / emitted spikes
+    :type threshold_adapt: bool
     """
 
     objects = []
@@ -237,6 +232,10 @@ class Ensemble(Layer):
         self.first_neur_volt_list = []
 
     def restore(self):
+        """
+        Restores the ensemble
+        TODO: better explain
+        """
         if self.learner is not None:
             self.learner.restore()
         self.active_neuron_set = set()
@@ -263,36 +262,33 @@ class Ensemble(Layer):
 
 class Bloc(Layer):
     """
-    a bloc is a group of ensembles of the same dimension
+    A bloc is a group of ensembles of the same dimension
     Ensembles are not connected together but share common previous and next layers
     they are only used to construct easily but are not simulated as such
 
     Parameters
     ---------
-    depth: int
-        Number of Ensemble in this bloc
-    size: int or (int, int)
-        Size / number of neurons of the ensemble
-    neuron_type : NeuronType
-        instanced NeuronType that every neuron of the Ensemble will copy
-    learner: Learner or None
-        instanced Learner
-    *args, **args: list, Dict
-        Arguments passed to initialize the Ensembles
+    :param depth: Number of Ensemble in this bloc
+    :type depth: int
+    :param size: Size / number of neurons of the ensemble
+    :type size: int or (int, int)
+    :param neuron_type : instanced NeuronType that every neuron of the Ensemble will copy
+    :type neuron type: NeuronType
+    :param learner: instanced Learner. A copy will be shared to all the sub Ensembles
+    :type learner: Learner or None
+    :param kwargs: Arguments passed to initialize the Ensembles
+    :type kwargs: dict
 
     Attributes
     ----------
-    depth: int
-        Number of Ensemble in this bloc
-    ensemble_list: [Ensemble]
-        The list of initialized Ensembles
-    inhibition_radius: int
-        Distance of inhibition from the first spiking neuron
+    :param inhibition_radius: Distance of inhibition from the first spiking neuron
+    :type inhibition_radius: (int, int)
+
     """
     objects = []
     index = 0
 
-    def __init__(self, depth, size, neuron_type, learner=None, *args, **kwargs):
+    def __init__(self, depth, size, neuron_type, learner=None, **kwargs):
         super(Bloc, self).__init__()
         Bloc.objects.append(self)
         self.index = Bloc.index
@@ -315,11 +311,20 @@ class Bloc(Layer):
                 bloc=self,
                 index=i,
                 learner=copy.deepcopy(learner) if learner is not None else None,
-                *args, **kwargs)
+                **kwargs)
             self.ensemble_list.append(ens)
         Helper.log('Layer', log.INFO, 'layer type : bloc of size {0}'.format(depth))
 
     def set_inhibition(self, wta=True, radius=None, k_wta_level=1):
+        """
+        Activate inhibition
+        :param wta: winner take all, if True, the whole ensemble will be inhibited one of its neuron spike
+        :type wta: bool
+        :param radius: lateral inhibition radius
+        :type radius: int or (int, int)
+        :param k_wta_level: number of first neuron allowed to spike, can reduce learning time
+        :type k_wta_level: int
+        """
         if radius is not None:
             self.inhibition_radius = (radius, radius) if isinstance(radius, int) else radius
         else:
@@ -330,11 +335,29 @@ class Bloc(Layer):
             ens.set_inhibition(wta=wta, k_wta_level=k_wta_level)
 
     def propagate_inhibition(self, index_2d_n):
+        """
+        Propagates inhibition laterally (across ensembles) in a radius around the spiking neuron
+        :param index_2d_n: position of the spiking neuron
+        :type index_2d_n: (int, int)
+        """
         for ens in self.ensemble_list:
             ens.inhibit(index_2d_n, self.inhibition_radius)
             Helper.log('Layer', log.INFO, 'ensemble {0} inhibited by propagation'.format(ens.id))
 
     def set_threshold_adapt(self, t_targ, th_min, n_th1, n_th2):
+        """
+        Changes threshold of an ensemble using 2 methods:
+         - try to match a given spiking time
+         - inter layer competition
+        :param t_targ: target time, between 0. and 1.
+        :type t_targ: float
+        :param th_min: minimum threshold
+        :type th_min: float
+        :param n_th1: coefficient for the spike time target
+        :type n_th1: float
+        :param n_th2: coefficient for the inter layer competition
+        :type n_th2: float
+        """
         self.threshold_adapt = True
         self.t_targ = t_targ
         self.th_min = th_min
@@ -347,15 +370,16 @@ class Bloc(Layer):
             self.layer_time[i] = float('inf')
 
     def register_first_layer(self, ens_index):
-        # This function is  only called by the first spike of each ens
+        """
+        This function is  only called by the first spike of each ens and is used for threshold adaptation
+        :param ens_index: Ensemble index
+        :type ens_index: int
+        """
         self.layer_time[ens_index] = self.sim.curr_time
 
     def apply_threshold_adapt(self):
         """
         called once every input cycle, will adapt the threshold of the neurons of each layers depending on spiking time
-        2 mechanism:
-            - spike time target
-            - inter layer competition
         """
         if not self.threshold_adapt:
             return
@@ -385,27 +409,46 @@ class Bloc(Layer):
                 neuron.threshold = new_th
 
     def set_threshold(self, new_th):
+        """
+        Sets the threshold for all all neurons of all the ensembles
+        :param new_th: new threshold
+        :type new_th: float
+        """
         for ens in self.ensemble_list:
             for neuron in ens.neuron_list:
                 neuron.threshold = new_th
 
     def set_learner(self, learner):
+        """
+        Gives a new learner to all the ensembles of the bloc
+        :param learner: instanced learner that will be copied to all the ensembles
+        :type learner: Learner
+        """
         self.learner = learner
         for ens in self.ensemble_list:
             ens.learner = copy.deepcopy(learner)
             ens.learner.set_layer(ens)
 
     def stop_inhibition(self):
+        """
+        Stops all form of inhibition on all the ensembles of the bloc
+        """
         for ens in self.ensemble_list:
             ens.inhibition = False
             ens.wta = False
 
     def stop_learner(self):
+        """
+        Stops all learners on all the ensembles of the bloc
+        """
         self.learner = None
         for ens in self.ensemble_list:
             ens.learner = None
 
     def stop_threshold_adapt(self):
+        """
+        Stops all threshold adaptation on all the ensembles of the bloc
+        """
         self.threshold_adapt = False
         self.t_targ = None
         self.th_min = None
@@ -414,9 +457,11 @@ class Bloc(Layer):
         self.layer_time = None
 
     def restore(self):
+        """
+        TODO: better explain
+        """
         if self.learner is not None:
             self.learner.restore()
-        # self.stop_threshold_adapt()
 
     def __getitem__(self, index):
         return self.ensemble_list[index]
