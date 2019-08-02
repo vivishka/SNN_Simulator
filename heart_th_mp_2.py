@@ -187,9 +187,11 @@ if __name__ == '__main__':
                              eta_down=-0.005,
                              anti_eta_up=-0.0015,
                              anti_eta_down=0.0015,
-                             mp=True)
-    c1.wmax = 0.3
-    c2.wmax = 0.3
+                             mp=True,
+                             wta=False
+               )
+    c1.set_max_weight(0.3)
+    c2.set_max_weight(0.3)
     wprobe = ConnectionProbe(c2)
     wlog = []
     for epoch in range(post_training_epochs):
