@@ -33,7 +33,7 @@ def normalize(df):
 
 
 
-def GFR(data, depth, in_min=0, in_max=1, out_max=1, gamma=1.5):
+def GFR(data, depth, in_min=0, in_max=1, out_max=1, gamma=1):
     index = data.index
     columns = np.array(["{}_{}".format(col, i) for col in data.columns for i in range(depth)])
     array = np.ndarray((len(index), len(columns)))

@@ -87,8 +87,8 @@ if __name__ == '__main__':
     train = FileDataset('datasets/heart/heart - train.csv', size=data_size, randomized=True)
     test = FileDataset('datasets/heart/heart - test.csv', size=data_size)
 
-    t1 = np.linspace(0.5, 1.5, 30)
-    t2 = np.linspace(0.5, 1.5, 30)
+    t1 = np.linspace(0.3, 1.5, 30)
+    t2 = np.linspace(0.3, 1, 30)
     success_map = np.zeros((len(t1), len(t2)))
     th_list = np.zeros((len(t1) * len(t2), 2))
     succ_list = np.zeros(len(t1) * len(t2))
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     last_time = time.time()
     # Helper.print_progress(0, len(t1)*len(t2), "testing thresholds ", bar_length=30)
     model = Network()
-    e1 = EncoderGFR(size=data_size, depth=en1, in_min=0, in_max=1, threshold=0.9, gamma=1.5, delay_max=1,# spike_all_last=True
+    e1 = EncoderGFR(size=data_size, depth=en1, in_min=0, in_max=1, threshold=0.9, gamma=1, delay_max=1,# spike_all_last=True
                     )
     # node = Node(e1)
     b1 = Bloc(depth=1, size=n1, neuron_type=IF(threshold=0))
@@ -178,10 +178,10 @@ if __name__ == '__main__':
     acc = np.zeros(post_training_epochs)
     conv = np.zeros(post_training_epochs)
     simtrain = SimulatorMp(model, dt=dt, dataset=train, processes=n_proc, input_period=1, batch_size=150)
-    L1 = Rstdp(eta_up=0.005,
+    L1 = SimplifiedSTDP(eta_up=0.005,
                              eta_down=-0.005,
-                             anti_eta_up=-0.001,
-                             anti_eta_down=0.001,
+                             # anti_eta_up=-0.001,
+                             # anti_eta_down=0.001,
                              mp=True)
     L2 = Rstdp(eta_up=0.005,
                              eta_down=-0.005,
@@ -194,33 +194,36 @@ if __name__ == '__main__':
     c2.set_max_weight(0.3)
     wprobe = ConnectionProbe(c2)
     wlog = []
-    # for epoch in range(post_training_epochs):
-    #     # b1.set_learner(L1)
-    #
-    #     simtrain.run(len(train.data))
-    #     # print(wprobe.get_data(0))
-    #     model.restore()
-    #     b1.stop_learner()
-    #     b2.stop_learner()
-    #     sim.run(len(test.data))
-    #     # print(d1.get_correlation_matrix())
-    #     # print(d1.get_accuracy())
-    #     conv[epoch] = c2.get_convergence()
-    #     acc[epoch] = d1.get_accuracy()
-    #     model.restore()
-    b2.set_learner(L2)
-    simtrain.run(len(train.data) * post_training_epochs)
-    wprobe.plot()
-    b2.stop_learner()
-    sim.run(len(test.data))
-    print(d1.get_accuracy())
-    print(d1.get_correlation_matrix())
+    for epoch in range(post_training_epochs):
+        b1.set_learner(L1)
+        b2.set_learner(L2)
+
+        simtrain.run(len(train.data))
+        # print(wprobe.get_data(0))
+        model.restore()
+        b1.stop_learner()
+        b2.stop_learner()
+        sim.run(len(test.data))
+        # print(d1.get_correlation_matrix())
+        # print(d1.get_accuracy())
+        # conv[epoch] = c2.get_convergence()
+        acc[epoch] = d1.get_accuracy()
+        model.restore()
+
+    # b2.set_learner(L2)
+    # simtrain.run(len(train.data) * post_training_epochs)
+    # wprobe.plot()
+    # b2.stop_learner()
+    # sim.run(len(test.data))
+    # print(d1.get_accuracy())
+    # print(d1.get_correlation_matrix())
+
     # plt.figure()
     # plt.plot(conv)
     # plt.title('Convergence')
-    # plt.figure()
-    # plt.plot(acc)
-    # plt.title('Accuracy')
+    plt.figure()
+    plt.plot(acc)
+    plt.title('Accuracy')
 
 
     print('total time')
