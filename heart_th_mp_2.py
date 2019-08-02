@@ -69,7 +69,7 @@ if __name__ == '__main__':
     n1 = 150
     dec1 = 10
 
-    n_proc = 12
+    n_proc = 16
 
     heart_ann_generator_2.run(en1, n1, dec1)
 
@@ -167,6 +167,44 @@ if __name__ == '__main__':
         success += confusion[i, i] / len(test.data)
     print(confusion)
     print(success)
+
+
+    post_training_epochs = 10
+    acc = np.zeros(post_training_epochs)
+    conv = np.zeros(post_training_epochs)
+    simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc, input_period=1, batch_size=50)
+    L1 = Rstdp(eta_up=0.005,
+                             eta_down=-0.005,
+                             anti_eta_up=-0.001,
+                             anti_eta_down=0.001,
+                             mp=True)
+    L2 = Rstdp(eta_up=0.005,
+                             eta_down=-0.005,
+                             anti_eta_up=-0.0015,
+                             anti_eta_down=0.0015,
+                             mp=True)
+    c1.wmax = 0.4
+    c2.wmax = 0.4
+    for epoch in range(post_training_epochs):
+        # b1.set_learner(L1)
+        b2.set_learner(L2)
+        simtrain.run(len(train.data))
+        model.restore()
+        b1.stop_learner()
+        b2.stop_learner()
+        sim.run(len(test.data))
+        # print(d1.get_correlation_matrix())
+        # print(d1.get_accuracy())
+        conv[epoch] = c1.get_convergence() + c2.get_convergence()
+        acc[epoch] = d1.get_accuracy()
+        model.restore()
+
+    plt.figure()
+    plt.plot(conv)
+    plt.figure()
+    plt.plot(acc)
+
+
     print('total time')
     print(int(time.time()-start))
     plt.show()

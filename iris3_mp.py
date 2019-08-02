@@ -67,9 +67,9 @@ if __name__ == '__main__':
     n1 = 50
     n2 = 10
 
-    n_proc = 16
+    n_proc = 3
 
-    iris_ann_generator.run(en1, n1, n2)
+    # iris_ann_generator.run(en1, n1, n2)
 
 
     mpl_logger = log.getLogger('matplotlib')
@@ -83,8 +83,8 @@ if __name__ == '__main__':
     train = FileDataset('datasets/iris/iris - train.csv', size=data_size, randomized=True)
     test = FileDataset('datasets/iris/iris - test.csv', size=data_size)
 
-    t1 = np.linspace(0, 2, 50)
-    t2 = np.linspace(0, 2, 50)
+    t1 = np.linspace(0.5, 2, 20)
+    t2 = np.linspace(0.5, 2, 20)
     success_map = np.zeros((len(t1), len(t2)))
     th_list = np.zeros((len(t1) * len(t2), 2))
     succ_list = np.zeros(len(t1) * len(t2))
@@ -165,11 +165,12 @@ if __name__ == '__main__':
     success = 0
     for i in range(3):
         success += confusion[i, i] / len(test.data)
+
     print(confusion)
     print(success)
 
 
-    post_training_epochs = 200
+    post_training_epochs = 100
     acc = np.zeros(post_training_epochs)
     conv = np.zeros(post_training_epochs)
     simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc, input_period=1, batch_size=50)
@@ -186,7 +187,7 @@ if __name__ == '__main__':
     c1.wmax = 0.4
     c2.wmax = 0.4
     for epoch in range(post_training_epochs):
-        b1.set_learner(L1)
+        # b1.set_learner(L1)
         b2.set_learner(L2)
         simtrain.run(len(train.data))
         model.restore()
@@ -199,7 +200,9 @@ if __name__ == '__main__':
         acc[epoch] = d1.get_accuracy()
 
         model.restore()
+    plt.figure()
     plt.plot(conv)
+    # plt.figure()
     plt.plot(acc)
 
 
