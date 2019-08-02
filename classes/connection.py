@@ -295,6 +295,12 @@ class Connection(SimulationObject):
         for con in self.connection_list:
             con.weights.matrix.saturate_weights(wmin=self.wmin, wmax=self.wmax, threshold=threshold)
 
+    def set_max_weight(self, wmax):
+        if self.active:
+            self.wmax = wmax
+        else:
+            for con in self.connection_list:
+                con.set_max_weight(wmax)
 
 class DiagonalConnection(Connection):
     

@@ -35,22 +35,26 @@ def chunks(l, n):
     return (l[i:i+n] for i in range(0, len(l), n))
 
 def test_mp(queue, thresholds, model, dataset):
-    my_model = copy.deepcopy(model)
-    my_dataset = copy.deepcopy(dataset)
-    sim = Simulator(my_model, dt=0.01, input_period=1, dataset=my_dataset)
-    my_model.objects[Decoder][0].dataset = my_dataset
-    success_map = np.zeros(len(thresholds))
-    for ith, th in enumerate(thresholds):
-        for ilay, layer in enumerate(th):
-            my_model.objects[Bloc][ilay + 1].set_threshold(th[ilay])
-        sim.run(len(my_dataset.data))
-        confusion = my_model.objects[Decoder][0].get_correlation_matrix()
-        success = 0
-        for i in range(my_dataset.n_cats):
-            success += confusion[i, i]/len(my_dataset.data)
-        success_map[ith] = success
-        my_model.restore()
-    queue.put(success_map)
+    try:
+        my_model = copy.deepcopy(model)
+        my_dataset = copy.deepcopy(dataset)
+        sim = Simulator(my_model, dt=0.01, input_period=1, dataset=my_dataset)
+        my_model.objects[Decoder][0].dataset = my_dataset
+        success_map = np.zeros(len(thresholds))
+        for ith, th in enumerate(thresholds):
+            for ilay, layer in enumerate(th):
+                my_model.objects[Bloc][ilay + 1].set_threshold(th[ilay])
+            sim.run(len(my_dataset.data))
+            confusion = my_model.objects[Decoder][0].get_correlation_matrix()
+            success = 0
+            for i in range(my_dataset.n_cats):
+                success += confusion[i, i]/len(my_dataset.data)
+            success_map[ith] = success
+            my_model.restore()
+        queue.put(success_map)
+    except:
+        print('process error')
+        queue.put([])
 
 
 
@@ -69,7 +73,7 @@ if __name__ == '__main__':
     n1 = 150
     dec1 = 10
 
-    n_proc = 16
+    n_proc = 10
 
     heart_ann_generator_2.run(en1, n1, dec1)
 
@@ -83,8 +87,8 @@ if __name__ == '__main__':
     train = FileDataset('datasets/heart/heart - train.csv', size=data_size, randomized=True)
     test = FileDataset('datasets/heart/heart - test.csv', size=data_size)
 
-    t1 = np.linspace(0, 4, 100)
-    t2 = np.linspace(0, 2, 100)
+    t1 = np.linspace(0.3, 1.5, 30)
+    t2 = np.linspace(0.3, 1, 30)
     success_map = np.zeros((len(t1), len(t2)))
     th_list = np.zeros((len(t1) * len(t2), 2))
     succ_list = np.zeros(len(t1) * len(t2))
@@ -97,7 +101,7 @@ if __name__ == '__main__':
     last_time = time.time()
     # Helper.print_progress(0, len(t1)*len(t2), "testing thresholds ", bar_length=30)
     model = Network()
-    e1 = EncoderGFR(size=data_size, depth=en1, in_min=0, in_max=1, threshold=0.9, gamma=1.5, delay_max=1,# spike_all_last=True
+    e1 = EncoderGFR(size=data_size, depth=en1, in_min=0, in_max=1, threshold=0.9, gamma=1, delay_max=1,# spike_all_last=True
                     )
     # node = Node(e1)
     b1 = Bloc(depth=1, size=n1, neuron_type=IF(threshold=0))
@@ -169,40 +173,57 @@ if __name__ == '__main__':
     print(success)
 
 
-    post_training_epochs = 10
+    post_training_epochs = 100
+    dt = 0.001
     acc = np.zeros(post_training_epochs)
     conv = np.zeros(post_training_epochs)
-    simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc, input_period=1, batch_size=50)
-    L1 = Rstdp(eta_up=0.005,
+    simtrain = SimulatorMp(model, dt=dt, dataset=train, processes=n_proc, input_period=1, batch_size=150)
+    L1 = SimplifiedSTDP(eta_up=0.005,
                              eta_down=-0.005,
-                             anti_eta_up=-0.001,
-                             anti_eta_down=0.001,
+                             # anti_eta_up=-0.001,
+                             # anti_eta_down=0.001,
                              mp=True)
     L2 = Rstdp(eta_up=0.005,
                              eta_down=-0.005,
                              anti_eta_up=-0.0015,
                              anti_eta_down=0.0015,
-                             mp=True)
-    c1.wmax = 0.4
-    c2.wmax = 0.4
+                             mp=True,
+                             wta=False
+               )
+    c1.set_max_weight(0.3)
+    c2.set_max_weight(0.3)
+    wprobe = ConnectionProbe(c2)
+    wlog = []
     for epoch in range(post_training_epochs):
-        # b1.set_learner(L1)
+        b1.set_learner(L1)
         b2.set_learner(L2)
+
         simtrain.run(len(train.data))
+        # print(wprobe.get_data(0))
         model.restore()
         b1.stop_learner()
         b2.stop_learner()
         sim.run(len(test.data))
         # print(d1.get_correlation_matrix())
         # print(d1.get_accuracy())
-        conv[epoch] = c1.get_convergence() + c2.get_convergence()
+        # conv[epoch] = c2.get_convergence()
         acc[epoch] = d1.get_accuracy()
         model.restore()
 
-    plt.figure()
-    plt.plot(conv)
+    # b2.set_learner(L2)
+    # simtrain.run(len(train.data) * post_training_epochs)
+    # wprobe.plot()
+    # b2.stop_learner()
+    # sim.run(len(test.data))
+    # print(d1.get_accuracy())
+    # print(d1.get_correlation_matrix())
+
+    # plt.figure()
+    # plt.plot(conv)
+    # plt.title('Convergence')
     plt.figure()
     plt.plot(acc)
+    plt.title('Accuracy')
 
 
     print('total time')
