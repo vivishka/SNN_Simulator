@@ -7,7 +7,7 @@ from classes.base import Helper
 from classes.network import Network
 from classes.neuron import LIF, IF
 from classes.neuron import PoolingNeuron
-from classes.layer import Bloc, Ensemble
+from classes.layer import *
 from classes.simulator import Simulator, SimulatorMp
 from classes.connection import *
 from classes.probe import *
@@ -73,59 +73,56 @@ if __name__ == '__main__':
     n1 = 150
     dec1 = 10
 
-    n_proc = 3
+    n_proc = 15
 
     target_acc = 0.75
 
     finished = False
+
+    # filename = 'datasets/heart.csv'
+    data_size = 13
+
+
+
+    train = FileDataset('datasets/heart/heart - train.csv', size=data_size, randomized=True)
+    test = FileDataset('datasets/heart/heart - test.csv', size=data_size)
+
+    t1 = np.linspace(0.5, 1.5, 5)
+    t2 = np.linspace(0.5, 1, 5)
+    success_map = np.zeros((len(t1), len(t2)))
+    th_list = np.zeros((len(t1) * len(t2), 2))
+    succ_list = np.zeros(len(t1) * len(t2))
+
+    for th in range(len(t1) * len(t2)):
+        th_list[th] = [t1[th//len(t2)], t2[th % len(t2)]]
+
+    split = [th_list[i:i+math.ceil(len(th_list)/n_proc)] for i in range(0, len(th_list), math.ceil(len(th_list)/n_proc))]
+    # sim.enable_time(True)
+    last_time = time.time()
+    # Helper.print_progress(0, len(t1)*len(t2), "testing thresholds ", bar_length=30)
+    model = Network()
+    e1 = EncoderGFR(size=data_size, depth=en1, in_min=0, in_max=1, threshold=0.9, gamma=1, delay_max=1,# spike_all_last=True
+                    )
+    # node = Node(e1)
+    b1 = Bloc(depth=1, size=n1, neuron_type=IF(threshold=0))
+    c1 = Connection(e1, b1, mu=0.6, sigma=0.05)
+    c1.load(np.load('c1.npy'))
+
+    b2 = Bloc(depth=1, size=dec1 * 2, neuron_type=IF(threshold=0))
+    c2 = Connection(b1, b2, mu=0.6, sigma=0.05)
+    c2.load(np.load('c2.npy'))
+    b2.set_inhibition(wta=True, radius=(0, 0))
+
+    d1 = DecoderClassifier(size=2)
+
+    c3 = Connection(b2, d1, kernel_size=1, mode='split')
+
+    sim = Simulator(model=model, dataset=train, dt=0.01, input_period=1)
+    model.build()
+
     for _ in range(10):
 
-
         heart_ann_generator_2.run(en1, n1, dec1)
-
-
-
-        # filename = 'datasets/heart.csv'
-        data_size = 13
-
-
-
-        train = FileDataset('datasets/heart/heart - train.csv', size=data_size, randomized=True)
-        test = FileDataset('datasets/heart/heart - test.csv', size=data_size)
-
-        t1 = np.linspace(0.5, 1.5, 5)
-        t2 = np.linspace(0.5, 1, 5)
-        success_map = np.zeros((len(t1), len(t2)))
-        th_list = np.zeros((len(t1) * len(t2), 2))
-        succ_list = np.zeros(len(t1) * len(t2))
-
-        for th in range(len(t1) * len(t2)):
-            th_list[th] = [t1[th//len(t2)], t2[th % len(t2)]]
-
-        split = [th_list[i:i+math.ceil(len(th_list)/n_proc)] for i in range(0, len(th_list), math.ceil(len(th_list)/n_proc))]
-        # sim.enable_time(True)
-        last_time = time.time()
-        # Helper.print_progress(0, len(t1)*len(t2), "testing thresholds ", bar_length=30)
-        model = Network()
-        e1 = EncoderGFR(size=data_size, depth=en1, in_min=0, in_max=1, threshold=0.9, gamma=1, delay_max=1,# spike_all_last=True
-                        )
-        # node = Node(e1)
-        b1 = Bloc(depth=1, size=n1, neuron_type=IF(threshold=0))
-        c1 = Connection(e1, b1, mu=0.6, sigma=0.05)
-        c1.load(np.load('c1.npy'))
-
-        b2 = Bloc(depth=1, size=dec1 * 2, neuron_type=IF(threshold=0))
-        c2 = Connection(b1, b2, mu=0.6, sigma=0.05)
-        c2.load(np.load('c2.npy'))
-        b2.set_inhibition(wta=True, radius=(0, 0))
-
-        d1 = DecoderClassifier(size=2)
-
-        c3 = Connection(b2, d1, kernel_size=1, mode='split')
-
-        sim = Simulator(model=model, dataset=train, dt=0.01, input_period=1)
-        model.build()
-
         workers = []
         queues = [mp.Queue() for _ in range(n_proc)]
 
@@ -202,7 +199,7 @@ if __name__ == '__main__':
         wlog = []
         Helper.print_progress(0, post_training_epochs, "Post training RSTDP:")
         for epoch in range(post_training_epochs):
-            b1.set_learner(L1)
+            # b1.set_learner(L1)
             b2.set_learner(L2)
 
             simtrain.run(len(train.data))
@@ -222,7 +219,11 @@ if __name__ == '__main__':
                 finished = True
                 print("\nAccuracy reached: interrupted")
                 sim.save("trained_heart_2.w")
+                plt.figure()
+                plt.plot(acc)
                 break
+        plt.figure()
+        plt.plot(acc)
 
     # b2.set_learner(L2)
     # simtrain.run(len(train.data) * post_training_epochs)
@@ -235,8 +236,7 @@ if __name__ == '__main__':
     # plt.figure()
     # plt.plot(conv)
     # plt.title('Convergence')
-    plt.figure()
-    plt.plot(acc)
+
     plt.title('Accuracy')
 
 
