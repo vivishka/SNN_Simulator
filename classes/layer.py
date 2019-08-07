@@ -2,6 +2,9 @@ import numpy as np
 import copy
 import logging as log
 from .base import SimulationObject, Helper, MeasureTiming
+from .neuron import NeuronType
+from .connection import *
+from .learner import Learner
 import sys
 sys.dont_write_bytecode = True
 
