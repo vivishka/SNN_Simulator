@@ -73,12 +73,12 @@ if __name__ == '__main__':
     n1 = 150
     dec1 = 10
 
-    n_proc = 13
+    n_proc = 3
 
     target_acc = 0.75
 
     finished = False
-    while not finished:
+    for _ in range(10):
 
 
         heart_ann_generator_2.run(en1, n1, dec1)
@@ -93,8 +93,8 @@ if __name__ == '__main__':
         train = FileDataset('datasets/heart/heart - train.csv', size=data_size, randomized=True)
         test = FileDataset('datasets/heart/heart - test.csv', size=data_size)
 
-        t1 = np.linspace(0.5, 1.5, 30)
-        t2 = np.linspace(0.5, 1, 30)
+        t1 = np.linspace(0.5, 1.5, 5)
+        t2 = np.linspace(0.5, 1, 5)
         success_map = np.zeros((len(t1), len(t2)))
         th_list = np.zeros((len(t1) * len(t2), 2))
         succ_list = np.zeros(len(t1) * len(t2))
@@ -179,7 +179,7 @@ if __name__ == '__main__':
         print(success)
 
 
-        post_training_epochs = 100
+        post_training_epochs = 3
         dt = 0.001
         acc = np.zeros(post_training_epochs)
         conv = np.zeros(post_training_epochs)
