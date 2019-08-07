@@ -2,9 +2,6 @@ import numpy as np
 import copy
 import logging as log
 from .base import SimulationObject, Helper, MeasureTiming
-from .neuron import NeuronType
-from .connection import Connection
-from .learner import Learner
 import sys
 sys.dont_write_bytecode = True
 
@@ -169,11 +166,26 @@ class Ensemble(Layer):
     # <inhibition region>
 
     def set_inhibition(self, wta=True, k_wta_level=1):
+        """
+        Activates the inhibition feature
+        :param wta: winner takes all inhibition mode, only one neuron can spike per ensemble per input cycle
+        :type wta: bool
+        :param k_wta_level: the k first neurons are allowed to spike
+        :type k_wta_level: int
+        :return:
+        """
         self.inhibition = True
         self.wta = wta
         self.k_wta_level = k_wta_level
 
     def inhibit(self, index_2d_n, radius):
+        """
+        Inhibit all the neurons in a radius around the one which spiked
+        :param index_2d_n: position of the neuron which spiked
+        :type index_2d_n: (int, int)
+        :param radius: radius to inhibit, it's actually not a radius because the inhibition shape is a square
+        :type radius: (int, int)
+        """
         if radius[0] == -1:
             return
         for row in range(index_2d_n[0] - radius[0], index_2d_n[0] + radius[0] + 1):
@@ -190,6 +202,12 @@ class Ensemble(Layer):
     # <spike region>
 
     def create_spike(self, index_1d):
+        """
+        Registers the neuron spike for the connection and the learner
+        Neurons call this method when they spike
+        :param index_1d: neuron index in the list
+        :type index_1d: int
+        """
         if self.wta:
             # stores the first neurons to spike
             voltage = self.neuron_list[index_1d].voltage
@@ -207,6 +225,14 @@ class Ensemble(Layer):
                 self.learner.out_spike(index_1d)
 
     def receive_spike(self, targets, source_c):
+        """
+        Propagates received weighted spike list to the neurons
+        :param targets: list of (source neuron index, dest neuron index, weight)
+        :type targets: list of (int, int, float)
+        :param source_c: connection which transmitted the spikes
+        :type source_c: Connection
+        :return:
+        """
         for target in targets:
             # target: (source_index_1d, dest_index_1d, weight)
             dest_n = self.neuron_list[target[1]]

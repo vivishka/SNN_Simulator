@@ -239,9 +239,8 @@ class IF(NeuronType):
 
 class PoolingNeuron(NeuronType):
     """
-    once it receive a spike, from any of its dendrite, propagate it
-    if configured as Winner Takes it All (wta), only the first spike
-    is transmitted per input cycle
+    When the pooling neuron receive a spike from any of its dendrite, it propagates it
+    Only the first spike is transmitted per input cycle
     Parameters
     ----------
 

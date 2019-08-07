@@ -8,22 +8,20 @@ class CompactMatrix(object):
 
     Parameters
     ----------
-    mat: np.ndarray.
-        Dense matrix containing the weights an a lot of zeros
+    :param mat: Dense matrix containing the weights and a lot of zeros
+    :type mat: object np.ndarray
 
     Attributes
     ----------
-    matrix: list[list[(int, int, float)]]
-         Compact representation of the matrix
-         redundancy is used to speed up the spike propagation
-    shape : (int, int)
-        shape of the matrix: (dim source ensemble, dim dest ensemble)
-    size: int
-        the number of non zero coefficient in the matrix
-    sparse: boolean
-        Is the matrix sparse or dense
+    :ivar matrix: Compact representation of the matrix, redundancy is used to speed up the spike propagation
+    :type matrix: list of list of (int, int, float)
+    :ivar shape: shape of the matrix: (dim source ensemble, dim dest ensemble)
+    :type shape: (int, int)
+    :ivar size: the number of non zero coefficient in the matrix
+    :type size: int
+    :ivar sparse: is the matrix sparse or dense
+    :type sparse: boolean
     """
-
     def __init__(self, mat):
         self.shape = mat.shape
         self.size = len(mat.nonzero()[0])
@@ -37,6 +35,10 @@ class CompactMatrix(object):
             self.matrix.append(row)
 
     def to_dense(self):
+        """
+        transform the sparse matrix in a dense matrix
+        :return: the dense matrix
+        """
         mat = np.zeros(self.shape)
         for row in self.matrix:
             for data in row:
@@ -44,6 +46,14 @@ class CompactMatrix(object):
         return mat
 
     def __getitem__(self, item):
+        """
+        Getter for the matrix
+        the whole line return is used when a neuron spike and all the connected neurons needs to be notified
+        :param item: the line or position of the weight
+        :type item: int or (int, int)
+        :return: the whole line of (source, dest, weight) if index is int
+            a single (source, dest, weight) if index is tuple
+        """
         if isinstance(item, int):
             return self.matrix[item]
         elif isinstance(item, tuple) and len(item) == 2:
@@ -54,29 +64,39 @@ class CompactMatrix(object):
                     return data[2]
         return 0
 
-    def __setitem__(self, key, value):
-        if isinstance(key, int):
-            self.matrix = value
-        elif isinstance(key, tuple) and len(key) == 2:
-            row = self.matrix[key[0]]
+    def __setitem__(self, index, value):
+        """
+        Setter for the matrix
+        If the weight does not exist at this index, it will create a new link and set its weight
+        :param index: index
+        :type index: int
+        :param value: new value
+        :type value: float
+        :return:
+        """
+        if isinstance(index, tuple) and len(index) == 2:
+            row = self.matrix[index[0]]
             for j, data in enumerate(row):
                 # if dest index weight already exist
-                if data[1] == key[1]:
-                    row[j] = (key[0], key[1], value)
+                if data[1] == index[1]:
+                    row[j] = (index[0], index[1], value)
                     return
                 # if non existent
-                elif data[1] > key[1]:
+                elif data[1] > index[1]:
                     # add the weight
-                    row.insert(j, (key[0], key[1], value))
+                    row.insert(j, (index[0], index[1], value))
                     self.size += 1
                     return
 
     def get_kernel(self, index, length, kernel_size):
         """
         rebuild the kernel weights
-        :param index: int or (int, int). Center neuron index
+        :param index: index of the neuron a the center of the kernel
+        :type index: int or (int, int)
         :param length: Length of the layer (dimension 0)
-        :param kernel_size: (int, int).
+        :type length: int
+        :param kernel_size: dimension of kernel
+        :type kernel_size: (int, int)
         :return: np.ndarray containing the extracted weights around the index
         """
         kernel = np.zeros(kernel_size)
@@ -100,6 +120,15 @@ class CompactMatrix(object):
         return kernel
 
     def add(self, other, min_weight, max_weight):
+        """
+        Add a scalar to all the weights of the matrix, then clip them between a min and a max
+        :param other: the number to add to the matrix
+        :type other: float or int
+        :param min_weight: minimum value of the weight
+        :type min_weight: float
+        :param max_weight: maximum value of the weight
+        :type max_weight: float
+        """
         # only works for scalar
         if isinstance(other, (float, int)):
 
@@ -113,13 +142,27 @@ class CompactMatrix(object):
             raise Exception("CompactMatrix add bad operand")
 
     def get_all_weights(self):
-        mat = []
+        """
+        Extract all the weight of the matrix in a list
+        :return: weight list
+        :rtype: list of float
+        """
+        weight_list = []
         for row in self.matrix:
             for data in row:
-                mat.append(data[2])
-        return mat
+                weight_list.append(data[2])
+        return weight_list
 
     def saturate_weights(self, wmin, wmax, threshold):
+        """
+        Makes the weights of the matrix binary
+        :param wmin: value of category 1ow
+        :type wmin: float
+        :param wmax: value of category high
+        :type wmax: float
+        :param threshold: threshold which separates the categories
+        :type threshold: float
+        """
         for row in self.matrix:
             for col, target in enumerate(row):
                 row[col] = target[:-1] + (wmin if target[-1] < threshold else wmax,)
@@ -127,23 +170,19 @@ class CompactMatrix(object):
 
 class SharedCompactMatrix(CompactMatrix):
     """
-        Sparse way of storing the weights for a convolutional connection
-        the matrix stores the index of the weight in the kernel instead of the weight itself
+    Sparse way of storing the weights for a convolutional connection
+    the matrix stores the index of the weight in the kernel instead of the weight itself
 
-        Parameters
-        ----------
-        mat: np.ndarray.
-            Dense matrix containing the weights an a lot of zeros
+    Parameters
+    ----------
+    :param mat: Dense matrix containing the index of the weights and a lot of zeros
+    :type mat: object np.ndarray
+    :param kernel: shared kernel for the connection
+    :type kernel: object np.ndarray
 
-        Attributes
-        ----------
-        super.matrix: list[list[(int, int, (int, int))]]
-             Compact representation of the matrix
-             redundancy is used to speed up the spike propagation
-
-        kernel: np.ndarray
-            kernel shared by the whole connection
-        """
+    Attributes
+    ----------
+    """
     def __init__(self, mat, kernel):
         super(SharedCompactMatrix, self).__init__(mat)
         self.kernel = kernel
@@ -152,6 +191,14 @@ class SharedCompactMatrix(CompactMatrix):
         return self.kernel
 
     def __getitem__(self, item):
+        """
+        Getter for the matrix, use the index stored in the matrix with the wight in the kernel
+        the whole line return is used when a neuron spike and all the connected neurons needs to be notified
+        :param item: the line or position of the weight
+        :type item: int or (int, int)
+        :return: the whole line of (source, dest, kernel weight) if index is int
+            a single (source, dest, kernel weight) if index is tuple
+        """
         if isinstance(item, int):
             return [(d[0], d[1], self.kernel[d[2]]) for d in self.matrix[item]]
         elif isinstance(item, tuple) and len(item) == 2:
@@ -161,16 +208,32 @@ class SharedCompactMatrix(CompactMatrix):
                     return self.kernel[data[2]]
         return 0
 
-    def __setitem__(self, key, value):
-        if isinstance(key, tuple) and len(key) == 2:
-            row = self.matrix[key[0]]
+    def __setitem__(self, index, value):
+        """
+        Setter for the kernel matrix
+        :param index: index
+        :type index: tuple
+        :param value: new value
+        :type value: float
+        :return:
+        """
+        if isinstance(index, tuple) and len(index) == 2:
+            row = self.matrix[index[0]]
             for j, data in enumerate(row):
-                if data[1] == key[1]:
+                if data[1] == index[1]:
                     self.kernel[data[2]] = value
                     return
 
     def add(self, other, min_weight, max_weight):
-        # only works for scalar
+        """
+        Add a scalar to all the weights of the matrix, then clip them between a min and a max
+        :param other: the number to add to the matrix
+        :type other: float or int
+        :param min_weight: minimum value of the weight
+        :type min_weight: float
+        :param max_weight: maximum value of the weight
+        :type max_weight: float
+        """
         if isinstance(other, (float, int)):
 
             for row in self.kernel.shape[0]:
@@ -183,13 +246,27 @@ class SharedCompactMatrix(CompactMatrix):
             raise Exception("CompactMatrix add bad operand")
 
     def get_all_weights(self):
-        mat = []
+        """
+        Extract all the weight of the matrix in a list
+        :return: weight list
+        :rtype: list of float
+        """
+        weight_list = []
         for row in self.kernel:
             for data in row:
-                mat.append(data)
-        return mat
+                weight_list.append(data)
+        return weight_list
 
     def saturate_weights(self, wmin, wmax, threshold):
+        """
+        Makes the weights of the matrix binary
+        :param wmin: value of category 1ow
+        :type wmin: float
+        :param wmax: value of category high
+        :type wmax: float
+        :param threshold: threshold which separates the categories
+        :type threshold: float
+        """
         for row in self.kernel.shape[0]:
             for col in self.kernel.shape[1]:
                 self.kernel[row, col] = wmin if self.kernel[row, col] < threshold else wmax
@@ -197,21 +274,16 @@ class SharedCompactMatrix(CompactMatrix):
 
 class DenseCompactMatrix(CompactMatrix):
     """
-        Sparse way of storing the weights for a convolutional connection
-        the matrix stores the index of the weight in the kernel instead of the weight itself
+    Classical way of storing the weights for a dense connection
 
-        Parameters
-        ----------
-        mat: np.ndarray.
-            Dense matrix containing the weights an a lot of zeros
+    Parameters
+    ----------
+    :param mat: Dense matrix containing the weights and no zeros
+    :type mat: object np.ndarray
 
-        Attributes
-        ----------
-        super.matrix: np.ndarray[int, int, float]
-             dense representation of the matrix
-             redundancy is used to speed up the spike propagation
-
-        """
+    Attributes
+    ----------
+    """
     def __init__(self, mat):
         super(DenseCompactMatrix, self).__init__(mat)
         self.size = np.prod(self.shape)
@@ -223,6 +295,10 @@ class DenseCompactMatrix(CompactMatrix):
                 self.matrix[i, j] = (i, j, mat[i, j])
 
     def to_dense(self):
+        """
+        transform the sparse matrix in a dense matrix
+        :return: the dense matrix
+        """
         mat = np.zeros(self.shape)
         for row in range(self.shape[0]):
             for col in range(self.shape[1]):
@@ -230,24 +306,47 @@ class DenseCompactMatrix(CompactMatrix):
         return mat
 
     def __getitem__(self, item):
+        """
+        Getter for the matrix
+        the whole line return is used when a neuron spike and all the connected neurons needs to be notified
+        :param item: the line or position of the weight
+        :type item: int or (int, int)
+        :return: the whole line of (source, dest, weight) if index is int
+            a single (source, dest, weight) if index is tuple
+        """
         if isinstance(item, int):
             return self.matrix[item]
         elif isinstance(item, tuple) and len(item) == 2:
             return self.matrix[item][2]
         return 0
 
-    def __setitem__(self, key, value):
-        if isinstance(key, int):
-            self.matrix[key] = value
-        elif isinstance(key, tuple) and len(key) == 2:
-            self.matrix[key] = (key[0], key[1], value)
+    def __setitem__(self, index, value):
+        """
+        Setter for the matrix
+        :param index: index
+        :type index: int
+        :param value: new value
+        :type value: float
+        :return:
+        """
+        if isinstance(index, tuple) and len(index) == 2:
+            self.matrix[index] = (index[0], index[1], value)
 
     def add(self, other, min_weight, max_weight):
+        """
+        Add a scalar to all the weights of the matrix, then clip them between a min and a max
+        :param other: the number to add to the matrix
+        :type other: float or int
+        :param min_weight: minimum value of the weight
+        :type min_weight: float
+        :param max_weight: maximum value of the weight
+        :type max_weight: float
+        """
         # only works for scalar
         if isinstance(other, (float, int)):
 
-            for row in self.shape[0]:
-                for col in self.shape[1]:
+            for row in range(self.shape[0]):
+                for col in range(self.shape[1]):
 
                     data = self.matrix[row, col]
                     # clamping
