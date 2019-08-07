@@ -339,7 +339,7 @@ class Rstdp(Learner):
             dataset used as input for the network. Labels are used to compare with the output
         """
 
-    def __init__(self, eta_up=0.1, eta_down=-0.1, anti_eta_up=-0.1, anti_eta_down=0.1, mp=False, wta=True, size_cat=None):
+    def __init__(self, eta_up=0.1, eta_down=-0.1, anti_eta_up=-0.1, anti_eta_down=0.1, mp=False, wta=True, size_cat=None, k_error=0.1   ):
         super(Rstdp, self).__init__(eta_up=eta_up, eta_down=eta_down, mp=mp)
         self.anti_eta_up = anti_eta_up
         self.anti_eta_down = anti_eta_down
@@ -368,8 +368,17 @@ class Rstdp(Learner):
                 output_value = self.out_spikes[experiment_index][0][1]
             target_value = self.dataset.labels[self.dataset.index]
             # print(output_value, target_value)
-            a_p = self.eta_up if output_value == target_value else self.anti_eta_up
-            a_n = self.eta_down if output_value == target_value else self.anti_eta_down
+            if output_value == target_value:
+                a_p = self.eta_up
+                a_n = self.eta_down
+                error = 0
+            else:
+                a_p = self.anti_eta_up
+                a_n = self.anti_eta_down
+                for out in self.out_spikes[experiment_index]:
+                    if out[1] == target_value:
+                        error = out[0] - self.out_spikes[experiment_index][0][0]
+
 
             # if wta: only the first spike leads to learning
             # else, each spike received leads to learning
