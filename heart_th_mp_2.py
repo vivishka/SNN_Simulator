@@ -104,11 +104,10 @@ if __name__ == '__main__':
     # node = Node(e1)
     b1 = Bloc(depth=1, size=n1, neuron_type=IF(threshold=0))
     c1 = Connection(e1, b1, mu=0.6, sigma=0.05)
-    c1.load(np.load('c1.npy'))
 
     b2 = Bloc(depth=1, size=dec1 * 2, neuron_type=IF(threshold=0))
     c2 = Connection(b1, b2, mu=0.6, sigma=0.05)
-    c2.load(np.load('c2.npy'))
+
     b2.set_inhibition(wta=True, radius=(0, 0))
 
     d1 = DecoderClassifier(size=2)
@@ -119,8 +118,9 @@ if __name__ == '__main__':
     model.build()
 
     for _ in range(10):
-
         heart_ann_generator_2.run(en1, n1, dec1)
+        c1.load(np.load('c1.npy'))
+        c2.load(np.load('c2.npy'))
         workers = []
         queues = [mp.Queue() for _ in range(n_proc)]
 
