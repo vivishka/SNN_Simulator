@@ -73,11 +73,9 @@ if __name__ == '__main__':
     n1 = 150
     dec1 = 10
 
-    n_proc = 15
+    n_proc = 3
 
     target_acc = 0.75
-
-    finished = False
 
     # filename = 'datasets/heart.csv'
     data_size = 13
