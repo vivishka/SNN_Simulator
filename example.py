@@ -63,14 +63,13 @@ Helper.init_logging('main.log', log.INFO, ['Simulator'])
 
 for i in range(1):
     model = Network()
-    n_nodes = 4
-    n_int = 10
+    n_nodes = 5
+    n_int = 20
     n_out = 2
-    dataset = VectorDataset(size=2000, generator=exp1generator)
+    dataset = VectorDataset(size=2000, generator=exp2generator)
     # exp2_dataset = VectorDataset(size=2000, generator=exp2generator)
     # dataset = VectorDataset(size=20, generator=exp3generator)
-    e1 = EncoderGFR(depth=n_nodes, size=1, in_min=0, in_max=1, delay_max=1, gamma=1., threshold=0.9)
-    n1 = Node(e1, dataset)
+    e1 = EncoderGFR(depth=n_nodes, size=2, in_min=0, in_max=1, delay_max=1, gamma=1., threshold=0.9)
     # b1 = Bloc(1, n_int, LIF(threshold=0.8, tau=20),
     #          learner=
     #          Learner(
@@ -86,32 +85,31 @@ for i in range(1):
               learner=Rstdp(
                   eta_up=0.03,
                   eta_down=-0.03,
-                  anti_eta_up=-0.03,
-                  anti_eta_down=0.01,
+                  anti_eta_up=-0.003,
+                  anti_eta_down=0.003,
                   wta=False
               )
               )
     # b1.set_inhibition(0)
-    b1.set_dataset(dataset)
-    d1 = Decoder(n_nodes)
-    d2 = DecoderClassifier(n_out, dataset)
-    c1 = Connection(e1, b1, wmin=0, wmax=0.8)
-    c2 = DiagonalConnection(e1, d1)
-    c3 = Connection(b1, d2, wmin=0, wmax=0.4, kernel=1)
+
+    d2 = DecoderClassifier(n_out)
+    c1 = Connection(e1, b1, wmin=0, wmax=1, mu=0.7, sigma=0.05)
+    c3 = Connection(b1, d2, wmin=0, wmax=1, kernel=1)
 
     np1 = NeuronProbe(b1[0], 'voltage')
     cp1 = ConnectionProbe(c1)
 
-    sim = Simulator(model, 0.02, input_period=1, batch_size=2)
-    sim.run(1800, monitor_connection=c1, convergence_threshold=0.0005)
+    sim = Simulator(model=model, dt=0.01, input_period=1, batch_size=50, dataset=dataset)
+    sim.enable_time(True)
+    sim.run(1800)
     np1.plot('voltage')
     # Helper.init_logging('main2.log', log.DEBUG, ['All'])
+    c1.saturate_weights(0.8)
     sim.save('main_trained.w')
-    sim.flush()
     model.restore()
     sim.load('main_trained.w')
-    b1[0].learner.active = False
-    b1.set_inhibition(0)
+    b1.stop_learner()
+    b1.set_inhibition(wta=True)
 
     # dataset_test = VectorDataset(size=200, generator=exp3generator)
     # d2.dataset = dataset_test
@@ -124,7 +122,8 @@ for i in range(1):
     # exp3_dataset.plot('Labels')
     # np1.plot('voltage')
     # np2.plot('voltage')
-    print(d2.get_correlation_matrix() * 10)
+    print(d2.get_correlation_matrix())
+    print(d2.get_accuracy())
     # print(d3.get_correlation_matrix())
     #
 

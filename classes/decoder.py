@@ -200,6 +200,7 @@ class DecoderClassifier(Decoder):
         return correct / len(self.decoded_wta)
 
 
+
 class DigitSpykeTorch(Decoder):
 
     def __init__(self, size):
