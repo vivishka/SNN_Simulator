@@ -220,8 +220,9 @@ if __name__ == '__main__':
             Helper.print_progress(epoch+1, post_training_epochs, "Post training RSTDP:", 'last accuracy: {}'.format(acc[epoch]))
             if acc[epoch] > target_acc and acc[epoch] < acc[epoch-1]:
                 finished = True
-                print("Accuracy reached: interrupted")
-                continue
+                print("\nAccuracy reached: interrupted")
+                sim.save("trained_heart_2.w")
+                break
 
     # b2.set_learner(L2)
     # simtrain.run(len(train.data) * post_training_epochs)
