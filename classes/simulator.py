@@ -398,7 +398,6 @@ class SimulatorMp(Simulator):
             dataset.index = 0
             dataset.data = data
             dataset.labels = labels
-            # print('worker {} run sim'.format(id))
             sim.run(duration=len(data)*input_period)
             Helper.log('Simulator', log.INFO, 'worker {} done, extracting updates'.format(id))
             out = {}
@@ -406,17 +405,11 @@ class SimulatorMp(Simulator):
                 if ens.learner:
                     out = {k: out.get(k, 0) + ens.learner.updates.get(k, 0)
                            for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
-            # print('worker {} finished simulating'.format(id))
             sim.flush()
             pipe.send(out)
-            # print('data sent, waiting updates')
+            while not pipe.poll():
+                time.sleep(0.1)
             update = pipe.recv()
-            # print('worker {} received updates'.format(id))
-            # print(my_model.objects[Connection][1].weights.matrix[0, 0])
-            # try:
-            #     print(update[0][(my_model.objects[Connection][1].id, 0, 0)])
-            # except:
-            #     pass
             for attr, value in update[0].items():
                 sim.connections[attr[0]].update_weight(attr[1], attr[2], value)
             # print(my_model.objects[Connection][1].weights.matrix[0, 0])
