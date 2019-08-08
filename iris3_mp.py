@@ -67,7 +67,7 @@ if __name__ == '__main__':
     n1 = 50
     n2 = 10
 
-    n_proc = 8
+    n_proc = 3
 
     target_acc = 0.99
 
@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     sim = Simulator(model=model, dataset=train, dt=0.01, input_period=1)
     model.build()
-    for exp in range(10):
+    for exp in range(1):
         iris_ann_generator.run(en1, n1, n2)
         c1.load(np.load('c1.npy'))
         c2.load(np.load('c2.npy'))
@@ -176,26 +176,28 @@ if __name__ == '__main__':
         post_training_epochs = 100
         acc = np.zeros(post_training_epochs)
         conv = np.zeros(post_training_epochs)
-        simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc, input_period=1, batch_size=50)
-        L1 = Rstdp(eta_up=0.05,
-                                 eta_down=-0.05,
-                                 anti_eta_up=-0.01,
-                                 anti_eta_down=0.01,
-                                 mp=True)
-        L2 = Rstdp(eta_up=0.05,
-                                 eta_down=-0.05,
-                                 anti_eta_up=-0.015,
-                                 anti_eta_down=0.015,
+        simtrain = SimulatorMp(model, dt=0.01, dataset=train, processes=n_proc, input_period=1, batch_size=20)
+        # L1 = Rstdp(eta_up=0.05,
+        #                          eta_down=-0.05,
+        #                          anti_eta_up=-0.01,
+        #                          anti_eta_down=0.01,
+        #                          mp=True)
+        L2 = SimplifiedSTDP(eta_up=0.005,
+                                 eta_down=-0.005,
+                                 # anti_eta_up=-0.015,
+                                 # anti_eta_down=0.015,
                                  mp=True)
         c1.wmax = 0.3
         c2.wmax = 0.3
+        cp2 = ConnectionProbe(c2)
         Helper.print_progress(0, post_training_epochs, "Post training RSTDP:")
         for epoch in range(post_training_epochs):
             # b1.set_learner(L1)
             b2.set_learner(L2)
             simtrain.run(len(train.data))
             model.restore()
-            b1.stop_learner()
+            # b1.stop_learner()
+
             b2.stop_learner()
             sim.run(len(test.data))
             # print(d1.get_correlation_matrix())
@@ -216,6 +218,7 @@ if __name__ == '__main__':
     # plt.plot(conv)
     # plt.figure()
         plt.plot(acc)
+        cp2.plot()
 
 
     print('total time')
