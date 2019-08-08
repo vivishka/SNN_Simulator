@@ -330,7 +330,7 @@ class Connection(SimulationObject):
                     matrix = self.connection_list[dest_i * nb_source + source_i].weights.matrix
                     for row in range(matrix.shape[0]):
                         for col in range(matrix.shape[1]):
-                            matrix[row][col] = w[row, col]
+                            matrix[row, col] = w[row, col]
 
     def saturate_weights(self, threshold=None):
         """
