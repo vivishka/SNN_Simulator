@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     n_proc = 8
 
-    target_acc = 0.98
+    target_acc = 0.99
 
 
     mpl_logger = log.getLogger('matplotlib')
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     train = FileDataset('datasets/iris/iris - train.csv', size=data_size, randomized=True)
     test = FileDataset('datasets/iris/iris - test.csv', size=data_size)
 
-    t1 = np.linspace(0.5, 2, 20)
+    t1 = np.linspace(0.5, 1, 20)
     t2 = np.linspace(0.5, 2, 20)
     success_map = np.zeros((len(t1), len(t2)))
     th_list = np.zeros((len(t1) * len(t2), 2))
@@ -115,9 +115,7 @@ if __name__ == '__main__':
 
     sim = Simulator(model=model, dataset=train, dt=0.01, input_period=1)
     model.build()
-
-    for _ in range(50):
-
+    for exp in range(10):
         iris_ann_generator.run(en1, n1, n2)
         c1.load(np.load('c1.npy'))
         c2.load(np.load('c2.npy'))
@@ -179,18 +177,18 @@ if __name__ == '__main__':
         acc = np.zeros(post_training_epochs)
         conv = np.zeros(post_training_epochs)
         simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc, input_period=1, batch_size=50)
-        L1 = Rstdp(eta_up=0.005,
-                                 eta_down=-0.005,
-                                 anti_eta_up=-0.001,
-                                 anti_eta_down=0.001,
+        L1 = Rstdp(eta_up=0.05,
+                                 eta_down=-0.05,
+                                 anti_eta_up=-0.01,
+                                 anti_eta_down=0.01,
                                  mp=True)
-        L2 = Rstdp(eta_up=0.005,
-                                 eta_down=-0.005,
-                                 anti_eta_up=-0.0015,
-                                 anti_eta_down=0.0015,
+        L2 = Rstdp(eta_up=0.05,
+                                 eta_down=-0.05,
+                                 anti_eta_up=-0.015,
+                                 anti_eta_down=0.015,
                                  mp=True)
-        c1.wmax = 0.4
-        c2.wmax = 0.4
+        c1.wmax = 0.3
+        c2.wmax = 0.3
         Helper.print_progress(0, post_training_epochs, "Post training RSTDP:")
         for epoch in range(post_training_epochs):
             # b1.set_learner(L1)
@@ -207,7 +205,7 @@ if __name__ == '__main__':
             model.restore()
             Helper.print_progress(epoch + 1, post_training_epochs, "Post training RSTDP:",
                                   'last accuracy: {}'.format(acc[epoch]))
-            if acc[epoch] > target_acc and acc[epoch] < acc[epoch-1]:
+            if acc[epoch] > target_acc and acc[epoch] < acc[epoch - 1]:
                 finished = True
                 print("\nAccuracy reached: interrupted")
                 sim.save("trained_heart_2.w")
@@ -215,11 +213,9 @@ if __name__ == '__main__':
                 plt.plot(acc)
                 break
         plt.figure(2)
-        plt.plot(acc)
-    plt.figure()
     # plt.plot(conv)
     # plt.figure()
-    # plt.plot(acc)
+        plt.plot(acc)
 
 
     print('total time')
