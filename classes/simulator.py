@@ -414,6 +414,7 @@ class SimulatorMp(Simulator):
             except:
                 print("Updates crashed")
                 print(pipe.poll)
+                update = {}
             for attr, value in update[0].items():
                 sim.connections[attr[0]].update_weight(attr[1], attr[2], value)
             # print(my_model.objects[Connection][1].weights.matrix[0, 0])
