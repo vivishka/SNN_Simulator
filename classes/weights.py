@@ -1,5 +1,5 @@
 from .compactmatrix import DenseCompactMatrix, CompactMatrix, SharedCompactMatrix
-from .base import Helper, MeasureTiming
+from .base import Helper
 import copy
 import numpy as np
 import logging as log
@@ -9,13 +9,42 @@ import matplotlib.pyplot as plt
 class Weights(object):
     """
     array of Weights
-    the 1st dimension is the index of the layer
-    the 2nd or 2nd and 3rd are for the index of the neuron
-    """
 
+    Parameters
+    ----------
+    :param source_dim: dimension of the source index
+    :type source_dim: (int, int)
+    :param dest_dim: dimension of the destination index
+    :type dest_dim: (int, int)
+    :param kernel_size: if specified, the kernel linking the 2 layers; if not, layers will be fully connected
+    :type kernel_size: int or (int, int) or None
+    :param mode: dense (None), shared, split or pooling. how are the neurons connected between the ensembles
+    :type mode: str
+    :param integer_weight:
+    :type integer_weight: bool
+    :param wmin: minimum weight value allowed
+    :type wmin: float
+    :param wmax: maximum weight value allowed
+    :type wmax: float
+    :param mu: mean value for weight distribution
+    :type mu: float
+    :param sigma: standard deviation for weight distribution
+    :type sigma: float
+    :param **kwargs: dict of arguments to configure the connection
+
+    Attributes
+    ----------
+    :ivar ensemble_index_dict:
+    :type ensemble_index_dict: dict of Ensemble: int
+    :ivar ensemble_number:
+    :type ensemble_number:
+    :ivar matrix:
+    :type matrix: CompactMatrix or None
+
+    """
     def __init__(
             self, source_dim, dest_dim,
-            kernel_size=None, mode=None, real=False,
+            kernel_size=None, mode=None, integer_weight=False,
             wmin=0, wmax=0.6, mu=0.8, sigma=0.05,
             **kwargs):
 
@@ -23,7 +52,7 @@ class Weights(object):
         self.ensemble_index_dict = {}
         self.ensemble_number = 0
         self.mode = mode  # shared, pooling, split
-        self.real = real
+        self.integer_weight = integer_weight
         if isinstance(kernel_size, int):
             self.kernel_size = (kernel_size, kernel_size)
         elif isinstance(kernel_size, tuple) and len(kernel_size) == 2:
@@ -69,7 +98,14 @@ class Weights(object):
             else:
                 self.init_weight_kernel()
 
-    def generate_random_matrix(self, dim = None):
+    def generate_random_matrix(self, dim=None):
+        """
+        generates a random matrix of given dimension using a normal distribution of parameters mu and sigma
+        :param dim: matrix dimension
+        :type dim: tuple of int or object
+        :return: random matrix
+        :rtype: object np.ndarray
+        """
         if dim is None:
             mat = np.random.rand()
         elif isinstance(dim, int):
@@ -83,10 +119,16 @@ class Weights(object):
         return mat
 
     def init_weights_dense(self):
+        """
+        initializer for creating a dense weight matrix (all to all connection) between 2 ensembles
+        """
         tmp_matrix = self.generate_random_matrix((np.prod(self.source_dim), np.prod(self.dest_dim)))
         self.matrix = DenseCompactMatrix(tmp_matrix)
 
     def init_weight_kernel(self):
+        """
+        initializer for creating a weight matrix (N to N connection) between 2 ensembles
+        """
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)))
         self.mu *= 2. / np.prod(self.kernel_size)
         # for every source neuron
@@ -117,9 +159,14 @@ class Weights(object):
         self.matrix = CompactMatrix(tmp_matrix)
 
     def init_weight_shared(self, model=None):
+        """
+        initializer for creating a shared kernel weight matrix (convolutional connection) between 2 ensembles
+        :param model: index structure matrix shared among all the weights. Optimisation to avoid identical computation
+        :type model: object np.ndarray
+        """
         kernel = self.generate_random_matrix(self.kernel_size)
         # kernel = np.random.randn(*self.kernel_size) * (self.wmax - self.wmin) / 10 + (self.wmax - self.wmin) * 0.8
-        if self.real:
+        if self.integer_weight:
             for i in range(len(kernel[0])):
                 for j in range(len(kernel[1])):
                     kernel[i, j] = int(kernel[i, j])
@@ -160,6 +207,11 @@ class Weights(object):
         self.matrix = SharedCompactMatrix(mat=tmp_matrix, kernel=kernel)
 
     def init_weight_pooling(self, model=None):
+        """
+        initializer for creating a pooling weight matrix (convolutional pooling connection) between 2 ensembles
+        :param model: index structure matrix shared among all the weights. Optimisation to avoid identical computation
+        :type model: object np.ndarray
+        """
         if model is not None:
             # no deep copy: can share the index matrix
             self.matrix = copy.copy(model)
@@ -174,7 +226,9 @@ class Weights(object):
 
                         # computes the source (row) and dest (col) indexes
                         index_y = dest_row * self.dest_dim[1] + dest_col
-                        index_x = index_y * self.kernel_size[0] + kern_col + kern_row * self.source_dim[1] + dest_row * self.source_dim[1]
+                        index_x = index_y * self.kernel_size[0] + kern_col \
+                            + kern_row * self.source_dim[1] \
+                            + dest_row * self.source_dim[1]
                         #     # handles incoherent sizes
                         #     if 0 <= index_x < tmp_matrix.shape[0] and 0 <= index_y < tmp_matrix.shape[1]:
                         tmp_matrix[(index_x, index_y)] = 1
@@ -182,6 +236,11 @@ class Weights(object):
         self.matrix = CompactMatrix(mat=tmp_matrix)
 
     def init_weight_split(self, model=None):
+        """
+        initializer for creating a dense weight matrix (all to all connection) between 2 ensembles
+        :param model: index structure matrix shared among all the weights. Optimisation to avoid identical computation
+        :type model: object np.ndarray
+        """
         if model is not None:
             # no deep copy: can share the index matrix
             self.matrix = copy.copy(model)
@@ -193,27 +252,16 @@ class Weights(object):
             tmp_matrix[dest * offset:(dest + 1) * offset, dest] = 1
         self.matrix = CompactMatrix(mat=tmp_matrix)
 
-    # @MeasureTiming('get_weight')
-    def get_target_weights(self, index):
-        """
-        read weights of connections to neurons receiving a spike from neuron index 'index'
-        """
-        return self.matrix[index]
-        # need real implementation later depending on matrix format
-
     def restore(self):
-        # if self.kernel_size is None:
-        #     self.init_weights_dense()
-        # else:
-        #     if self.shared:
-        #         self.init_weight_shared()
-        #     else:
-        #         self.init_weight_kernel()
         pass
 
     def plot(self):
+        """
+        only for weights with kernel
+        display a visual representation of the kernel
+        """
         plt.figure()
-        kernel = self.matrix.get_kernel()
+        kernel = self.matrix.get_kernel(None, None, None)
         plt.imshow(np.array(kernel), cmap="gray")
 
     def __getitem__(self, index):

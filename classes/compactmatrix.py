@@ -92,11 +92,11 @@ class CompactMatrix(object):
         """
         rebuild the kernel weights
         :param index: index of the neuron a the center of the kernel
-        :type index: int or (int, int)
+        :type index: int or (int, int) or None
         :param length: Length of the layer (dimension 0)
-        :type length: int
+        :type length: int or None
         :param kernel_size: dimension of kernel
-        :type kernel_size: (int, int)
+        :type kernel_size: (int, int) or None
         :return: np.ndarray containing the extracted weights around the index
         """
         kernel = np.zeros(kernel_size)

@@ -19,36 +19,47 @@ class Connection(SimulationObject):
 
     Parameters
     ----------
-    source_l: Layer
-         The emitting layer
-    dest_l : Layer
-        The receiving ensemble
-    kernel: int or (int, int) or None
-        if specified, the kernel linking the 2 layers
-        if not, layers will be fully connected
-    *args, **kwargs
-        The list of arguments to configure the connection
+    :param source_l: The emitting layer
+    :type source_l: Layer
+    :param dest_l : The receiving ensemble
+    :type dest_l: Layer
+    :param wmin: minimum weight value allowed
+    :type wmin: float
+    :param wmax: maximum weight value allowed
+    :type wmax: float
+    :param mu: mean value for weight distribution
+    :type mu: float
+    :param sigma: standard deviation for weight distribution
+    :type sigma: float
+    :param kernel_size: if specified, the kernel linking the 2 layers; if not, layers will be fully connected
+    :type kernel_size: int or (int, int) or None
+    :param mode: dense (None), shared, split or pooling. how are the neurons connected between the ensembles
+    :type mode: str
+    :param integer_weight:
+    :type integer_weight: bool
+    :param *args: list of arguments to configure the connection
+    :param **kwargs: dict of arguments to configure the connection
 
     Attributes
     ----------
-    id: int
-        global ID of the Connection
-    connection_list: list[Connection]
-        list of the created sub connections
-    weights: Weights
-        stores the weights of the Connection
-    active: bool
-        True if a connection between 2 Ensembles
-    source_e: Ensemble
-        emitting ensemble
-    dest_e : Ensemble
-        receiving ensemble
-    in_neurons_spiking: list
-        stores the neuron received the previous step to propagate them
-    is_probed: bool
-        true when connection is probed
-    probed_values: list[Weights]
-        stores the new weights after they are updated
+    :ivar id: global ID of the Connection
+    :type id: int
+    :ivar connection_list: list of the created sub connections
+    :type connection_list: list of Connection
+    :ivar active: True if a connection between 2 Ensembles, False if between 2 Blocs (parent connection)
+    :type active: bool
+    :ivar weights: stores the weights of the Connection
+    :type weights: Weights or None for the parent connection
+    :ivar source_e: emitting ensemble
+    :type source_e: Ensemble
+    :ivar dest_e : receiving ensemble
+    :type dest_e: Ensemble
+    :ivar in_neurons_spiking: stores the neuron received the previous step to propagate them
+    :type in_neurons_spiking: list of int
+    :ivar is_probed: true when connection is probed
+    :type is_probed: bool
+    :ivar probed_values: stores the new weights after they are updated
+    :type probed_values: list of Weights
     """
 
     objects = []
@@ -57,7 +68,7 @@ class Connection(SimulationObject):
     def __init__(
             self, source_l, dest_l,
             wmin=0, wmax=1, mu=0.8, sigma=0.5,
-            kernel_size=None, mode=None, real=False,
+            kernel_size=None, mode=None, integer_weight=False,
             *args, **kwargs):
 
         super(Connection, self).__init__("Connect_{0}".format(id(self)))
@@ -73,9 +84,9 @@ class Connection(SimulationObject):
         self.is_probed = False
         self.probed_values = []
         self.wmin = wmin
-        self.wmax = pow(2, wmax) if real else wmax
+        self.wmax = pow(2, wmax) if integer_weight else wmax
         self.size = None
-        self.real = real
+        self.integer_weight = integer_weight
         Helper.log('Connection', log.INFO, 'new connection {0} created between layers {1} and {2}'
                    .format(self.id, source_l.id, dest_l.id))
 
@@ -95,12 +106,10 @@ class Connection(SimulationObject):
                                                            mu=mu, sigma=sigma,
                                                            kernel_size=kernel_size, mode=mode,
                                                            first=first, connection=self,
-                                                           real=real, *args, **kwargs))
-                    # Helper.print_progress(l_ind, len(dest_l.ensemble_list), "Init connection ", bar_length=30)
+                                                           integer_weight=integer_weight, *args, **kwargs))
                     first = False
             else:
-                # Helper.print_progress(0, len(dest_l.ensemble_list) * len(source_l.ensemble_list), "Init connection ", bar_length=30)
-                i=0
+                i = 0
                 for l_out in dest_l.ensemble_list:
                     for l_in in source_l.ensemble_list:
                         self.connection_list.append(Connection(source_l=l_in, dest_l=l_out,
@@ -108,9 +117,8 @@ class Connection(SimulationObject):
                                                                mu=mu, sigma=sigma,
                                                                kernel_size=kernel_size, mode=mode,
                                                                first=first, connection=self,
-                                                               real=real, *args, **kwargs))
+                                                               integer_weight=integer_weight, *args, **kwargs))
                         i += 1
-                        # Helper.print_progress(i, len(dest_l.ensemble_list) * len(source_l.ensemble_list), "Init connection ", bar_length=30)
                         first = False
             self.weights = None
         else:
@@ -138,9 +146,12 @@ class Connection(SimulationObject):
 
     @MeasureTiming('con_step')
     def step(self):
+        """
+        Propagates all the spikes emitted from the source ensemble to the dest ensemble
+        """
         for index_1d in self.in_neurons_spiking:
 
-            targets = self.weights.get_target_weights(index_1d)  # source dest weight
+            targets = self.weights[index_1d]  # source dest weight
             # for target in targets:
             self.dest_e.receive_spike(targets=targets, source_c=self)
             # This log 10-15% of this function time
@@ -163,24 +174,27 @@ class Connection(SimulationObject):
         self.is_probed = True
         self.probed_values = [self.get_weights_copy()]
 
-    def __getitem__(self, item):
-        return self.connection_list[item]
+    def __getitem__(self, index):
+        """
+        :param index: connection index
+        :rtype: Connection
+        """
+        return self.connection_list[index]
 
     def restore(self):
+        """ Restore the connection and weights """
         self.in_neurons_spiking = []
         if self.weights:
             self.weights.restore()
 
-    def share_weight(self):
-        ens_con_dict = {ens: [] for ens in self.connection_list[0].dest_e.bloc.ensemble_list}
-        for connect in self.connection_list:
-            ens_con_dict[connect.dest_e].append(connect)
-
-        for connect_list in ens_con_dict.values():
-            for connect in connect_list:
-                connect.weights = connect_list[0].weights
-
     def get_convergence(self):
+        """
+        Compute the convergence score of the weights
+        based on th formula sum of [ (wmax - w) * (w - wmin) ]
+        lower score mean weight more saturated
+        :return: convergence score
+        :rtype: float
+        """
         conv = 0
         if self.active:
             for row in range(self.size[0]):
@@ -193,6 +207,10 @@ class Connection(SimulationObject):
         return conv
 
     def plot_convergence(self):
+        """
+        plot the evolution of the convergence score over time
+        needs to be probed first
+        """
         conv = np.zeros(len(self.connection_list[0].probed_values))
 
         for con in self.connection_list:
@@ -202,21 +220,33 @@ class Connection(SimulationObject):
         plt.figure()
         plt.plot(conv)
 
-    def update_weight(self, x, y, value):
-        # print(value)
-        if self.wmin < self.weights.matrix[x, y] + value < self.wmax:
-            self.weights.matrix[x, y] += value
-        if self.real:
+    def update_weight(self, source, dest, value):
+        """
+        Used for
+        :param source: source neuron index
+        :type source: int
+        :param dest: destination neuron index
+        :type dest: int
+        :param value: weight delta
+        :type value: float
+        """
+        if self.wmin < self.weights.matrix[source, dest] + value < self.wmax:
+            self.weights.matrix[source, dest] += value
+        if self.integer_weight:
             if abs(value) < 1:
                 value = np.sign(value)
             value = int(value)
-            if self.wmin < self.weights.matrix[x, y] + value < self.wmax:
-                self.weights.matrix[x, y] += value
+            if self.wmin < self.weights.matrix[source, dest] + value < self.wmax:
+                self.weights.matrix[source, dest] += value
 
     def plot(self):
+        """
+        for shared kernel connections only, visual representation of the kernels
+        Deprecated
+        """
         images = []
         if self.active:
-            return self.weights.matrix.get_kernel()
+            return self.weights.matrix.get_kernel(None, None, None)
         else:
             for con in self.connection_list:
                 images.append(con.plot())
@@ -230,6 +260,12 @@ class Connection(SimulationObject):
                 ax[index // ncols, index % ncols].imshow(image, cmap='gray', norm=norm)
 
     def plot_all_kernels(self, nb_source_max=None, nb_dest_max=None):
+        """
+        for shared kernel connections only, visual representation of the kernels
+        :param nb_source_max: maximum number of line to display
+        :param nb_dest_max:  maximum number of columns to display
+        or the other way around...
+        """
         nb_source = len(self.source_e.ensemble_list)
         if nb_source_max is not None and nb_source_max < nb_source:
             nb_source = nb_source_max
@@ -238,19 +274,26 @@ class Connection(SimulationObject):
             nb_dest = nb_dest_max
         fig = plt.figure()
         fig.patch.set_facecolor('xkcd:light blue')
-        # fig, ax = plt.subplots(nrows=nb_source, ncols=nb_dest)
-        # norm = colors.Normalize(vmin=self.connection_list[0].wmin, vmax=self.connection_list[0].wmax)
         for source_i in range(nb_source):
             for dest_i in range(nb_dest):
                 con = self.connection_list[dest_i * nb_source + source_i]
                 plt.subplot(nb_source, nb_dest, source_i * nb_dest + dest_i + 1)
-                kernel = con.weights.matrix.get_kernel()
-                plt.imshow(kernel, cmap='gray'  )
+                kernel = con.weights.matrix.get_kernel(None, None, None)
+                plt.imshow(kernel, cmap='gray')
                 plt.axis('off')
 
         fig.suptitle("Connection final kernels")
 
     def load(self, weights):
+        """
+        load weights into connection
+        :param weights:
+        :type weights: object np.ndarray of dim 4
+        dim 0: nb dest ensemble
+        dim 1: nb source ensemble
+        dim 2: nb source neuron
+        dim 3: nb dest neuron
+        """
         nb_source = len(self.source_e.ensemble_list)
         nb_dest = len(self.dest_e.ensemble_list)
 
@@ -287,22 +330,37 @@ class Connection(SimulationObject):
                     matrix = self.connection_list[dest_i * nb_source + source_i].weights.matrix
                     for row in range(matrix.shape[0]):
                         for col in range(matrix.shape[1]):
-                            matrix[row, col] = w[row, col]
+                            matrix[row][col] = w[row, col]
 
     def saturate_weights(self, threshold=None):
+        """
+        Makes the weights of the matrix binary
+        :param threshold: threshold which separates the categories; if not specified, will be the middle of min and max
+        :type threshold: float
+        """
         if threshold is None:
             threshold = (self.wmax + self.wmin) / 2
         for con in self.connection_list:
             con.weights.matrix.saturate_weights(wmin=self.wmin, wmax=self.wmax, threshold=threshold)
 
     def set_max_weight(self, wmax):
+        """
+        changes the maximum allowed weight for a connection and its suf connections
+        :param wmax: new max weight
+        :type wmax: float
+        """
         if self.active:
             self.wmax = wmax
         else:
             for con in self.connection_list:
                 con.set_max_weight(wmax)
 
+
 class DiagonalConnection(Connection):
+    """
+    Special connection used only to connect a GFR encoder to a decoder
+    mainly used for debug
+    """
     
     def __init__(self, source_l, dest_l):
         super(DiagonalConnection, self).__init__(source_l, dest_l, 0, 1, kernel=None,)
@@ -310,21 +368,3 @@ class DiagonalConnection(Connection):
             for col in range(connection.weights.matrix.shape[1]):
                 if col != i:
                     connection.weights[(0, col)] = 0.
-
-
-# class RealConnection(Connection):
-#     def __init__(self, source_l, dest_l, wmin=0, wmax=8, kernel=None, mode=None, *args, **kwargs):
-#         assert(isinstance(wmax, int))
-#         wmax = 2 ^ wmax
-#         super(RealConnection, self).__init__(source_l, dest_l, wmin=wmin, wmax=wmax, kernel=kernel, mode=mode, *args, **kwargs)
-#         if self.active and mode == 'shared':
-#             for i in range(kernel[0]):
-#                 for j in range(kernel[1]):
-#                     self.weights.matrix.kernel[i, j] = int(self.weights.matrix.kernel[i, j])
-#
-#     def update_weight(self, x, y, value):
-#         if abs(value) < 1:
-#             value = np.sign(value)
-#         value = int(value)
-#         if self.wmin < self.weights.matrix[x, y] + value < self.wmax:
-#             self.weights.matrix[x, y] += value
