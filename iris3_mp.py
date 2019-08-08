@@ -67,9 +67,9 @@ if __name__ == '__main__':
     n1 = 50
     n2 = 10
 
-    n_proc = 3
+    n_proc = 8
 
-    # iris_ann_generator.run(en1, n1, n2)
+    target_acc = 0.98
 
 
     mpl_logger = log.getLogger('matplotlib')
@@ -102,11 +102,11 @@ if __name__ == '__main__':
     # node = Node(e1)
     b1 = Bloc(depth=1, size=n1, neuron_type=IF(threshold=0))
     c1 = Connection(e1, b1, mu=0.6, sigma=0.05)
-    c1.load(np.load('c1.npy'))
+
 
     b2 = Bloc(depth=1, size=n2 * 3, neuron_type=IF(threshold=0))
     c2 = Connection(b1, b2, mu=0.6, sigma=0.05)
-    c2.load(np.load('c2.npy'))
+
     b2.set_inhibition(wta=True, radius=(0, 0))
 
     d1 = DecoderClassifier(size=3)
@@ -116,94 +116,110 @@ if __name__ == '__main__':
     sim = Simulator(model=model, dataset=train, dt=0.01, input_period=1)
     model.build()
 
-    workers = []
-    queues = [mp.Queue() for _ in range(n_proc)]
+    for _ in range(50):
 
-    for worker_id, worker_load in enumerate(split):
+        iris_ann_generator.run(en1, n1, n2)
+        c1.load(np.load('c1.npy'))
+        c2.load(np.load('c2.npy'))
+        workers = []
+        queues = [mp.Queue() for _ in range(n_proc)]
 
-        workers.append(mp.Process(target=test_mp,
-                                  args=(queues[worker_id],
-                                        split[worker_id],
-                                        model,
-                                        train
-                                        )
-                                  )
-                       )
-        workers[worker_id].start()
+        for worker_id, worker_load in enumerate(split):
 
-
-    finished = 0
-    while finished != n_proc:
-        for worker_id, worker in enumerate(workers):
-            if not queues[worker_id].empty():
-                finished += 1
-
-                succ_list[math.ceil(len(th_list)/n_proc) * worker_id:math.ceil(len(th_list)/n_proc) * (worker_id+1)] = \
-                    queues[worker_id].get(False)
-            else:
-                time.sleep(0.1)
-
-    success_map = np.reshape(succ_list, (len(t1), len(t2)))
-
-    t1max, t2max = np.where(success_map == np.amax(success_map))
-    Helper.print_progress(1, 1, "testing thresholds ", bar_length=30,)# suffix='est. time: {} s'.format(int(len(t1)*len(t2)-(len(t2)*i1+i2)/(time.time() - last_time))))
-    for imax in range(len(t1max)):
-        print([t1[t1max[imax]], t2[t2max[imax]], np.amax(success_map)])
-
-    fig = plt.figure()
-    np.save('th_map.npy', success_map)
-    plt.imshow(success_map, cmap='gray', extent=[t1[0], t1[-1], t2[-1], t2[0]])
-    plt.imsave('success_map.png', arr=success_map, cmap='gray', format='png')
-
-    sim.dataset = test
-    d1.dataset = test
-    b1.set_threshold(t1[t1max[0]])
-    b2.set_threshold(t2[t2max[0]])
-    sim.enable_time(True)
-    sim.run(len(test.data))
-    confusion = d1.get_correlation_matrix()
-    success = 0
-    for i in range(3):
-        success += confusion[i, i] / len(test.data)
-
-    print(confusion)
-    print(success)
+            workers.append(mp.Process(target=test_mp,
+                                      args=(queues[worker_id],
+                                            split[worker_id],
+                                            model,
+                                            train
+                                            )
+                                      )
+                           )
+            workers[worker_id].start()
 
 
-    post_training_epochs = 100
-    acc = np.zeros(post_training_epochs)
-    conv = np.zeros(post_training_epochs)
-    simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc, input_period=1, batch_size=50)
-    L1 = Rstdp(eta_up=0.005,
-                             eta_down=-0.005,
-                             anti_eta_up=-0.001,
-                             anti_eta_down=0.001,
-                             mp=True)
-    L2 = Rstdp(eta_up=0.005,
-                             eta_down=-0.005,
-                             anti_eta_up=-0.0015,
-                             anti_eta_down=0.0015,
-                             mp=True)
-    c1.wmax = 0.4
-    c2.wmax = 0.4
-    for epoch in range(post_training_epochs):
-        # b1.set_learner(L1)
-        b2.set_learner(L2)
-        simtrain.run(len(train.data))
-        model.restore()
-        b1.stop_learner()
-        b2.stop_learner()
+        finished = 0
+        while finished != n_proc:
+            for worker_id, worker in enumerate(workers):
+                if not queues[worker_id].empty():
+                    finished += 1
+
+                    succ_list[math.ceil(len(th_list)/n_proc) * worker_id:math.ceil(len(th_list)/n_proc) * (worker_id+1)] = \
+                        queues[worker_id].get(False)
+                else:
+                    time.sleep(0.1)
+
+        success_map = np.reshape(succ_list, (len(t1), len(t2)))
+
+        t1max, t2max = np.where(success_map == np.amax(success_map))
+        Helper.print_progress(1, 1, "testing thresholds ", bar_length=30,)# suffix='est. time: {} s'.format(int(len(t1)*len(t2)-(len(t2)*i1+i2)/(time.time() - last_time))))
+        for imax in range(len(t1max)):
+            print([t1[t1max[imax]], t2[t2max[imax]], np.amax(success_map)])
+
+        # fig = plt.figure()
+        # np.save('th_map.npy', success_map)
+        # plt.imshow(success_map, cmap='gray', extent=[t1[0], t1[-1], t2[-1], t2[0]])
+        # plt.imsave('success_map.png', arr=success_map, cmap='gray', format='png')
+
+        sim.dataset = test
+        d1.dataset = test
+        b1.set_threshold(t1[t1max[0]])
+        b2.set_threshold(t2[t2max[0]])
+        # sim.enable_time(True)
         sim.run(len(test.data))
-        # print(d1.get_correlation_matrix())
-        # print(d1.get_accuracy())
-        conv[epoch] = c1.get_convergence() + c2.get_convergence()
-        acc[epoch] = d1.get_accuracy()
+        confusion = d1.get_correlation_matrix()
+        success = 0
+        for i in range(3):
+            success += confusion[i, i] / len(test.data)
 
-        model.restore()
+        print(confusion)
+        print(success)
+
+
+        post_training_epochs = 100
+        acc = np.zeros(post_training_epochs)
+        conv = np.zeros(post_training_epochs)
+        simtrain = SimulatorMp(model, dt=0.001, dataset=train, processes=n_proc, input_period=1, batch_size=50)
+        L1 = Rstdp(eta_up=0.005,
+                                 eta_down=-0.005,
+                                 anti_eta_up=-0.001,
+                                 anti_eta_down=0.001,
+                                 mp=True)
+        L2 = Rstdp(eta_up=0.005,
+                                 eta_down=-0.005,
+                                 anti_eta_up=-0.0015,
+                                 anti_eta_down=0.0015,
+                                 mp=True)
+        c1.wmax = 0.4
+        c2.wmax = 0.4
+        Helper.print_progress(0, post_training_epochs, "Post training RSTDP:")
+        for epoch in range(post_training_epochs):
+            # b1.set_learner(L1)
+            b2.set_learner(L2)
+            simtrain.run(len(train.data))
+            model.restore()
+            b1.stop_learner()
+            b2.stop_learner()
+            sim.run(len(test.data))
+            # print(d1.get_correlation_matrix())
+            # print(d1.get_accuracy())
+            conv[epoch] = c1.get_convergence() + c2.get_convergence()
+            acc[epoch] = d1.get_accuracy()
+            model.restore()
+            Helper.print_progress(epoch + 1, post_training_epochs, "Post training RSTDP:",
+                                  'last accuracy: {}'.format(acc[epoch]))
+            if acc[epoch] > target_acc and acc[epoch] < acc[epoch-1]:
+                finished = True
+                print("\nAccuracy reached: interrupted")
+                sim.save("trained_heart_2.w")
+                plt.figure(2)
+                plt.plot(acc)
+                break
+        plt.figure(2)
+        plt.plot(acc)
     plt.figure()
-    plt.plot(conv)
+    # plt.plot(conv)
     # plt.figure()
-    plt.plot(acc)
+    # plt.plot(acc)
 
 
     print('total time')
