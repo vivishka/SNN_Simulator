@@ -187,8 +187,8 @@ if __name__ == '__main__':
                                  # anti_eta_up=-0.015,
                                  # anti_eta_down=0.015,
                                  mp=True)
-        c1.wmax = 0.3
-        c2.wmax = 0.3
+        c1.set_max_weight(0.3)
+        c2.set_max_weight(0.3)
         cp2 = ConnectionProbe(c2)
         Helper.print_progress(0, post_training_epochs, "Post training RSTDP:")
         for epoch in range(post_training_epochs):
@@ -214,10 +214,10 @@ if __name__ == '__main__':
                 plt.figure(2)
                 plt.plot(acc)
                 break
-        plt.figure(2)
+            plt.figure(2)
     # plt.plot(conv)
     # plt.figure()
-        plt.plot(acc)
+            plt.plot(acc)
         cp2.plot()
 
 
