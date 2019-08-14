@@ -355,6 +355,9 @@ class SimulatorMp(Simulator):
                     if self.pipes[worker_id][0].poll():
                         Helper.log('Simulator', log.INFO, 'worker {} finished, gathering data'.format(id))
                         update = self.pipes[worker_id][0].recv()
+                        if update == "Error":
+                            print(all_updates)
+                            raise Exception("Error in updates")
                         for attr, value in update.items():
                             self.connections[attr[0]].update_weight(attr[1], attr[2], value)
                         all_updates = {k: all_updates.get(k, 0) + update.get(k, 0) for k in set(all_updates)
@@ -407,14 +410,15 @@ class SimulatorMp(Simulator):
                            for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
             sim.flush()
             pipe.send(out)
-            while not pipe.poll():
-                time.sleep(0.5)
+            # while not pipe.poll():
+            #     time.sleep(0.5)
             try:
                 update = pipe.recv()
-            except:
+            except KeyError:
                 print("Updates crashed")
                 print(pipe.poll)
                 update = {}
+                pipe.send("Error")
             for attr, value in update[0].items():
                 sim.connections[attr[0]].update_weight(attr[1], attr[2], value)
             # print(my_model.objects[Connection][1].weights.matrix[0, 0])
