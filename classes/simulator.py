@@ -394,7 +394,7 @@ class SimulatorMp(Simulator):
         Helper.log('Simulator', log.INFO, 'new worker init')
         my_model = copy.deepcopy(model)
         dataset = Dataset()
-        sim = Simulator(model=my_model, dataset=dataset, dt=dt, input_period=input_period)
+        sim = Simulator(network=my_model, dataset=dataset, dt=dt, input_period=input_period)
         for con in my_model.objects[Connection]:
             con.is_probed = False
         while True:
