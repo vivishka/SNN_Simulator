@@ -178,6 +178,7 @@ class DecoderClassifier(Decoder):
 
     def __init__(self, size):
         super(DecoderClassifier, self).__init__(size)
+        self.acc = []
 
     def get_correlation_matrix(self):
         cor_mat = np.zeros((self.sim.dataset.n_cats, self.size[1]))
@@ -199,6 +200,26 @@ class DecoderClassifier(Decoder):
                 correct += 1
         return correct / len(self.decoded_wta)
 
+    def reset(self):
+        self.decoded_wta.append(self.get_first_spike())
+        result = np.where(self.decoded_wta[-1] == 0)
+        if len(result) == 1:
+            self.acc.append(result[0] == self.sim.dataset.labels[len(self.decoded_wta)])
+        else:
+            self.acc.append(0)
+        super(Decoder, self).reset()
+
+    def plot_accuracy(self, mean_range):
+        """
+        Moving mean of accuracy over training
+        """
+        acc_padded = [0 for _ in range(int(mean_range/2))] + self.acc + [0 for _ in range(int(mean_range/2))]
+        acc_meaned = []
+        for index,point in enumerate(self.acc):
+            acc_meaned.append(sum(acc_padded[index - int(mean_range/2):index + int(mean_range/2)])/mean_range)
+        plt.figure()
+        plt.plot(acc_meaned)
+        plt.title("Accuracy")
 
 
 class DigitSpykeTorch(Decoder):
