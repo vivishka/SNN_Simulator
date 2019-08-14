@@ -14,22 +14,28 @@ class NeuronLog(NeuronType):
 
     Parameters
     ----------
-    **kwargs
-        Same as NeuronType, not used
+    :param kwargs: Same as NeuronType, not used here
+    :type kwargs: dict
 
     Attributes
     ----------
-    spike_times: [(int, int)]
-        list of tuple (index, time) of every received spike
+    :ivar spike_times: stores list of (index, time) of every received spike
+    :type spike_times: list of (int, int)
+
 
     """
-    def __init__(self, *args, **kwargs):
-        super(NeuronLog, self).__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super(NeuronLog, self).__init__(**kwargs)
         self.spike_times = []
 
     def receive_spike(self, index_1d, weight):
-        """ logs the ensemble index and the time of the received spike in a tuple
-        The weight is not important
+        """
+        logs the ensemble index and the time of the received spike in a tuple
+
+        :param index_1d: list index of the receiving neuron
+        :type index_1d: int
+        :param weight: weight to transfer to the neuron, not important here
+        :type weight: float
         """
         if weight > 1e-6:
             super(NeuronLog, self).receive_spike(index_1d, weight)
@@ -39,7 +45,7 @@ class NeuronLog(NeuronType):
             self.received = []
 
     def step(self):
-        """" non stepping neuron"""
+        """" non stepping neuron, only active on the reception"""
         pass
 
     def reset(self):
@@ -61,18 +67,23 @@ class Decoder(Ensemble):
 
     Parameters
     ----------
-    size: int or (int, int)
-         Size of the ensemble
+    :param size: Size of the ensemble
+    :type size: int or (int, int)
+    :param absolute_time: use the simulator time or the difference relative to the first spike
+    :type absolute_time: bool
 
     Attributes
     ----------
-
+    :ivar decoded_wta: stores the decoded image each input cycle
+    :type decoded_wta: list of object np.ndarray
+    :ivar decoded_image: readable image or vector obtained with the timing of the received spikes.
+    :type decoded_image: object np.ndarray
 
     """
 
     objects = []
 
-    def __init__(self, size, absolute_time = False):
+    def __init__(self, size, absolute_time=False):
         super(Decoder, self).__init__(
             size=size,
             neuron_type=NeuronLog(),
@@ -175,11 +186,19 @@ class Decoder(Ensemble):
 
 
 class DecoderClassifier(Decoder):
+    """
+    Decoder which compare the output with the expected category.
+    can produce confusion matrix and accuracy measure
+    """
 
     def __init__(self, size):
         super(DecoderClassifier, self).__init__(size)
 
     def get_correlation_matrix(self):
+        """
+        :return: confusion matrix, dim0: expected, dim1: measured
+        :rtype: object np.ndarray
+        """
         cor_mat = np.zeros((self.sim.dataset.n_cats, self.size[1]))
         # nb_exp = len(self.decoded_wta)
         for index, result in enumerate(self.decoded_wta):
@@ -191,6 +210,10 @@ class DecoderClassifier(Decoder):
         return cor_mat
 
     def get_accuracy(self):
+        """
+        :return: the accuracy. no spikes or double spikes are counted as a miss
+        :rtype: float
+        """
         correct = 0
         for index, result in enumerate(self.decoded_wta):
             dec_cats = [i for i, v in enumerate(result.tolist()[0]) if v == 0]
@@ -200,9 +223,10 @@ class DecoderClassifier(Decoder):
         return correct / len(self.decoded_wta)
 
 
-
 class DigitSpykeTorch(Decoder):
-
+    """
+    Debug only, when using a network inspired from spiketorch
+    """
     def __init__(self, size):
         super(DigitSpykeTorch, self).__init__(size)
         self.first_time = None
@@ -220,7 +244,9 @@ class DigitSpykeTorch(Decoder):
 
 
 class DecoderSpykeTorch(Bloc):
-
+    """
+    Deprecated
+    """
     def __init__(self, size, n_cat, mode='unit', k=None):
         super(DecoderSpykeTorch, self).__init__(depth=n_cat, size=size, neuron_type=NeuronType())
         for i in range(n_cat):
