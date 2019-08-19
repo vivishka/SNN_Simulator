@@ -12,10 +12,8 @@ class SimulationObject(object):
     """
 
     # objects = {}
-    # TODO: finish or remove labels
-    def __init__(self, label=''):
+    def __init__(self):
         super(SimulationObject, self).__init__()
-        self.label = label
         self.sim = None
 
     @classmethod

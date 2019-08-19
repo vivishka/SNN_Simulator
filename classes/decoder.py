@@ -277,7 +277,6 @@ class DecoderSpykeTorch(Bloc):
             self.mode = mode
             self.k = k
             # TODO:  overwrite reset to store previous
-            # TODO: fix None bug
 
     def get_value(self):
         digit = None

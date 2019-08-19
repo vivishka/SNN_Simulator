@@ -1,7 +1,4 @@
 import numpy as np
-import copy
-import logging as log
-from .base import SimulationObject, Helper, MeasureTiming
 from .neuron import NeuronType
 from .connection import *
 from .learner import Learner
@@ -16,7 +13,7 @@ class Layer(SimulationObject):
     :ivar ensemble_list: if Block: the list of Ensembles inside, if Ensemble: itself
     :type ensemble_list: list of Ensemble
     :ivar learner: for training the incoming connections, is unique per layer
-    :type learner: Learner
+    :type learner: Learner or None
     :ivar out_connections: outbound Connections
     :type out_connections: list of Connection
     :ivar in_connections: inbound Connections
@@ -26,8 +23,8 @@ class Layer(SimulationObject):
     """
     layer_count = 0
 
-    def __init__(self, lbl=""):
-        super(Layer, self).__init__(lbl)
+    def __init__(self):
+        super(Layer, self).__init__()
         self.ensemble_list = []
         self.learner = None
         self.out_connections = []
@@ -89,9 +86,8 @@ class Ensemble(Layer):
 
     objects = []
 
-    def __init__(self, size, neuron_type, bloc=None, index=0, learner=None, label='', **kwargs):
-        lbl = label if label != '' else id(self)
-        super(Ensemble, self).__init__("Ens_{}".format(lbl))
+    def __init__(self, size, neuron_type, bloc=None, index=0, learner=None, **kwargs):
+        super(Ensemble, self).__init__()
         Ensemble.objects.append(self)
         self.bloc = bloc
         self.index = index

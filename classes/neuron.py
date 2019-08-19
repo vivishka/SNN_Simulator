@@ -93,9 +93,7 @@ class NeuronType(object):
         self.ensemble.probed_neuron_set.add(self)  # probed neurons step every step
         if variable == 'spike_in':
             # DEPRECATED
-            return
-            # self.spike_in_probed = True
-            # Helper.log('Neuron', log.DEBUG, 'probe plugged for input spikes on neuron ' + str(self.index_2d))
+            raise ValueError("spike in is not supported")
         elif variable == 'spike_out':
             self.spike_out_probed = True
             Helper.log('Neuron', log.DEBUG, 'probe plugged for output spikes on neuron ' + str(self.index_2d))

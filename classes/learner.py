@@ -13,48 +13,42 @@ class Learner(object):
 
     Parameters
     ---------
-    eta_up: float
-        weight increase coefficient
-    eta_down: float
-        weight decrease coefficient
-    tau_up: float
-        sensitivity to pre synaptic delay
-    tau_down: float
-        sensitivity to post synaptic delay
+    :param eta_up: weight increase coefficient
+    :type eta_up: float
+    :param eta_down: weight decrease coefficient
+    :type eta_down: float
+    :param tau_up: sensitivity to pre synaptic delay
+    :type tau_up: float
+    :param tau_down: sensitivity to post synaptic delay
+    :type tau_down: float
+    :param mp: activate multiprocessing
+    :type mp:bool
 
     Attributes
     ----------
-    layer: Layer
-        Ensemble or Block this learner is monitoring
-    size: int
-        number of neuron in the layer
-    eta_up: float
-        weight increase coefficient
-    eta_down: float
-        weight decrease coefficient
-    tau_up: float
-        sensitivity to pre synaptic delay
-    tau_down: float
-        sensitivity to post synaptic delay
-    buffer_in: np.array
-        array of list of received spikes this input cycle
+    :ivar layer: Ensemble or Block this learner is monitoring
+    :type layer: Layer
+    :ivar size: number of neuron in the layer
+    :type size: int
+    :ivar buffer_in: array of list of received spikes this input cycle
         index is source neuron index
-        list of tuple: (time, source_n, dest_n  , weight, source_c, input_index)
-    buffer_in_empty: np.array
-        array of empty list, used to reset the buffer_in
-    buffer_out: list
-        list of emitted spikes this input cycle, ordered by time of emission
-    in_spikes: list
-        list of buffer_in, one array for each input cycle
-    out_spikes: list
-        list of buffer_out, one array for each input cycle
-    active: bool
-        learning ? 
+        (time, source_n, dest_n  , weight, source_c, input_index)
+    :type buffer_in: array of list of (int, int, int, float, Connection, int)
+    :ivar buffer_in_empty: array of empty list, used to reset the buffer_in
+    :type buffer_in_empty: array of list
+    :ivar buffer_out: list of emitted spikes this input cycle, ordered by time of emission
+    :type buffer_out: list of (float, int)
+    :ivar in_spikes: list of buffer_in, one array for each input cycle
+    :type in_spikes: list of list of (int, int, int, float, Connection, int)
+    :ivar out_spikes: list of buffer_out, one array for each input cycle
+    :type out_spikes: list of list of (float, int)
+    :ivar active: is learning ?
+    :type active: bool
     """
 
     def __init__(self, eta_up=0.1, eta_down=-0.1, tau_up=1, tau_down=1, mp=False):
         self.layer = None
-        self.size = None
+        self.size = 0
         self.eta_up = eta_up
         self.eta_down = eta_down
         self.tau_up = tau_up
@@ -190,21 +184,23 @@ class LearnerClassifier(Learner):
 
     Parameters
     ---------
-    eta_up: float
-        weight increase coefficient
-    eta_down: float
-        weight decrease coefficient
-    tau_up: float
-        sensitivity to pre synaptic delay
-    tau_down: float
-        sensitivity to post synaptic delay
-    feedback_gain: float
-        amount by which the weights leading to duplicate spikes will be decreased or increased if no spikes
+    :param eta_up: weight increase coefficient
+    :type eta_up: float
+    :param eta_down: weight decrease coefficient
+    :type eta_down: float
+    :param tau_up: sensitivity to pre synaptic delay
+    :type tau_up: float
+    :param tau_down: sensitivity to post synaptic delay
+    :type tau_down: float
+    :param mp: activate multiprocessing
+    :type mp:bool
+    :param feedback_gain: amount by which the weights leading to duplicate spikes
+        will be decreased or increased if no spikes
+    :type feedback_gain: float
 
     Attributes
     ----------
-    feedback_gain: float
-        amount by which the weights leading to duplicate spikes will be decreased or increased if no spikes
+
     """
     def __init__(self, eta_up=0.1, eta_down=0.1, tau_up=0.1, tau_down=0.1, feedback_gain=0.001, mp=False):
         super(LearnerClassifier, self).__init__(eta_up, eta_down, tau_up, tau_down, mp=mp)
@@ -212,7 +208,7 @@ class LearnerClassifier(Learner):
 
     @MeasureTiming('learn_process')
     def process(self):
-        # remove multiple output spikes from buffer TODO: optimize : high complexity
+        # remove multiple output spikes from buffer
 
         for index, experiment in enumerate(self.out_spikes):
             if experiment:
@@ -250,10 +246,10 @@ class SimplifiedSTDP(Learner):
 
         Parameters
         ---------
-        eta_up: float
-            weight increase coefficient
-        eta_down: float
-            weight decrease coefficient
+        :param eta_up: weight increase coefficient
+        :type eta_up: float
+        :param eta_down: weight decrease coefficient
+        :type eta_down: float
 
         Attributes
         ----------
@@ -284,16 +280,13 @@ class SimplifiedSTDP(Learner):
                     dt = out_s[0] - in_s[0]
                     if dt >= 0:
                         dw = self.eta_up * (weight - connection.wmin) * (connection.wmax - weight)
-                        # dw = self.eta_up
                     else:
                         dw = self.eta_down * (weight - connection.wmin) * (connection.wmax - weight)
-                        # dw = self.eta_down
                     Helper.log('Learner', log.DEBUG, 'Connection {} Weight {} {} updated dw = {}'.
                                format(connection.id, source_n, dest_n, dw))
                     # update weights in source connection
                     if not self.mp:
-                        new_w = np.clip(weight + dw, connection.wmin, connection.wmax)
-                        connection.update_weight(source_n, dest_n, dw)
+                        connection.update_weight(source=source_n, dest=dest_n, delta_w=dw)
                     else:
                         if (connection.id, source_n, dest_n) in self.updates:
                             self.updates[(connection.id, source_n, dest_n)] += dw
@@ -305,7 +298,7 @@ class SimplifiedSTDP(Learner):
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
 
-# TODO: change weight change after all experiments + average ?
+
 class Rstdp(Learner):
     """
         Classifying STDP learner.
@@ -314,32 +307,30 @@ class Rstdp(Learner):
 
         Parameters
         ---------
-        eta_up: float
-            weight increase coefficient for good output
-        eta_down: float
-            weight decrease coefficient for good output
-        anti_eta_up: float
-            weight decrease coefficient for bad output
-        anti_eta_down: float
-            weight increase coefficient for bad output
-        wta: bool
-            experimental
-            only learn once per input cycle if True
+        :param eta_up: weight increase coefficient
+        :type eta_up: float
+        :param eta_down: weight decrease coefficient
+        :type eta_down: float
+        :param anti_eta_up: weight decrease coefficient for bad output
+        :type anti_eta_up: float
+        :param anti_eta_down: increase coefficient for bad output
+        :type anti_eta_down: float
+        :param mp: activate multiprocessing
+        :type mp:bool
+        :param wta: experimental, only learn once per input cycle if True
+        :type wta: bool
+        :param size_cat: number of output neuron per category
+            (used as redundancy to prevent dead neurons)
+        :type size_cat: int
 
         Attributes
         ----------
-        anti_eta_up: float
-            weight decrease coefficient for bad output
-        anti_eta_down: float
-            weight increase coefficient for bad output
-        wta: bool
-            experimental
-            only learn once per input cycle if True
-        dataset: Dataset
-            dataset used as input for the network. Labels are used to compare with the output
+        :ivar dataset: dataset used as input for the network. Labels are used to compare with the output
+        :type dataset: Dataset
         """
 
-    def __init__(self, eta_up=0.1, eta_down=-0.1, anti_eta_up=-0.1, anti_eta_down=0.1, mp=False, wta=True, size_cat=None, k_error=0.1   ):
+    def __init__(self, eta_up=0.1, eta_down=-0.1, anti_eta_up=-0.1, anti_eta_down=0.1,
+                 mp=False, wta=True, size_cat=None):
         super(Rstdp, self).__init__(eta_up=eta_up, eta_down=eta_down, mp=mp)
         self.anti_eta_up = anti_eta_up
         self.anti_eta_down = anti_eta_down
@@ -350,7 +341,6 @@ class Rstdp(Learner):
     @MeasureTiming('Learning')
     def process(self):
         if not self.dataset:
-            self.n_cat = self.layer.sim.dataset.n_cats
             self.dataset = self.layer.sim.dataset
         Helper.log('Learner', log.DEBUG, 'Processing rstdp ensemble {0}'.format(self.layer.id))
         # for each experiment in the batch that ends
@@ -371,14 +361,14 @@ class Rstdp(Learner):
             if output_value == target_value:
                 a_p = self.eta_up
                 a_n = self.eta_down
-                error = 0
+                # error = 0
             else:
                 a_p = self.anti_eta_up
                 a_n = self.anti_eta_down
                 for out in self.out_spikes[experiment_index]:
                     if out[1] == target_value:
-                        error = out[0] - self.out_spikes[experiment_index][0][0]
-
+                        pass
+                        # error = out[0] - self.out_spikes[experiment_index][0][0]
 
             # if wta: only the first spike leads to learning
             # else, each spike received leads to learning
@@ -416,4 +406,3 @@ class Rstdp(Learner):
         for connection in self.layer.in_connections:
             connection.probe()
         Helper.log('Learner', log.INFO, 'Processing learning ensemble {0} complete'.format(self.layer.id))
-

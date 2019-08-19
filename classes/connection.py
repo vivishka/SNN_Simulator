@@ -71,7 +71,7 @@ class Connection(SimulationObject):
             kernel_size=None, mode=None, integer_weight=False,
             *args, **kwargs):
 
-        super(Connection, self).__init__("Connect_{0}".format(id(self)))
+        super(Connection, self).__init__()
         Connection.objects.append(self)
         self.id = Connection.con_count
         Connection.con_count += 1
@@ -220,24 +220,24 @@ class Connection(SimulationObject):
         plt.figure()
         plt.plot(conv)
 
-    def update_weight(self, source, dest, value):
+    def update_weight(self, source, dest, delta_w):
         """
         Used for
         :param source: source neuron index
         :type source: int
         :param dest: destination neuron index
         :type dest: int
-        :param value: weight delta
-        :type value: float
+        :param delta_w: weight delta
+        :type delta_w: float
         """
-        if self.wmin < self.weights.matrix[source, dest] + value < self.wmax:
-            self.weights.matrix[source, dest] += value
+        if self.wmin < self.weights.matrix[source, dest] + delta_w < self.wmax:
+            self.weights.matrix[source, dest] += delta_w
         if self.integer_weight:
-            if abs(value) < 1:
-                value = np.sign(value)
-            value = int(value)
-            if self.wmin < self.weights.matrix[source, dest] + value < self.wmax:
-                self.weights.matrix[source, dest] += value
+            if abs(delta_w) < 1:
+                delta_w = np.sign(delta_w)
+            delta_w = int(delta_w)
+            if self.wmin < self.weights.matrix[source, dest] + delta_w < self.wmax:
+                self.weights.matrix[source, dest] += delta_w
 
     def plot(self):
         """

@@ -110,7 +110,6 @@ class ConnectionProbe(Probe):
     def print_best_input(self, nb_layer):
         for dest_index in range(nb_layer):
             plt.figure()
-            # TODO: fix, bug
             mat = self.get_best_input(dest_index)
             norm = colors.Normalize(vmin=0, vmax=255)
             plt.imshow(mat, cmap='gray', norm=norm)

@@ -69,10 +69,6 @@ class Weights(object):
         self.mu = mu
         self.sigma = sigma
 
-        # TODO: if source_dim != dest dim
-        #  padding
-        #  stride
-        #  ALL 2 ALL connection
         self.matrix = None
         if kernel_size is None:
             self.init_weights_dense()
@@ -178,7 +174,6 @@ class Weights(object):
             return
 
         tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)), dtype=object)
-        # TODO: normalization
 
         # for every source neuron
         for source_row in range(self.source_dim[0]):
