@@ -25,3 +25,5 @@ main.py
 *.npy
 
 scratch\.py
+
+/doc
