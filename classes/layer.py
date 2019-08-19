@@ -288,6 +288,9 @@ class Ensemble(Layer):
             self.neuron_array[index] = value
             self.neuron_list[Helper.get_index_1d(index, self.size[1])] = value
 
+    def set_learner(self, learner):
+        self.learner = learner
+        learner.set_layer(self)
 
 class Bloc(Layer):
     """

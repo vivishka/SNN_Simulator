@@ -23,9 +23,9 @@ class Simulator(object):
     can then be run for a set number of step
     """
     @MeasureTiming('sim_init')
-    def __init__(self, model, dataset, dt=0.001, batch_size=1, input_period=float('inf')):
+    def __init__(self, network, dataset, dt=0.001, batch_size=1, input_period=1):
         super(Simulator, self).__init__()
-        self.model = model
+        self.network = network
         self.dataset = dataset
         self.ensembles = []
         self.blocs = []
@@ -51,12 +51,12 @@ class Simulator(object):
         Helper.log('Simulator', log.INFO, 'new simulator created')
 
     def build(self):
-        self.model.build()
-        self.model.set_sim(self)
-        self.ensembles = self.model.objects[Ensemble]
-        self.blocs = self.model.objects[Bloc]
-        self.connections = self.model.objects[Connection]
-        self.encoders = self.model.objects[Encoder]
+        self.network.build()
+        self.network.set_sim(self)
+        self.ensembles = self.network.objects[Ensemble]
+        self.blocs = self.network.objects[Bloc]
+        self.connections = self.network.objects[Connection]
+        self.encoders = self.network.objects[Encoder]
         self.connections.sort(key=lambda con: con.id)
 
     @MeasureTiming('sim_run')
@@ -355,6 +355,9 @@ class SimulatorMp(Simulator):
                     if self.pipes[worker_id][0].poll():
                         Helper.log('Simulator', log.INFO, 'worker {} finished, gathering data'.format(id))
                         update = self.pipes[worker_id][0].recv()
+                        if update == "Error":
+                            print(all_updates)
+                            raise Exception("Error in updates")
                         for attr, value in update.items():
                             self.connections[attr[0]].update_weight(attr[1], attr[2], value)
                         all_updates = {k: all_updates.get(k, 0) + update.get(k, 0) for k in set(all_updates)
@@ -391,7 +394,7 @@ class SimulatorMp(Simulator):
         Helper.log('Simulator', log.INFO, 'new worker init')
         my_model = copy.deepcopy(model)
         dataset = Dataset()
-        sim = Simulator(model=my_model, dataset=dataset, dt=dt, input_period=input_period)
+        sim = Simulator(network=my_model, dataset=dataset, dt=dt, input_period=input_period)
         for con in my_model.objects[Connection]:
             con.is_probed = False
         while True:
@@ -407,14 +410,15 @@ class SimulatorMp(Simulator):
                            for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
             sim.flush()
             pipe.send(out)
-            while not pipe.poll():
-                time.sleep(0.1)
+            # while not pipe.poll():
+            #     time.sleep(0.5)
             try:
                 update = pipe.recv()
-            except:
+            except KeyError:
                 print("Updates crashed")
                 print(pipe.poll)
                 update = {}
+                pipe.send("Error")
             for attr, value in update[0].items():
                 sim.connections[attr[0]].update_weight(attr[1], attr[2], value)
             # print(my_model.objects[Connection][1].weights.matrix[0, 0])

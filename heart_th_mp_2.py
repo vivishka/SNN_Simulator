@@ -174,7 +174,7 @@ if __name__ == '__main__':
         print(success)
 
 
-        post_training_epochs = 3
+        post_training_epochs = 500
         dt = 0.001
         acc = np.zeros(post_training_epochs)
         conv = np.zeros(post_training_epochs)
@@ -184,12 +184,12 @@ if __name__ == '__main__':
                                  # anti_eta_up=-0.001,
                                  # anti_eta_down=0.001,
                                  mp=True)
-        L2 = Rstdp(eta_up=0.005,
-                                 eta_down=-0.005,
-                                 anti_eta_up=-0.0015,
-                                 anti_eta_down=0.0015,
+        L2 = SimplifiedSTDP(eta_up=0.05,
+                                 eta_down=-0.05,
+                                 # anti_eta_up=-0.0015,
+                                 # anti_eta_down=0.0015,
                                  mp=True,
-                                 wta=False
+                                 # wta=False
                    )
         c1.set_max_weight(0.3)
         c2.set_max_weight(0.3)
@@ -202,6 +202,7 @@ if __name__ == '__main__':
 
             simtrain.run(len(train.data))
             # print(wprobe.get_data(0))
+            train_acc = d1.get_accuracy()
             model.restore()
             b1.stop_learner()
             b2.stop_learner()
@@ -212,15 +213,15 @@ if __name__ == '__main__':
             acc[epoch] = d1.get_accuracy()
             model.restore()
 
-            Helper.print_progress(epoch+1, post_training_epochs, "Post training RSTDP:", 'last accuracy: {}'.format(acc[epoch]))
-            if acc[epoch] > target_acc and acc[epoch] < acc[epoch-1]:
+            Helper.print_progress(epoch+1, post_training_epochs, "Post training RSTDP:", 'train accuracy: {}, test accuracy: {}'.format(train_acc, acc[epoch]))
+            if acc[epoch] >= target_acc:
                 finished = True
                 print("\nAccuracy reached: interrupted")
                 sim.save("trained_heart_2.w")
                 plt.figure()
                 plt.plot(acc)
                 break
-        plt.figure()
+        plt.figure(2)
         plt.plot(acc)
 
     # b2.set_learner(L2)
