@@ -143,6 +143,8 @@ class Helper(object):
 
         # sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
         # sys.stdout.write('\x1b[2K\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix))
+        if total <= 0:
+            total = 1
 
         percents = f'{100 * (iteration / float(total)):.2f}'
         filled_length = int(round(bar_length * iteration / float(total)))

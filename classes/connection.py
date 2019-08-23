@@ -106,7 +106,7 @@ class Connection(SimulationObject):
                                                            mu=mu, sigma=sigma,
                                                            kernel_size=kernel_size, mode=mode,
                                                            first=first, connection=self,
-                                                           integer_weight=integer_weight, *args, **kwargs))
+                                                           integer_weight=integer_weight, **kwargs))
                     first = False
             else:
                 i = 0
@@ -117,7 +117,7 @@ class Connection(SimulationObject):
                                                                mu=mu, sigma=sigma,
                                                                kernel_size=kernel_size, mode=mode,
                                                                first=first, connection=self,
-                                                               integer_weight=integer_weight, *args, **kwargs))
+                                                               integer_weight=integer_weight, **kwargs))
                         i += 1
                         first = False
             self.weights = None

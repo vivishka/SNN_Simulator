@@ -31,15 +31,15 @@ class Learner(object):
     :ivar size: number of neuron in the layer
     :type size: int
     :ivar buffer_in: array of list of received spikes this input cycle
-        index is source neuron index
-        (time, source_n, dest_n  , weight, source_c, input_index)
-    :type buffer_in: array of list of (int, int, int, float, Connection, int)
+        index is dest neuron index
+        value is (time, source_n , weight, source_c)
+    :type buffer_in: array of list of (float, int, Connection, float)
     :ivar buffer_in_empty: array of empty list, used to reset the buffer_in
     :type buffer_in_empty: array of list
     :ivar buffer_out: list of emitted spikes this input cycle, ordered by time of emission
     :type buffer_out: list of (float, int)
     :ivar in_spikes: list of buffer_in, one array for each input cycle
-    :type in_spikes: list of list of (int, int, int, float, Connection, int)
+    :type in_spikes: list of list of (float,int, Connection, float)
     :ivar out_spikes: list of buffer_out, one array for each input cycle
     :type out_spikes: list of list of (float, int)
     :ivar active: is learning ?
@@ -53,9 +53,9 @@ class Learner(object):
         self.eta_down = eta_down
         self.tau_up = tau_up
         self.tau_down = tau_down
-        self.buffer_in = []  # [time, source_n, dest_n  , weight, source_c, input_index]
+        self.buffer_in = []  # [time, source_n, source_c, weight]
         self.buffer_in_empty = None
-        self.buffer_out = []  # [time, source_n, batch_id]
+        self.buffer_out = []  # dest_n: [time, source_n, batch_id]
         self.in_spikes = []
         self.out_spikes = []
         self.active = True

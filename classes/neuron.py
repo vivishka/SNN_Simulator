@@ -1,6 +1,5 @@
 import logging as log
-from .base import Helper, MeasureTiming
-from .weights import Weights
+from .base import Helper
 import sys
 sys.dont_write_bytecode = True
 
@@ -12,8 +11,6 @@ class NeuronType(object):
 
     Parameters
     ----------
-    :param args : Arguments passed to initialize the neuron parameters
-    :type args: list
     :param kwargs: Arguments passed to initialize the neuron parameters
     :type kwargs: dict
 
@@ -40,7 +37,7 @@ class NeuronType(object):
     """
     nb_neuron = 0
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         NeuronType.nb_neuron += 1
         self.ensemble = None
         self.index_1d = 0
@@ -201,7 +198,7 @@ class IF(NeuronType):
     :type voltage: float
     """
 
-    def __init__(self, threshold=1, tau=1):
+    def __init__(self, threshold=1):
         super(IF, self).__init__()
         self.voltage = 0
         self.threshold = threshold

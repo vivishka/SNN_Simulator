@@ -288,6 +288,7 @@ class Ensemble(Layer):
         self.learner = learner
         learner.set_layer(self)
 
+
 class Bloc(Layer):
     """
     A bloc is a group of ensembles of the same dimension
@@ -349,7 +350,7 @@ class Bloc(Layer):
         :param wta: winner take all, if True, the whole ensemble will be inhibited one of its neuron spike
         :type wta: bool
         :param radius: lateral inhibition radius
-        :type radius: int or (int, int)
+        :type radius: int or (int, int) or None
         :param k_wta_level: number of first neuron allowed to spike, can reduce learning time
         :type k_wta_level: int
         """

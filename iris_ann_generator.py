@@ -56,8 +56,8 @@ def sat_reg(weight_matrix):
 def run(depth_in=3, n1=20, depth_out=10):
 
     # mnist = tf.keras.datasets.mnist
-    iris_train = pd.read_csv('datasets/iris/iris - train.csv')
-    iris_test = pd.read_csv('datasets/iris/iris - test.csv')
+    iris_train = pd.read_csv('datasets/iris/iris-train.csv')
+    iris_test = pd.read_csv('datasets/iris/iris-test.csv')
 
     # x_train, x_test, y_train, y_test = train_test_split(iris.iloc[:, 1:5], iris["species"], test_size=0.33,)
     x_train = iris_train.iloc[:, 1:5]
@@ -139,13 +139,8 @@ def run(depth_in=3, n1=20, depth_out=10):
     c1 = weights[0].reshape((1, 1) + weights[0].shape)
     c2 = weights[1].reshape((1, 1) + weights[1].shape)
 
-
-
-
-
-    c = c1
-    np.save('c1', to_gfr_weights(c1, depth_in, 4, n1))
-    np.save('c2', c2)
+    np.save('iris_c1', to_gfr_weights(c1, depth_in, 4, n1))
+    np.save('iris_c2', c2)
 
 
 if __name__ == '__main__':

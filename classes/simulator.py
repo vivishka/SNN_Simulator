@@ -252,9 +252,9 @@ class Simulator(object):
 
 
 class SimulatorMp(Simulator):
-    def __init__(self, model, dt=0.01, batch_size=1, input_period=1, processes=3, dataset=None):
+    def __init__(self, network, dt=0.01, batch_size=1, input_period=1, processes=3, dataset=None):
         super(Simulator, self).__init__()
-        self.model = model
+        self.network = network
         self.dataset = dataset
         self.nb_step = 0
         self.input_period = input_period
@@ -281,7 +281,7 @@ class SimulatorMp(Simulator):
                 mp.set_start_method('spawn')
             else:
                 mp.set_start_method('fork')
-        except:
+        except :
             pass
         self.workers = []
         self.pipes = []
@@ -293,12 +293,12 @@ class SimulatorMp(Simulator):
             self.split[exp % self.processes] += 1
 
     def build(self):
-        self.model.build()
+        self.network.build()
         # self.model.set_sim(self) do not set sim yet (will be done in worker)
-        self.ensembles = self.model.objects[Ensemble]
-        self.blocs = self.model.objects[Bloc]
-        self.connections = self.model.objects[Connection]
-        self.ensembles = self.model.objects[Ensemble]
+        self.ensembles = self.network.objects[Ensemble]
+        self.blocs = self.network.objects[Bloc]
+        self.connections = self.network.objects[Connection]
+        self.ensembles = self.network.objects[Ensemble]
         self.connections.sort(key=lambda con: con.id)
 
     @MeasureTiming('sim_run')
@@ -323,28 +323,27 @@ class SimulatorMp(Simulator):
                 data.append(self.dataset.next())
                 labels.append(self.dataset.labels[self.dataset.index])
 
-            self.workers.append(mp.Process(target=self.mp_run,
-                                           args=(self.pipes[worker_id][1],
-                                                 self.model,
-                                                 data,
-                                                 labels,
-                                                 self.dt,
-                                                 self.input_period,
-                                                 worker_id,
-                                                 )
-                                           )
-                                )
+            self.workers.append(
+                mp.Process(
+                    target=self.mp_run, args=(
+                        self.pipes[worker_id][1],
+                        self.network,
+                        data,
+                        labels,
+                        self.dt,
+                        self.input_period,
+                        worker_id,
+                    )
+                )
+            )
             self.workers[worker_id].start()
 
         self.start = time.time()
         for batch in range(self.nb_batches):
             Helper.log('Simulator', log.DEBUG, 'next batch {0}'.format(batch))
-            # print("next batch")
-            # self.print_time()
             # Setup workers
             self.curr_batch = batch + 1
             self.curr_time = (1 + batch) * self.batch_size * self.input_period
-            # self.print_time()
             self.print_time()
             Helper.log('Simulator', log.INFO, 'All workers sent')
             # update when worker finished
@@ -365,10 +364,8 @@ class SimulatorMp(Simulator):
                         finished += 1
                 Helper.log('Simulator', log.INFO, 'worker {} finished, gathering data')
                 time.sleep(0.1)
-            # print('all updates processed: size {}'.format(len(all_updates)))
             for worker_id, worker_load in enumerate(self.split):
 
-                # self.copies.append(copy.deepcopy(self.model))
                 data = []
                 labels = []
                 for _ in range(self.split[worker_id]):
@@ -389,13 +386,12 @@ class SimulatorMp(Simulator):
             worker.kill()
 
     @staticmethod
-    def mp_run(pipe, model, data, labels, dt, input_period, id):
-        # print("new worker " + str(id))
+    def mp_run(pipe, network, data, labels, dt, input_period, id):
         Helper.log('Simulator', log.INFO, 'new worker init')
-        my_model = copy.deepcopy(model)
+        my_network = copy.deepcopy(network)
         dataset = Dataset()
-        sim = Simulator(network=my_model, dataset=dataset, dt=dt, input_period=input_period)
-        for con in my_model.objects[Connection]:
+        sim = Simulator(network=my_network, dataset=dataset, dt=dt, input_period=input_period)
+        for con in my_network.objects[Connection]:
             con.is_probed = False
         while True:
             dataset.index = 0
@@ -404,14 +400,12 @@ class SimulatorMp(Simulator):
             sim.run(duration=len(data)*input_period)
             Helper.log('Simulator', log.INFO, 'worker {} done, extracting updates'.format(id))
             out = {}
-            for ens in my_model.objects[Ensemble]:
+            for ens in my_network.objects[Ensemble]:
                 if ens.learner:
                     out = {k: out.get(k, 0) + ens.learner.updates.get(k, 0)
                            for k in set(out) | set(ens.learner.updates)}  # merge sum dicts
             sim.flush()
             pipe.send(out)
-            # while not pipe.poll():
-            #     time.sleep(0.5)
             try:
                 update = pipe.recv()
             except KeyError:
@@ -421,24 +415,6 @@ class SimulatorMp(Simulator):
                 pipe.send("Error")
             for attr, value in update[0].items():
                 sim.connections[attr[0]].update_weight(attr[1], attr[2], value)
-            # print(my_model.objects[Connection][1].weights.matrix[0, 0])
-            my_model.restore()
-            # print(my_model.objects[Connection][1].weights.matrix[0, 0])
+            my_network.restore()
             data = update[1][0]
             labels = update[1][1]
-            # print('worker {} updates applied'.format(id))
-
-        # print("worker done")
-
-    # def print_time(self):
-    #     # if __name__ == '__main__':
-    #     if self.time_enabled:
-    #         time_left = int((time.time() - self.start) / self.curr_time * (self.duration - self.curr_time))
-    #         print('Time {} / {}, {}:{}:{} left '
-    #               .format(int(self.curr_time),
-    #                       self.duration,
-    #                       int(time_left // 3600),
-    #                       int((time_left // 60) % 60),
-    #                       int(time_left % 60)))
-    #
-    #
