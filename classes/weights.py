@@ -70,7 +70,7 @@ class Weights(object):
         self.sigma = sigma
 
         self.matrix = None
-        if kernel_size is None:
+        if kernel_size is None and mode is None:
             self.init_weights_dense()
         else:
             if mode == 'shared':
@@ -91,6 +91,8 @@ class Weights(object):
                     self.init_weight_split(model=kwargs['connection'].connection_list[0].weights.matrix)
                 else:
                     self.init_weight_split()
+            elif mode == 'categorize':
+                self.init_weight_cat(index=kwargs['index'])
             else:
                 self.init_weight_kernel()
 
@@ -113,6 +115,11 @@ class Weights(object):
         # prevents weights being stuck in saturation from the start
         mat = mat.clip(self.wmin + 0.01 * delta, self.wmax - 0.01 * delta)
         return mat
+
+    def init_weight_cat(self, index):
+        tmp_matrix = np.zeros((np.prod(self.source_dim), np.prod(self.dest_dim)))
+        tmp_matrix[:, index] = 1
+        self.matrix = CompactMatrix(tmp_matrix)
 
     def init_weights_dense(self):
         """
