@@ -103,6 +103,8 @@ if __name__ == '__main__':
     # Connection weight initialization using ANN weights
     c1.load(np.load('iris_c1.npy'))
     c2.load(np.load('iris_c2.npy'))
+    b1.set_init_voltage(np.load('iris_b1.npy'))
+    b2.set_init_voltage(np.load('iris_b2.npy'))
 
     sim = Simulator(network=network, dataset=train, dt=0.01, input_period=1)
 
@@ -125,6 +127,8 @@ if __name__ == '__main__':
                 success += confusion[i, i]/len(train.data)
             success_map[i1, i2] = success
             network.restore()  # should be called in between 2 runs (when the network changes)
+            b1.set_init_voltage(np.load('iris_b1.npy'))
+            b2.set_init_voltage(np.load('iris_b2.npy'))
             Helper.print_progress(len(t1)*i2+i1, len(t1)*len(t2), "testing thresholds ", bar_length=30,)
             # suffix='est. time: {} s'.format(int(len(t1)*len(t2)-(len(t2)*i1+i2)/(time.time() - last_time))))
             last_time = time.time()
@@ -141,6 +145,8 @@ if __name__ == '__main__':
     # plt.imsave('success_map.png', arr=success_map, cmap='gray', format='png')
 
     network.restore()
+    b1.set_init_voltage(np.load('iris_b1.npy'))
+    b2.set_init_voltage(np.load('iris_b2.npy'))
     b1.set_threshold(t1[t1max[0]])
     b2.set_threshold(t2[t2max[0]])
     sim.enable_time(True)
@@ -159,6 +165,8 @@ if __name__ == '__main__':
     print("Train accuracy: {}".format(d1.get_accuracy()))
 
     network.restore()
+    b1.set_init_voltage(np.load('iris_b1.npy'))
+    b2.set_init_voltage(np.load('iris_b2.npy'))
 
     ################################
     # Test accuracy
