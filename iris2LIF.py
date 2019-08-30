@@ -1,5 +1,5 @@
 from classes.network import Network
-from classes.neuron import IF
+from classes.neuron import IF, LIF
 from classes.simulator import Simulator, SimulatorMp
 from classes.probe import *
 from classes.decoder import *
@@ -16,17 +16,17 @@ if __name__ == '__main__':
 
     filename = 'datasets/iris.csv'
     data_size = 4
-    epochs1 = 600
-    epochs2 = 800
+    epochs1 = 300
+    epochs2 = 400
 
-    en1 = 8
+    en1 = 5
     n1 = 20
-    n2 = 15
+    n2 = 3
 
     enableMP = False
 
-    test = FileDataset('datasets/iris/iris - train.csv', -1, size=data_size, length=-1)
-    train = FileDataset('datasets/iris/iris - test.csv', -1, size=data_size, length=-1, randomized=True)
+    train = FileDataset('datasets/iris/iris - train.csv', -1, size=data_size, length=-1, randomized=True)
+    test = FileDataset('datasets/iris/iris - test.csv', -1, size=data_size, length=-1)
 
     ################################
     # Layer 1 building and training
@@ -36,16 +36,16 @@ if __name__ == '__main__':
     network = Network()
 
     # Element creation, they are added to the network
-    l1 = SimplifiedSTDP(eta_up=0.02, eta_down=-0.02, mp=enableMP)
+    l1 = SimplifiedSTDP(eta_up=0.02, eta_down=-0.05, mp=enableMP)
     e1 = EncoderGFR(
         size=data_size, depth=en1,
         in_min=0, in_max=1,
-        threshold=0.8, gamma=1, delay_max=1,
+        threshold=0.8, gamma=1.8, delay_max=1,
         # spike_all_last=True
     )
     b1 = Bloc(
         depth=1, size=n1,
-        neuron_type=IF(threshold=5.1),
+        neuron_type=LIF(threshold=4),
         learner=l1
     )
     c1 = Connection(e1, b1, mu=0.5, sigma=0.1, wmin=-0.5, wmax=1)
@@ -62,9 +62,9 @@ if __name__ == '__main__':
 
     # simulator creation
     if enableMP:
-        sim = SimulatorMp(network=network, dataset=train, dt=0.01, input_period=1, batch_size=30, processes=3)
+        sim = SimulatorMp(network=network, dataset=train, dt=0.05, input_period=1, batch_size=30, processes=3)
     else:
-        sim = Simulator(network=network, dataset=train, dt=0.01, input_period=1, batch_size=1)
+        sim = Simulator(network=network, dataset=train, dt=0.01, input_period=1, batch_size=10)
     sim.enable_time(True)
 
     # The network is "compiled" at this step
@@ -102,14 +102,14 @@ if __name__ == '__main__':
     l2 = Rstdp(
         eta_up=0.02, eta_down=-0.02,
         anti_eta_up=-0.005, anti_eta_down=0.005,
-        size_cat=5,
+        size_cat=1,
         mp=enableMP
     )
-    b2 = Bloc(depth=1, size=n2, neuron_type=IF(threshold=1.1), learner=l2)
+    b2 = Bloc(depth=1, size=n2, neuron_type=LIF(threshold=1.3), learner=l2)
     c2 = Connection(b1, b2, wmin=-0.5, mu=0.5, sigma=0.1)
 
     # Probes
-    # np2 = NeuronProbe(b2[0], ["voltage", "threshold"])
+    np2 = NeuronProbe(b2[0], ["voltage", "threshold"])
     cps2 = ConnectionProbe(c2)
     # for con in c2:
     #     cps2.append(ConnectionProbe(con))
@@ -133,7 +133,7 @@ if __name__ == '__main__':
 
     c2.plot_convergence()
     cps2.plot()
-    # np2.plot('voltage')
+    np2.plot('voltage')
     # np2.plot('threshold')
 
     # plt.figure()

@@ -83,8 +83,8 @@ if __name__ == '__main__':
     train = FileDataset('datasets/iris/iris - train.csv', size=data_size, randomized=True)
     test = FileDataset('datasets/iris/iris - test.csv', size=data_size)
 
-    t1 = np.linspace(0.5, 1, 20)
-    t2 = np.linspace(0.5, 2, 20)
+    t1 = np.linspace(0.5, 1, 2)
+    t2 = np.linspace(0.5, 2, 2)
     success_map = np.zeros((len(t1), len(t2)))
     th_list = np.zeros((len(t1) * len(t2), 2))
     succ_list = np.zeros(len(t1) * len(t2))
@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
     c3 = Connection(b2, d1, kernel_size=1, mode='split')
 
-    sim = Simulator(model=model, dataset=train, dt=0.01, input_period=1)
+    sim = Simulator(network=model, dataset=train, dt=0.01, input_period=1)
     model.build()
     for exp in range(1):
         iris_ann_generator.run(en1, n1, n2)

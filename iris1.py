@@ -48,7 +48,6 @@ if __name__ == '__main__':
 
     e1 = EncoderGFR(size=data_size, depth=en1, in_min=0, in_max=1, threshold=0.8, gamma=1.8, delay_max=1,# spike_all_last=True
                     )
-    node = Node(e1, image_dataset, 1, 0)
     b1 = Bloc(depth=1, size=n1, neuron_type=IF(threshold=4),
               learner=SimplifiedSTDP(
                   eta_up=0.03,
@@ -59,7 +58,7 @@ if __name__ == '__main__':
                   mp=True
               )
               )
-    b1.set_inhibition(wta=True, radius=None, k_wta_level=3)
+    b1.set_inhibition(wta=True, k_wta_level=3)
     # b1.set_threshold_adapt(0.4, 2, 0.05, 0)
 
     c1 = Connection(e1, b1, mu=0.6, sigma=0.05)
