@@ -399,7 +399,7 @@ class Rstdp(Learner):
                         if (connection.id, source_n, dest_n) in self.updates:
                             self.updates[(connection.id, source_n, dest_n)] += dw
                         else:
-                            self.updates[(connection.id, source_n, dest_n)] = dw
+                                self.updates[(connection.id, source_n, dest_n)] = dw
 
         self.out_spikes = []
         self.in_spikes = []

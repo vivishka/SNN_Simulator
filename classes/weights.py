@@ -109,7 +109,7 @@ class Weights(object):
         else:
             mat = np.random.randn(*dim)
         delta = self.wmax - self.wmin
-        mat = mat * (self.sigma * delta) + (self.mu * delta)
+        mat = mat * self.sigma + self.mu
         # prevents weights being stuck in saturation from the start
         mat = mat.clip(self.wmin + 0.01 * delta, self.wmax - 0.01 * delta)
         return mat
