@@ -79,7 +79,6 @@ def run(depth_in=5, n1=200, n2=150, depth_out=10):
     y_test = heart_test["target"]
 
 
-
     numClasses = 2
     output_size = numClasses * depth_out
     # (x_train, y_train),(x_test, y_test) = mnist.load_data()
@@ -96,41 +95,19 @@ def run(depth_in=5, n1=200, n2=150, depth_out=10):
     key = np.array([[1. if col // (output_size // numClasses) == row else 0.
                      for col in range(output_size)] for row in range(numClasses)])
 
-
     model = Sequential()
-    model.add(Dense(n1,
-                    input_shape=(13 * depth_in,),
-                    use_bias=False,
-                    # bias_initializer=keras.initializers.Constant(value=-1),
-                    # bias_constraint= keras.constraints.MinMaxNorm(min_value=-1., max_value=-1.0, rate=1.0, axis=0),
-                    # kernel_constraint=NonNeg(),
-                    # kernel_regularizer=regularizers.l1(0.00001)
-                    # kernel_regularizer=sat_reg
-                    ))
+    model.add(Dense(n1, input_shape=(13 * depth_in,), use_bias=False,))
     model.add(Spiking_BRelu())
-    model.add(keras.layers.Dropout(0.2))
-    model.add(Dense(n2,
-                    use_bias=False,
-                    # bias_initializer=keras.initializers.Constant(value=-1),
-                    # bias_constraint= keras.constraints.MinMaxNorm(min_value=-1., max_value=-1.0, rate=1.0, axis=0),
-                    # kernel_constraint=NonNeg(),
-                    # kernel_regularizer=regularizers.l1(0.00001)
-                    # kernel_regularizer=sat_reg
-                    ))
+    model.add(keras.layers.Dropout(0.1))
+    model.add(Dense(n2, use_bias=False,))
     model.add(Spiking_BRelu())
-    # model.add(keras.layers.Dropout(0.2))
-    model.add(Dense(output_size,
-                    use_bias=False,
-                    # bias_initializer=keras.initializers.Constant(value=-1),
-                    # bias_constraint= keras.constraints.MinMaxNorm(min_value=-1., max_value=-1.0, rate=1.0, axis=0),
-                    # kernel_constraint=NonNeg(),
-                    # kernel_regularizer=regularizers.l1(0.00001)
-                    # kernel_regularizer=sat_reg
-                    ))
+    model.add(keras.layers.Dropout(0.1))
+    model.add(Dense(output_size, use_bias=False,))
     model.add(Spiking_BRelu())
+    # model.add(keras.layers.Dropout(0.5))
     model.add(Softmax_Decode(key))
 
-    simple = SimpleSharpener(start_epoch=5, steps=10, epochs=True, bottom_up=True)
+    simple = SimpleSharpener(start_epoch=20, steps=20, epochs=True, bottom_up=True)
 
     # Create a new directory to save the logs in.
     log_dir = './simple_logs'
@@ -139,23 +116,21 @@ def run(depth_in=5, n1=200, n2=150, depth_out=10):
 
     # logger = WhetstoneLogger(logdir=log_dir, sharpener=simple)
 
-    model.compile(loss='categorical_crossentropy', optimizer=Adadelta(lr=4.0, rho=0.95, epsilon=1e-8, decay=0.0), metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=Adadelta(lr=4.0, rho=0.95, epsilon=1e-8, decay=0.0),
+                  metrics=['accuracy'])
     model.summary()
     time.sleep(0.1)
-    model.fit(x_train, y_train, batch_size=5, epochs=500, callbacks=[simple, ])
+    model.fit(x_train, y_train, batch_size=10, epochs=80, callbacks=[simple])
 
     weights = []
-    bias = []
     for layer in model.layers:
         if not layer.get_weights():
             continue
         w = layer.get_weights()[0]
-        # b = layer.get_weights()[1]
-        # b = np.array(b).clip(-1., 1.)
         w = np.array(w).clip(0., 1.)
         weights.append(w)
         print(w)
-        # print(b)
 
     print(model.evaluate(x_test, y_test))
     y_pred = model.predict(x_test)
@@ -165,15 +140,10 @@ def run(depth_in=5, n1=200, n2=150, depth_out=10):
     c2 = weights[1].reshape((1, 1) + weights[1].shape)
     c3 = weights[2].reshape((1, 1) + weights[2].shape)
 
-
-
-
-
-    c = c1
     np.save('c1', to_gfr_weights(c1, depth_in, 13, n1))
     np.save('c2', c2)
     np.save('c3', c3)
 
 
 if __name__ == '__main__':
-    run(10,200,100,10)
+    run(20, 128, 128, 10)

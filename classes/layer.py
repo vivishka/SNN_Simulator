@@ -243,6 +243,23 @@ class Ensemble(Layer):
 
     # </spike region>
 
+    def set_init_voltage(self, voltage):
+        """
+        Sets the threshold for all all neurons of all the ensembles
+        :param voltage: new threshold
+        :type voltage: float or ndarray
+        """
+        if isinstance(voltage, float):
+            for ens in self.ensemble_list:
+                for neuron in ens.neuron_list:
+                    neuron.voltage = voltage
+        else:
+            # dim 0: ens index
+            # dim 1, 2:
+            if voltage.shape != self.size:
+                raise ValueError("wrong dimension for the")
+        # TODO: finish dis
+
     def reset(self):
         """
         called every input period,
@@ -434,16 +451,6 @@ class Bloc(Layer):
 
             # clipping
             new_th = max(self.th_min, new_th)
-            for neuron in ens.neuron_list:
-                neuron.threshold = new_th
-
-    def set_threshold(self, new_th):
-        """
-        Sets the threshold for all all neurons of all the ensembles
-        :param new_th: new threshold
-        :type new_th: float
-        """
-        for ens in self.ensemble_list:
             for neuron in ens.neuron_list:
                 neuron.threshold = new_th
 
