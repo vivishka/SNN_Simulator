@@ -245,7 +245,7 @@ class Ensemble(Layer):
 
     def set_init_voltage(self, voltage):
         """
-        Sets the threshold for all all neurons of all the ensembles
+        Sets the initial voltage of the neurons of the ensemble
         :param voltage: new threshold
         :type voltage: float or ndarray
         """
@@ -254,11 +254,11 @@ class Ensemble(Layer):
                 for neuron in ens.neuron_list:
                     neuron.voltage = voltage
         else:
-            # dim 0: ens index
-            # dim 1, 2:
             if voltage.shape != self.size:
                 raise ValueError("wrong dimension for the")
-        # TODO: finish dis
+            for row in range(self.size[0]):
+                for col in range(self.size[1]):
+                    self.neuron_array[row, col].voltage = voltage[row, col]
 
     def reset(self):
         """
@@ -454,6 +454,16 @@ class Bloc(Layer):
             for neuron in ens.neuron_list:
                 neuron.threshold = new_th
 
+    def set_threshold(self, new_th):
+        """
+        Sets the threshold for all all neurons of all the ensembles
+        :param new_th: new threshold
+        :type new_th: float
+        """
+        for ens in self.ensemble_list:
+            for neuron in ens.neuron_list:
+                neuron.threshold = new_th
+
     def set_learner(self, learner):
         """
         Gives a new learner to all the ensembles of the bloc
@@ -464,6 +474,22 @@ class Bloc(Layer):
         for ens in self.ensemble_list:
             ens.learner = copy.deepcopy(learner)
             ens.learner.set_layer(ens)
+
+    def set_init_voltage(self, voltage):
+        """
+        Sets the initial voltage of the neurons of all the ensembles
+        :param voltage: new threshold
+        :type voltage: float or ndarray
+        """
+        if isinstance(voltage, float):
+            for ens in self.ensemble_list:
+                for neuron in ens.neuron_list:
+                    neuron.voltage = voltage
+        else:
+            if voltage.shape[0] != self.depth:
+                raise ValueError("wrong bloc dimension of the bias array")
+            for index, ens in enumerate(self.ensemble_list):
+                ens.set_init_voltage(voltage[index])
 
     def stop_inhibition(self):
         """

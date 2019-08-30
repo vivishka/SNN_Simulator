@@ -41,6 +41,7 @@ def GFR(data, depth, in_min=0, in_max=1, out_max=1, gamma=1.5):
 
     return pd.DataFrame(data=array, columns=columns, index=index)
 
+
 def to_gfr_weights(weights, depth, l1, l2):
     w = np.ndarray((1, depth, l1, l2))
     for ens_i in range(depth):
@@ -50,8 +51,14 @@ def to_gfr_weights(weights, depth, l1, l2):
                 w[0, ens_i, neur_i, col] = weights[0, 0, row, col]
     return w
 
+
+def extract_bias(weights, depth, l1, l2):
+    w = np.ndarray((1, depth, l1, l2))
+
+
 def sat_reg(weight_matrix):
     return 0.0001 * K.sum(K.abs(weight_matrix - 0) * K.abs(weight_matrix - 1))
+
 
 def run(depth_in=3, n1=20, depth_out=10):
 
@@ -84,11 +91,11 @@ def run(depth_in=3, n1=20, depth_out=10):
     key = np.array([[1. if col // (output_size // numClasses) == row else 0.
                      for col in range(output_size)] for row in range(numClasses)])
 
-
+    use_bias = True
     model = Sequential()
     model.add(Dense(n1,
                     input_shape=(4 * depth_in,),
-                    use_bias=False,
+                    use_bias=use_bias,
                     # bias_initializer=keras.initializers.Constant(value=-1),
                     # bias_constraint= keras.constraints.MinMaxNorm(min_value=-1., max_value=-1.0, rate=1.0, axis=0),
                     # kernel_constraint=NonNeg(),
@@ -97,7 +104,7 @@ def run(depth_in=3, n1=20, depth_out=10):
                     ))
     model.add(Spiking_BRelu())
     model.add(Dense(output_size,
-                    use_bias=False,
+                    use_bias=use_bias,
                     # bias_initializer=keras.initializers.Constant(value=-1),
                     # bias_constraint= keras.constraints.MinMaxNorm(min_value=-1., max_value=-1.0, rate=1.0, axis=0),
                     # kernel_constraint=NonNeg(),
@@ -125,10 +132,11 @@ def run(depth_in=3, n1=20, depth_out=10):
         if not layer.get_weights():
             continue
         w = layer.get_weights()[0]
-        # b = layer.get_weights()[1]
-        # b = np.array(b).clip(-1., 1.)
+        b = layer.get_weights()[1]
+        b = np.array(b).clip(-1., 1.)
         w = np.array(w).clip(0., 1.)
         weights.append(w)
+        bias.append(b)
         print(w)
         # print(b)
 
@@ -138,9 +146,13 @@ def run(depth_in=3, n1=20, depth_out=10):
 
     c1 = weights[0].reshape((1, 1) + weights[0].shape)
     c2 = weights[1].reshape((1, 1) + weights[1].shape)
+    b1 = bias[0].reshape((1, 1) + bias[0].shape)
+    b2 = bias[1].reshape((1, 1) + bias[1].shape)
 
     np.save('iris_c1', to_gfr_weights(c1, depth_in, 4, n1))
     np.save('iris_c2', c2)
+    np.save('iris_b1', b1)
+    np.save('iris_b2', b2)
 
 
 if __name__ == '__main__':
