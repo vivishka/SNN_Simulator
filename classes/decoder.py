@@ -221,7 +221,7 @@ class DecoderClassifier(Decoder):
             label = self.sim.dataset.labels[index % len(self.sim.dataset.labels)]
             if len(dec_cats) == 1 and dec_cats[0] == label:
                 correct += 1
-        return correct / len(self.decoded_wta)
+        return correct / len(self.decoded_wta) if len(self.decoded_wta) > 0 else 0
 
     def reset(self):
         self.decoded_wta.append(self.get_first_spike())
@@ -243,6 +243,7 @@ class DecoderClassifier(Decoder):
         plt.figure()
         plt.plot(acc_meaned)
         plt.title("Accuracy")
+
 
 class DigitSpykeTorch(Decoder):
     """

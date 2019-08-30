@@ -108,6 +108,20 @@ class Connection(SimulationObject):
                                                            first=first, connection=self,
                                                            integer_weight=integer_weight, **kwargs))
                     first = False
+            elif mode == 'categorize':
+                dest_e = dest_l.ensemble_list[0]
+                if dest_e.size != (1, source_l.depth):
+                    Helper.log('Connection', log.CRITICAL, 'different depth and size for categorize connection')
+                    raise Exception("source depth different from dest size for categorize connection")
+                for source_ind, source_e in enumerate(source_l.ensemble_list):
+                    self.connection_list.append(Connection(source_l=source_e,
+                                                           dest_l=dest_e,
+                                                           wmin=self.wmin, wmax=wmax,
+                                                           mu=mu, sigma=sigma,
+                                                           kernel_size=kernel_size, mode=mode,
+                                                           first=True, connection=self,
+                                                           integer_weight=integer_weight,
+                                                           index=source_ind, **kwargs))
             else:
                 i = 0
                 for l_out in dest_l.ensemble_list:
