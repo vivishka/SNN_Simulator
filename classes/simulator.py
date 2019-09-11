@@ -54,7 +54,7 @@ class Simulator(object):
         self.network.build()
         self.network.set_sim(self)
         self.ensembles = self.network.objects[Ensemble]
-        self.blocs = self.network.objects[Bloc]
+        self.blocs = self.network.objects[Block]
         self.connections = self.network.objects[Connection]
         self.encoders = self.network.objects[Encoder]
         self.connections.sort(key=lambda con: con.id)
@@ -296,7 +296,7 @@ class SimulatorMp(Simulator):
         self.network.build()
         # self.model.set_sim(self) do not set sim yet (will be done in worker)
         self.ensembles = self.network.objects[Ensemble]
-        self.blocs = self.network.objects[Bloc]
+        self.blocs = self.network.objects[Block]
         self.connections = self.network.objects[Connection]
         self.ensembles = self.network.objects[Ensemble]
         self.connections.sort(key=lambda con: con.id)

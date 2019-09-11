@@ -2,7 +2,7 @@
 # import logging as log
 from .base import MeasureTiming
 import numpy as np
-from .layer import Ensemble, Bloc
+from .layer import Ensemble, Block
 from .neuron import NeuronType
 from .connection import Connection
 import matplotlib.pyplot as plt
@@ -126,7 +126,7 @@ class NeuronProbe(Probe):
     
     def __init__(self, target, variables):
         super(NeuronProbe, self).__init__(target, variables)
-        if isinstance(target, Bloc):
+        if isinstance(target, Block):
             self.target = []
             for ens in target.ensemble_list:
                 self.target += ens.neuron_list

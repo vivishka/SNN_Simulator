@@ -15,8 +15,8 @@ class ConnectionTest(unittest.TestCase):
     def test_connection(self):
         layer_in = Ensemble(self.size, LIF())
         layer_out = Ensemble(self.size, LIF())
-        bloc_in = Bloc(self.depth, self.size, LIF())
-        bloc_out = Bloc(self.depth, self.size, LIF())
+        bloc_in = Block(self.depth, self.size, LIF())
+        bloc_out = Block(self.depth, self.size, LIF())
 
         con1 = Connection(layer_in, layer_out, 0, 1)
         con2 = Connection(bloc_in, layer_out, 0, 1)

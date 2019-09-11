@@ -57,7 +57,7 @@ class Ensemble(Layer):
     Attributes
     ----------
     :ivar bloc: Blocks in which this Ensemble belongs to
-    :type bloc: Bloc
+    :type bloc: Block
     :ivar index: index of the Ensemble in the Block
     :type index: int
     :ivar size: Size of the ensemble, if the given parameter was an int, the size is (1, n)
@@ -306,7 +306,7 @@ class Ensemble(Layer):
         learner.set_layer(self)
 
 
-class Bloc(Layer):
+class Block(Layer):
     """
     A bloc is a group of ensembles of the same dimension
     Ensembles are not connected together but share common previous and next layers
@@ -335,10 +335,10 @@ class Bloc(Layer):
     index = 0
 
     def __init__(self, depth, size, neuron_type, learner=None, **kwargs):
-        super(Bloc, self).__init__()
-        Bloc.objects.append(self)
-        self.index = Bloc.index
-        Bloc.index += 1
+        super(Block, self).__init__()
+        Block.objects.append(self)
+        self.index = Block.index
+        Block.index += 1
         self.depth = depth
         self.size = (1, size) if isinstance(size, int) else size
         self.inhibition_radius = (0, 0)

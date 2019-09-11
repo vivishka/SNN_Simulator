@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import logging as log
 from .base import Helper
-from .layer import Ensemble, Bloc
+from .layer import Ensemble, Block
 from .neuron import NeuronType
 
 
@@ -225,12 +225,16 @@ class DecoderClassifier(Decoder):
 
     def reset(self):
         self.decoded_wta.append(self.get_first_spike())
-        result = np.where(self.decoded_wta[-1] == 0)
+        result = np.where(self.decoded_wta[-1][0] == 0)
         if len(result) == 1:
-            self.acc.append(result[0] == self.sim.dataset.labels[len(self.decoded_wta)])
+            self.acc.append(result[0] == self.sim.dataset.labels[len(self.decoded_wta)% len(self.sim.dataset.labels)]) #
         else:
-            self.acc.append(0)
+            self.acc.append(False)
         super(Decoder, self).reset()
+
+    def restore(self):
+        super(DecoderClassifier, self).restore()
+        self.decoded_wta = []
 
     def plot_accuracy(self, mean_range):
         """
@@ -265,7 +269,7 @@ class DigitSpykeTorch(Decoder):
                 self.highest_voltage = voltage
 
 
-class DecoderSpykeTorch(Bloc):
+class DecoderSpykeTorch(Block):
     """
     Deprecated
     """

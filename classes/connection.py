@@ -5,7 +5,7 @@ import numpy as np
 import copy
 import math
 from .base import SimulationObject, Helper, MeasureTiming
-from .layer import Bloc
+from .layer import Block
 from .weights import Weights
 import sys
 sys.dont_write_bytecode = True
@@ -91,7 +91,7 @@ class Connection(SimulationObject):
                    .format(self.id, source_l.id, dest_l.id))
 
         # check if connection is from ensemble to ensemble, generate sub-connections if needed recursively
-        if isinstance(source_l, Bloc) or isinstance(dest_l, Bloc):
+        if isinstance(source_l, Block) or isinstance(dest_l, Block):
             Helper.log('Connection', log.INFO, 'meta-connection detected, creating sub-connections')
             first = True
             if mode == 'pooling':

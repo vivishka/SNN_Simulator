@@ -1,6 +1,6 @@
 from .base import SimulationObject
 from .neuron import NeuronType
-from .layer import Bloc
+from .layer import Block
 from .dataset import *
 import numpy as np
 import sys
@@ -95,7 +95,7 @@ def create_gabor_filters(kernel_size, orientation_list, div):
     return filters
 
 
-class Encoder(Bloc):
+class Encoder(Block):
     
     objects = []
     

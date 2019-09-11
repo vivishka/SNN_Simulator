@@ -1,7 +1,7 @@
 import logging as log
 from .base import Helper
 from .connection import Connection
-from .layer import Ensemble, Bloc
+from .layer import Ensemble, Block
 from .encoder import Encoder
 from .decoder import Decoder
 import sys
@@ -17,7 +17,7 @@ class Network(object):
         super(Network, self).__init__()
         self.objects = {
             Ensemble: [],
-            Bloc: [],
+            Block: [],
             Connection: [],
             Encoder: [],
             Decoder: []
